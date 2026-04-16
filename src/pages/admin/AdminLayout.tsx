@@ -3,7 +3,8 @@ import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { 
   Package, MapPin, Tag, PartyPopper, Users, LayoutDashboard, 
   ArrowLeft, Sparkles, Wine, BookOpen, CircleDot, Megaphone, 
-  HelpCircle, Palette, Star, Flag, FileText, Settings, PlayCircle, Type, Layers, DollarSign, Upload
+  HelpCircle, Palette, Star, Flag, FileText, Settings, PlayCircle, Type, Layers, DollarSign, Upload,
+  Database, Brain
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -70,6 +71,8 @@ const AdminLayout = () => {
         { icon: Settings, label: "Settings", path: "/admin/settings" },
         { icon: FileText, label: "SEO", path: "/admin/sitemap" },
         { icon: HelpCircle, label: "Help", path: "/admin/help-support" },
+        { icon: Database, label: "Database", path: "/admin/database" },
+        { icon: Brain, label: "AI", path: "/admin/ai-settings" },
       ]
     },
   ];
