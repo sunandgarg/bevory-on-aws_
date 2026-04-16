@@ -65,6 +65,10 @@ const AdminTypography = lazy(() => import("./pages/admin/AdminTypography"));
 const AdminBulkUpload = lazy(() => import("./pages/admin/AdminBulkUpload"));
 const AdminDatabaseTools = lazy(() => import("./pages/admin/AdminDatabaseTools"));
 const AdminAISettings = lazy(() => import("./pages/admin/AdminAISettings"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Disclaimer = lazy(() => import("./pages/Disclaimer"));
+const Contact = lazy(() => import("./pages/Contact"));
 
 // Optimized QueryClient with aggressive caching
 const queryClient = new QueryClient({
@@ -137,6 +141,10 @@ const App = () => (
                   <Route path="/creator/:slug" element={<CreatorProfile />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/settings" element={<Settings />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/disclaimer" element={<Disclaimer />} />
+                  <Route path="/contact" element={<Contact />} />
 
                   <Route path="/admin" element={<AdminLayout />}>
                     <Route index element={<AdminDashboard />} />

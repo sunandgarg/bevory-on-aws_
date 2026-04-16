@@ -36,5 +36,6 @@ Disallow: /locations
 # Primary domain
 Host: https://www.bevory.in
 
-# Sitemap
+# Sitemaps
 Sitemap: https://www.bevory.in/sitemap.xml
+Sitemap: https://wahbpewusxrlgqxpnrhc.supabase.co/functions/v1/generate-sitemap
