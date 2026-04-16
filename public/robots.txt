@@ -2,11 +2,20 @@ User-agent: Googlebot
 Allow: /
 Disallow: /admin
 Disallow: /auth
+Disallow: /profile
+Disallow: /settings
+Disallow: /notifications
+Disallow: /recent
+Disallow: /locations
+Crawl-delay: 1
 
 User-agent: Bingbot
 Allow: /
 Disallow: /admin
 Disallow: /auth
+Disallow: /profile
+Disallow: /settings
+Crawl-delay: 2
 
 User-agent: Twitterbot
 Allow: /
@@ -18,8 +27,13 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /auth
+Disallow: /profile
+Disallow: /settings
+Disallow: /notifications
+Disallow: /recent
+Disallow: /locations
 
-# Primary domain is www.bevory.in
+# Primary domain
 Host: https://www.bevory.in
 
 # Sitemap
