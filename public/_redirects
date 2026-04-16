@@ -1,0 +1,6 @@
+# Redirect non-www to www (for Netlify/Vercel-like hosting)
+https://bevory.in/* https://www.bevory.in/:splat 301!
+http://bevory.in/* https://www.bevory.in/:splat 301!
+
+# Redirect legacy product URLs to new format (if needed)
+# /product/:slug can stay as-is since it's handled by React Router
