@@ -17,9 +17,10 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Validate secret header to prevent unauthorized seeding
-    const { secret } = await req.json();
-    if (secret !== serviceRoleKey) {
+    // Validate using Authorization header with service role key
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.replace("Bearer ", "");
+    if (token !== serviceRoleKey) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
