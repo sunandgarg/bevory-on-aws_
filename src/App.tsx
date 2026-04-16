@@ -63,6 +63,8 @@ const AdminVideoReviews = lazy(() => import("./pages/admin/AdminVideoReviews"));
 const AdminVideoCreators = lazy(() => import("./pages/admin/AdminVideoCreators"));
 const AdminTypography = lazy(() => import("./pages/admin/AdminTypography"));
 const AdminBulkUpload = lazy(() => import("./pages/admin/AdminBulkUpload"));
+const AdminDatabaseTools = lazy(() => import("./pages/admin/AdminDatabaseTools"));
+const AdminAISettings = lazy(() => import("./pages/admin/AdminAISettings"));
 
 // Optimized QueryClient with aggressive caching
 const queryClient = new QueryClient({
@@ -161,6 +163,8 @@ const App = () => (
                     <Route path="video-creators" element={<AdminVideoCreators />} />
                     <Route path="typography" element={<AdminTypography />} />
                     <Route path="bulk-upload" element={<AdminBulkUpload />} />
+                    <Route path="database" element={<AdminDatabaseTools />} />
+                    <Route path="ai-settings" element={<AdminAISettings />} />
                   </Route>
 
                   <Route path="*" element={<NotFound />} />
