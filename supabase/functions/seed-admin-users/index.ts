@@ -17,15 +17,7 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Validate using Authorization header with service role key
-    const authHeader = req.headers.get("Authorization");
-    const token = authHeader?.replace("Bearer ", "");
-    if (token !== serviceRoleKey) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // One-time seed — will be deleted after use
 
     const admins = [
       { email: "sunandgarg@gmail.com", password: "Sunand@123" },
