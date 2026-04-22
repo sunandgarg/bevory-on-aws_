@@ -56,11 +56,21 @@ const AdminLocations = () => {
   const cityValidation = useFormValidation(cityValidationSchema);
 
   const fetchData = async () => {
-    const { data: countryData } = await supabase
+    let { data: countryData } = await supabase
       .from("countries")
       .select("id")
       .eq("code", "IN")
       .maybeSingle();
+
+    // Auto-seed India if it doesn't exist so admins can add states immediately
+    if (!countryData) {
+      const { data: inserted } = await supabase
+        .from("countries")
+        .insert({ name: "India", code: "IN", flag: "🇮🇳" })
+        .select("id")
+        .maybeSingle();
+      countryData = inserted;
+    }
 
     if (countryData) {
       setCountryId(countryData.id);
@@ -81,7 +91,11 @@ const AdminLocations = () => {
   }, []);
 
   const handleSaveState = async () => {
-    if (!editState || !countryId) return;
+    if (!editState) return;
+    if (!countryId) {
+      toast({ title: "Setup error", description: "Default country (India) not initialised. Please refresh the page.", variant: "destructive" });
+      return;
+    }
 
     if (!stateValidation.validate({ name: editState.name, code: editState.code })) {
       toast({ title: "Validation Error", description: "Please fix the highlighted fields", variant: "destructive" });
