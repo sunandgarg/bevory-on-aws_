@@ -104,9 +104,9 @@ const ProductImage = memo(({
           onLoad={() => setIsLoaded(true)}
           onError={() => setHasError(true)}
           className={cn(
-            "w-full h-full transition-all duration-500",
-            objectFit === "contain" && "object-contain p-2",
-            objectFit === "cover" && "object-cover",
+            "absolute inset-0 m-auto block max-w-full max-h-full transition-all duration-500",
+            objectFit === "contain" && "object-contain p-3",
+            objectFit === "cover" && "w-full h-full object-cover",
             !isLoaded && "opacity-0 scale-95",
             isLoaded && "opacity-100 scale-100"
           )}
