@@ -12,6 +12,10 @@ interface ImageUploadProps {
   onChange: (url: string | null) => void;
   folder?: string;
   aspectHint?: string;
+  /** Recommended dimensions, e.g. "800 × 800 px" */
+  recommendedSize?: string;
+  /** Aspect ratio label, e.g. "1:1 square" */
+  aspectRatio?: string;
   className?: string;
 }
 
