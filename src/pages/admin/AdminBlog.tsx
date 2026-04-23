@@ -544,7 +544,9 @@ const AdminBlog = () => {
                         )
                       }
                       folder="blog"
-                      aspectHint="1200×630px (OG ratio)"
+                      recommendedSize="1200 × 630 px"
+                      aspectRatio="1.91:1 (Open Graph)"
+                      aspectHint="Optimized for social sharing previews"
                     />
                   </FormField>
                 </div>

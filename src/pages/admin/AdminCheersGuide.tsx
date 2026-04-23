@@ -356,7 +356,9 @@ const AdminCheersGuide = () => {
                     value={formData.image_url || null}
                     onChange={(url) => setFormData({ ...formData, image_url: url || "" })}
                     folder="cheers-guides"
-                    aspectHint="400×400px (1:1 square)"
+                    recommendedSize="400 × 400 px"
+                    aspectRatio="1:1 square"
+                    aspectHint="Story circle thumbnail"
                   />
                 </FormField>
 

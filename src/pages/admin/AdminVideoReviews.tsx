@@ -345,7 +345,9 @@ const AdminVideoReviews = () => {
                     value={formData.thumbnail_url || null}
                     onChange={(url) => setFormData({ ...formData, thumbnail_url: url || "" })}
                     folder="video-thumbnails"
-                    aspectHint="1280×720px (16:9)"
+                    recommendedSize="1280 × 720 px"
+                    aspectRatio="16:9 widescreen"
+                    aspectHint="YouTube-style thumbnail"
                   />
                 </FormField>
 

@@ -397,7 +397,9 @@ const AdminSubCategories = () => {
                 value={editItem?.image_url || null}
                 onChange={(url) => setEditItem((p) => (p ? { ...p, image_url: url } : p))}
                 folder="sub-categories"
-                aspectHint="800×400px (2:1), JPG/WebP"
+                recommendedSize="800 × 400 px"
+                aspectRatio="2:1 landscape"
+                aspectHint="Sub-category banner, JPG/WebP"
               />
             </FormField>
 
