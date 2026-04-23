@@ -350,7 +350,9 @@ const AdminCocktails = () => {
                 value={editItem?.image_url || null}
                 onChange={(url) => setEditItem((p) => (p ? { ...p, image_url: url } : p))}
                 folder="cocktails"
-                aspectHint="800×800px (1:1 square), JPG/WebP"
+                recommendedSize="800 × 800 px"
+                aspectRatio="1:1 square"
+                aspectHint="Cocktail glass centered, JPG/WebP"
               />
             </FormField>
 

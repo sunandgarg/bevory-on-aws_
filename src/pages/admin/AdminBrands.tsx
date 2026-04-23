@@ -466,7 +466,9 @@ const AdminBrands = () => {
                       value={editItem?.image_url || null}
                       onChange={(url) => setEditItem((p) => (p ? { ...p, image_url: url } : p))}
                       folder="brands"
-                      aspectHint="1200×400px (3:1 banner)"
+                      recommendedSize="1200 × 400 px"
+                      aspectRatio="3:1 banner"
+                      aspectHint="Wide hero banner with brand visuals"
                     />
                   </FormField>
 
@@ -485,7 +487,9 @@ const AdminBrands = () => {
                         value={editItem?.logo_url || null}
                         onChange={(url) => setEditItem((p) => (p ? { ...p, logo_url: url } : p))}
                         folder="brands/logos"
-                        aspectHint="200×200px (1:1 square)"
+                        recommendedSize="400 × 400 px"
+                        aspectRatio="1:1 square"
+                        aspectHint="Logo on transparent background"
                       />
                     </FormField>
                   </div>

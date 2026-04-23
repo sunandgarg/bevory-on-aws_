@@ -943,7 +943,9 @@ const AdminProducts = () => {
                   value={editProduct?.image_url || null}
                   onChange={(url) => setEditProduct((p) => (p ? { ...p, image_url: url } : p))}
                   folder="products"
-                  aspectHint="600×600px (1:1 square)"
+                  recommendedSize="600 × 600 px"
+                  aspectRatio="1:1 square"
+                  aspectHint="Centered bottle on transparent/white background"
                 />
               </FormField>
               <FormField label="Emoji (fallback)">

@@ -213,7 +213,9 @@ const AdminVideoCreators = () => {
                 value={editItem?.avatar_url || null}
                 onChange={(url) => setEditItem((p) => (p ? { ...p, avatar_url: url } : p))}
                 folder="video-creators"
-                aspectHint="200×200px (1:1 square)"
+                recommendedSize="400 × 400 px"
+                aspectRatio="1:1 square"
+                aspectHint="Profile photo, face centered"
               />
             </FormField>
 

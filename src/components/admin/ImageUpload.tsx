@@ -12,6 +12,10 @@ interface ImageUploadProps {
   onChange: (url: string | null) => void;
   folder?: string;
   aspectHint?: string;
+  /** Recommended dimensions, e.g. "800 × 800 px" */
+  recommendedSize?: string;
+  /** Aspect ratio label, e.g. "1:1 square" */
+  aspectRatio?: string;
   className?: string;
 }
 
@@ -68,6 +72,8 @@ const ImageUpload = ({
   onChange,
   folder = "uploads",
   aspectHint,
+  recommendedSize = "800 × 800 px",
+  aspectRatio = "1:1 square",
   className = "",
 }: ImageUploadProps) => {
   const [uploading, setUploading] = useState(false);
@@ -171,6 +177,15 @@ const ImageUpload = ({
 
   return (
     <div className={`space-y-3 ${className}`}>
+      {/* Recommended size badge — always visible */}
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-secondary/50 px-3 py-2">
+        <ImageIcon className="w-3.5 h-3.5 text-accent shrink-0" />
+        <span className="text-xs font-medium text-foreground">Recommended:</span>
+        <span className="text-xs font-semibold text-accent">{recommendedSize}</span>
+        <span className="text-xs text-muted-foreground">• {aspectRatio}</span>
+        <span className="text-xs text-muted-foreground ml-auto">WebP • &lt; 10 MB</span>
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="upload" className="gap-2">

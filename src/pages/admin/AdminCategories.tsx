@@ -424,7 +424,9 @@ const AdminCategories = () => {
                 value={editItem?.image_url || null}
                 onChange={(url) => setEditItem((p) => (p ? { ...p, image_url: url } : p))}
                 folder="categories"
-                aspectHint="800×400px (2:1 landscape)"
+                recommendedSize="800 × 400 px"
+                aspectRatio="2:1 landscape"
+                aspectHint="Banner-style category image"
               />
             </FormField>
             <FormField label="Description">

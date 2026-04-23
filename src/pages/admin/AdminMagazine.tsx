@@ -250,7 +250,9 @@ const AdminMagazine = () => {
                   value={editItem?.cover_url || null}
                   onChange={(url) => setEditItem((p) => (p ? { ...p, cover_url: url } : p))}
                   folder="magazine"
-                  aspectHint="800×600px (4:3)"
+                  recommendedSize="1200 × 900 px"
+                  aspectRatio="4:3 landscape"
+                  aspectHint="High-quality magazine cover"
                 />
               </FormField>
             </div>
