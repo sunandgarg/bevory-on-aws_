@@ -72,6 +72,8 @@ const ImageUpload = ({
   onChange,
   folder = "uploads",
   aspectHint,
+  recommendedSize = "800 × 800 px",
+  aspectRatio = "1:1 square",
   className = "",
 }: ImageUploadProps) => {
   const [uploading, setUploading] = useState(false);
