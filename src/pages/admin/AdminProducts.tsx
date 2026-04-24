@@ -1131,6 +1131,40 @@ const AdminProducts = () => {
               />
             </FormField>
 
+            {/* Variants & Pricing — nested manager */}
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h4 className="font-semibold">💰 Variants & Pricing</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Add multiple sizes (e.g. 1L, 750ml, 350ml) — each with prices per city.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (!editProduct?.id) {
+                      toast({
+                        title: "Save product first",
+                        description: "Save the product, then add variants & pricing.",
+                      });
+                      return;
+                    }
+                    openPriceDialog(editProduct.id);
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-1" /> Manage Variants
+                </Button>
+              </div>
+              {!editProduct?.id && (
+                <p className="text-xs text-muted-foreground bg-secondary/40 rounded-md p-2">
+                  Variants unlock after the first save.
+                </p>
+              )}
+            </div>
+
             {/* FAQs Section */}
             <div className="border-t pt-4">
               <div className="flex items-center justify-between mb-3">
