@@ -358,7 +358,7 @@ const AdminProducts = () => {
       dupCheck.add(key);
     }
 
-    const updates: Promise<any>[] = [];
+    const updates: any[] = [];
     const inserts: any[] = [];
     let count = 0;
 
