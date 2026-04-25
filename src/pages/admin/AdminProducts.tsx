@@ -346,12 +346,26 @@ const AdminProducts = () => {
   const savePrices = async () => {
     if (!selectedProductId) return;
 
-    const operations = [];
-    
+    // --- Real-time validation: detect duplicates & missing prices ---
+    const allVolumes = [...DEFAULT_VOLUME_SUGGESTIONS.filter(v => !hiddenVolumes.includes(v)), ...customVolumes];
+    const dupCheck = new Set<string>();
+    for (const v of allVolumes) {
+      const key = v.trim().toLowerCase();
+      if (dupCheck.has(key)) {
+        toast({ title: "Duplicate quantity", description: `"${v}" is listed twice. Remove the duplicate before saving.`, variant: "destructive" });
+        return;
+      }
+      dupCheck.add(key);
+    }
+
+    const updates: Promise<any>[] = [];
+    const inserts: any[] = [];
+    let count = 0;
+
     for (const [cityId, volumePrices] of Object.entries(priceInputs)) {
       for (const [volume, { price, mrp, in_stock }] of Object.entries(volumePrices)) {
-        if (!price) continue;
-        
+        if (!price || isNaN(Number(price)) || Number(price) <= 0) continue;
+        count++;
         const existingPrice = productPrices.find((p) => p.city_id === cityId && p.volume === volume);
         const priceData = {
           product_id: selectedProductId,
@@ -361,19 +375,29 @@ const AdminProducts = () => {
           mrp: mrp ? Number(mrp) : null,
           in_stock,
         };
-
         if (existingPrice) {
-          operations.push(supabase.from("product_prices").update(priceData).eq("id", existingPrice.id));
+          updates.push(supabase.from("product_prices").update(priceData).eq("id", existingPrice.id));
         } else {
-          operations.push(supabase.from("product_prices").insert(priceData));
+          inserts.push(priceData);
         }
       }
     }
 
-    for (const op of operations) {
-      await op;
+    if (count === 0) {
+      toast({ title: "Nothing to save", description: "Enter at least one price before saving.", variant: "destructive" });
+      return;
     }
-    toast({ title: "Prices saved!" });
+
+    // Run all updates in parallel + one batch insert = near-instant save
+    const tasks: Promise<any>[] = [...updates];
+    if (inserts.length) tasks.push(supabase.from("product_prices").insert(inserts));
+    const results = await Promise.all(tasks);
+    const errs = results.map(r => (r as any)?.error).filter(Boolean);
+    if (errs.length) {
+      toast({ title: "Some prices failed", description: errs[0].message, variant: "destructive" });
+    } else {
+      toast({ title: `Saved ${count} price${count > 1 ? "s" : ""} ⚡` });
+    }
     setShowPriceDialog(false);
   };
 
