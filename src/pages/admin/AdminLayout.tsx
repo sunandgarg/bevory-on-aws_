@@ -4,7 +4,7 @@ import {
   Package, MapPin, Tag, PartyPopper, Users, LayoutDashboard, 
   ArrowLeft, Sparkles, Wine, BookOpen, CircleDot, Megaphone, 
   HelpCircle, Palette, Star, Flag, FileText, Settings, PlayCircle, Type, Layers, DollarSign, Upload,
-  Database, Brain
+  Database, Brain, Activity
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
