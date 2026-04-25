@@ -140,6 +140,7 @@ const AdminProducts = () => {
   const [selectedBulkCities, setSelectedBulkCities] = useState<string[]>([]);
   const [bulkPriceInputs, setBulkPriceInputs] = useState<Record<string, { price: string; mrp: string; in_stock: boolean }>>({});
   const [duplicateVolumes, setDuplicateVolumes] = useState<string[]>([]);
+  const [missingPriceErrors, setMissingPriceErrors] = useState<string[]>([]);
   const { toast } = useToast();
   const { errors, validate, clearErrors, clearError } = useFormValidation(validationSchema);
 
@@ -325,11 +326,14 @@ const AdminProducts = () => {
     } else {
       const { data, error } = await supabase.from("products").insert([productData]).select("id").single();
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-      toast({ title: "Success", description: "Product created — you can now add prices." });
-      // Keep the dialog open with the new id so admin can click "Manage Variants" right away
+      toast({ title: "Success", description: "Product created — opening pricing…" });
+      // Keep the product dialog open with the new id, AND auto-open variants dialog right away
       setEditProduct((p) => (p ? { ...p, id: data!.id } : p));
       clearErrors();
       fetchProducts();
+      // Auto-open pricing dialog in variant-first mode for fastest entry
+      setVariantMode(true);
+      openPriceDialog(data!.id);
     }
   };
 
@@ -398,13 +402,15 @@ const AdminProducts = () => {
       }
     }
     if (missing.length > 0) {
+      setMissingPriceErrors(missing);
       toast({
         title: `Missing ${missing.length} price${missing.length > 1 ? "s" : ""}`,
-        description: missing.slice(0, 6).join(" • ") + (missing.length > 6 ? ` …+${missing.length - 6} more` : ""),
+        description: "See the highlighted list at the top of the dialog.",
         variant: "destructive",
       });
       return;
     }
+    setMissingPriceErrors([]);
 
     const updates: any[] = [];
     const inserts: any[] = [];
