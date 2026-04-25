@@ -73,6 +73,7 @@ const AdminLayout = () => {
         { icon: HelpCircle, label: "Help", path: "/admin/help-support" },
         { icon: Database, label: "Database", path: "/admin/database" },
         { icon: Brain, label: "AI", path: "/admin/ai-settings" },
+        { icon: Activity, label: "Performance", path: "/admin/performance-report" },
       ]
     },
   ];
