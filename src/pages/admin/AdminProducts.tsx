@@ -348,7 +348,8 @@ const AdminProducts = () => {
 
   const openPriceDialog = (productId: string) => {
     setSelectedProductId(productId);
-    setHiddenVolumes([]); // Reset hidden volumes when opening dialog
+    setHiddenVolumes([]);
+    setMissingPriceErrors([]);
     fetchProductPrices(productId);
     setShowPriceDialog(true);
   };
@@ -1322,6 +1323,7 @@ const AdminProducts = () => {
           setSelectedBulkCities([]);
           setBulkPriceInputs({});
           setCitySearchQuery("");
+          setMissingPriceErrors([]);
         }
       }}>
         <DialogContent className="max-w-3xl max-h-[90vh]">
