@@ -140,6 +140,7 @@ const AdminProducts = () => {
   const [selectedBulkCities, setSelectedBulkCities] = useState<string[]>([]);
   const [bulkPriceInputs, setBulkPriceInputs] = useState<Record<string, { price: string; mrp: string; in_stock: boolean }>>({});
   const [duplicateVolumes, setDuplicateVolumes] = useState<string[]>([]);
+  const [missingPriceErrors, setMissingPriceErrors] = useState<string[]>([]);
   const { toast } = useToast();
   const { errors, validate, clearErrors, clearError } = useFormValidation(validationSchema);
 
@@ -325,11 +326,14 @@ const AdminProducts = () => {
     } else {
       const { data, error } = await supabase.from("products").insert([productData]).select("id").single();
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-      toast({ title: "Success", description: "Product created — you can now add prices." });
-      // Keep the dialog open with the new id so admin can click "Manage Variants" right away
+      toast({ title: "Success", description: "Product created — opening pricing…" });
+      // Keep the product dialog open with the new id, AND auto-open variants dialog right away
       setEditProduct((p) => (p ? { ...p, id: data!.id } : p));
       clearErrors();
       fetchProducts();
+      // Auto-open pricing dialog in variant-first mode for fastest entry
+      setVariantMode(true);
+      openPriceDialog(data!.id);
     }
   };
 
@@ -344,7 +348,8 @@ const AdminProducts = () => {
 
   const openPriceDialog = (productId: string) => {
     setSelectedProductId(productId);
-    setHiddenVolumes([]); // Reset hidden volumes when opening dialog
+    setHiddenVolumes([]);
+    setMissingPriceErrors([]);
     fetchProductPrices(productId);
     setShowPriceDialog(true);
   };
@@ -398,13 +403,15 @@ const AdminProducts = () => {
       }
     }
     if (missing.length > 0) {
+      setMissingPriceErrors(missing);
       toast({
         title: `Missing ${missing.length} price${missing.length > 1 ? "s" : ""}`,
-        description: missing.slice(0, 6).join(" • ") + (missing.length > 6 ? ` …+${missing.length - 6} more` : ""),
+        description: "See the highlighted list at the top of the dialog.",
         variant: "destructive",
       });
       return;
     }
+    setMissingPriceErrors([]);
 
     const updates: any[] = [];
     const inserts: any[] = [];
@@ -1316,6 +1323,7 @@ const AdminProducts = () => {
           setSelectedBulkCities([]);
           setBulkPriceInputs({});
           setCitySearchQuery("");
+          setMissingPriceErrors([]);
         }
       }}>
         <DialogContent className="max-w-3xl max-h-[90vh]">
@@ -1349,6 +1357,18 @@ const AdminProducts = () => {
             {duplicateVolumes.length > 0 && (
               <div className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
                 Duplicate quantities detected (case-insensitive): <strong>{duplicateVolumes.join(", ")}</strong>. Saving is blocked until removed.
+              </div>
+            )}
+            {missingPriceErrors.length > 0 && (
+              <div className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+                <div className="font-semibold mb-1">
+                  ⚠ {missingPriceErrors.length} missing price{missingPriceErrors.length > 1 ? "s" : ""} — fill these to save:
+                </div>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5 max-h-40 overflow-auto pr-1 list-disc list-inside">
+                  {missingPriceErrors.map((m, i) => (
+                    <li key={i}>{m}</li>
+                  ))}
+                </ul>
               </div>
             )}
           </DialogHeader>

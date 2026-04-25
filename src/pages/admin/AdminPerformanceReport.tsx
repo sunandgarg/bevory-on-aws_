@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, CheckCircle2, AlertTriangle, XCircle, Loader2 } from "lucide-react";
+import { Activity, CheckCircle2, AlertTriangle, XCircle, Loader2, Download, FileText } from "lucide-react";
 
 type Severity = "good" | "warn" | "bad";
 interface Finding {
@@ -115,9 +115,63 @@ export default function AdminPerformanceReport() {
     setRunning(false);
   };
 
+  const exportCSV = () => {
+    if (!findings.length) return;
+    const esc = (s: string) => `"${(s ?? "").replace(/"/g, '""')}"`;
+    const rows = [
+      ["Category", "Severity", "Title", "Detail", "Recommended Fix"].join(","),
+      ...findings.map(f => [esc(f.category), esc(f.severity), esc(f.title), esc(f.detail), esc(f.fix)].join(",")),
+    ];
+    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `bevory-performance-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportPDF = () => {
+    if (!findings.length) return;
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Bevory Performance Report</title>
+<style>
+  body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;padding:32px;color:#111;max-width:880px;margin:auto}
+  h1{margin:0 0 4px;font-size:24px}
+  .meta{color:#666;font-size:12px;margin-bottom:24px}
+  .score{font-size:64px;font-weight:800;text-align:center;margin:8px 0;color:${score && score >= 90 ? "#16a34a" : score && score >= 70 ? "#d97706" : "#dc2626"}}
+  .card{border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:10px;page-break-inside:avoid}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+  .badge{display:inline-block;border:1px solid #d1d5db;border-radius:999px;padding:1px 8px;font-size:11px}
+  .sev-good{color:#16a34a}.sev-warn{color:#d97706}.sev-bad{color:#dc2626}
+  .title{font-weight:600}
+  .detail{color:#555;font-size:13px;margin:4px 0}
+  .fix{font-size:13px;background:#f9fafb;padding:8px;border-radius:6px;margin-top:6px}
+  @media print { body{padding:16px} button{display:none} }
+</style></head><body>
+  <h1>Bevory — Performance Report</h1>
+  <div class="meta">Generated ${new Date().toLocaleString()} • ${location.host}</div>
+  ${score !== null ? `<div class="score">${score}</div><div style="text-align:center;color:#666;font-size:12px;margin-bottom:24px">Overall environment score</div>` : ""}
+  ${findings.map(f => `
+    <div class="card">
+      <div class="row">
+        <span class="badge">${f.category}</span>
+        <span class="title">${f.title}</span>
+        <span class="sev-${f.severity}" style="margin-left:auto;font-size:12px;font-weight:600">${f.severity.toUpperCase()}</span>
+      </div>
+      <div class="detail">${f.detail}</div>
+      <div class="fix"><strong>Fix:</strong> ${f.fix}</div>
+    </div>`).join("")}
+  <script>window.onload=()=>setTimeout(()=>window.print(),300)</script>
+</body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+  };
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Activity className="w-6 h-6" /> Performance Report
@@ -126,9 +180,17 @@ export default function AdminPerformanceReport() {
             Lighthouse-style in-browser audit for the current environment.
           </p>
         </div>
-        <Button onClick={runAudit} disabled={running}>
-          {running ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Running…</> : "Run Audit"}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportCSV} disabled={!findings.length}>
+            <Download className="w-4 h-4 mr-2" /> CSV
+          </Button>
+          <Button variant="outline" onClick={exportPDF} disabled={!findings.length}>
+            <FileText className="w-4 h-4 mr-2" /> PDF
+          </Button>
+          <Button onClick={runAudit} disabled={running}>
+            {running ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Running…</> : "Run Audit"}
+          </Button>
+        </div>
       </div>
 
       {score !== null && (
