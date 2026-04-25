@@ -1369,6 +1369,7 @@ const AdminProducts = () => {
                 </ul>
               </div>
             )}
+          </DialogHeader>
 
           {variantMode ? (
             /* Variant-First Mode: each variant lists all cities */
