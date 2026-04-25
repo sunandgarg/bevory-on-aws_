@@ -345,19 +345,61 @@ const AdminProducts = () => {
     setShowPriceDialog(true);
   };
 
+  // Live duplicate detection across all visible variants (trim + case-fold)
+  const visibleVolumes = useMemo(
+    () => [...DEFAULT_VOLUME_SUGGESTIONS.filter(v => !hiddenVolumes.includes(v)), ...customVolumes],
+    [hiddenVolumes, customVolumes]
+  );
+  useEffect(() => {
+    const seen = new Map<string, string>();
+    const dups: string[] = [];
+    for (const v of visibleVolumes) {
+      const key = v.trim().toLowerCase();
+      if (seen.has(key)) dups.push(v, seen.get(key)!);
+      else seen.set(key, v);
+    }
+    setDuplicateVolumes(Array.from(new Set(dups)));
+  }, [visibleVolumes]);
+
   const savePrices = async () => {
     if (!selectedProductId) return;
 
-    // --- Real-time validation: detect duplicates & missing prices ---
-    const allVolumes = [...DEFAULT_VOLUME_SUGGESTIONS.filter(v => !hiddenVolumes.includes(v)), ...customVolumes];
-    const dupCheck = new Set<string>();
-    for (const v of allVolumes) {
-      const key = v.trim().toLowerCase();
-      if (dupCheck.has(key)) {
-        toast({ title: "Duplicate quantity", description: `"${v}" is listed twice. Remove the duplicate before saving.`, variant: "destructive" });
-        return;
+    // Block on duplicates
+    if (duplicateVolumes.length > 0) {
+      toast({
+        title: "Duplicate quantities",
+        description: `Remove duplicates: ${duplicateVolumes.join(", ")}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Determine which cities are "selected" (have any input or existing prices)
+    const citiesWithInput = new Set<string>(
+      Object.keys(priceInputs).filter(cityId =>
+        Object.values(priceInputs[cityId] || {}).some(v => v.price && v.price.trim() !== "")
+      )
+    );
+    productPrices.forEach(p => citiesWithInput.add(p.city_id));
+
+    // Block on missing prices: any visible variant × any selected city must have a price
+    const missing: string[] = [];
+    for (const cityId of citiesWithInput) {
+      const cityName = cities.find(c => c.id === cityId)?.name || cityId;
+      for (const volume of visibleVolumes) {
+        const val = priceInputs[cityId]?.[volume]?.price;
+        if (!val || isNaN(Number(val)) || Number(val) <= 0) {
+          missing.push(`${cityName} → ${volume}`);
+        }
       }
-      dupCheck.add(key);
+    }
+    if (missing.length > 0) {
+      toast({
+        title: `Missing ${missing.length} price${missing.length > 1 ? "s" : ""}`,
+        description: missing.slice(0, 6).join(" • ") + (missing.length > 6 ? ` …+${missing.length - 6} more` : ""),
+        variant: "destructive",
+      });
+      return;
     }
 
     const updates: any[] = [];
@@ -390,7 +432,6 @@ const AdminProducts = () => {
       return;
     }
 
-    // Run all updates in parallel + one batch insert = near-instant save
     const tasks: any[] = [...updates];
     if (inserts.length) tasks.push(supabase.from("product_prices").insert(inserts));
     const results = await Promise.all(tasks);
