@@ -65,6 +65,7 @@ const AdminTypography = lazy(() => import("./pages/admin/AdminTypography"));
 const AdminBulkUpload = lazy(() => import("./pages/admin/AdminBulkUpload"));
 const AdminDatabaseTools = lazy(() => import("./pages/admin/AdminDatabaseTools"));
 const AdminAISettings = lazy(() => import("./pages/admin/AdminAISettings"));
+const AdminPerformanceReport = lazy(() => import("./pages/admin/AdminPerformanceReport"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Disclaimer = lazy(() => import("./pages/Disclaimer"));
@@ -173,6 +174,7 @@ const App = () => (
                     <Route path="bulk-upload" element={<AdminBulkUpload />} />
                     <Route path="database" element={<AdminDatabaseTools />} />
                     <Route path="ai-settings" element={<AdminAISettings />} />
+                    <Route path="performance-report" element={<AdminPerformanceReport />} />
                   </Route>
 
                   <Route path="*" element={<NotFound />} />

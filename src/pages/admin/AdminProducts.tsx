@@ -136,8 +136,10 @@ const AdminProducts = () => {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [citySearchQuery, setCitySearchQuery] = useState("");
   const [bulkMode, setBulkMode] = useState(false);
+  const [variantMode, setVariantMode] = useState(false);
   const [selectedBulkCities, setSelectedBulkCities] = useState<string[]>([]);
   const [bulkPriceInputs, setBulkPriceInputs] = useState<Record<string, { price: string; mrp: string; in_stock: boolean }>>({});
+  const [duplicateVolumes, setDuplicateVolumes] = useState<string[]>([]);
   const { toast } = useToast();
   const { errors, validate, clearErrors, clearError } = useFormValidation(validationSchema);
 
@@ -312,16 +314,20 @@ const AdminProducts = () => {
       faqs: JSON.parse(JSON.stringify(editProduct.faqs || [])),
     };
 
-    const { error } = editProduct.id
-      ? await supabase.from("products").update(productData).eq("id", editProduct.id)
-      : await supabase.from("products").insert([productData]);
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
+    if (editProduct.id) {
+      const { error } = await supabase.from("products").update(productData).eq("id", editProduct.id);
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Success", description: "Product saved!" });
       setShowDialog(false);
       setEditProduct(null);
+      clearErrors();
+      fetchProducts();
+    } else {
+      const { data, error } = await supabase.from("products").insert([productData]).select("id").single();
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+      toast({ title: "Success", description: "Product created — you can now add prices." });
+      // Keep the dialog open with the new id so admin can click "Manage Variants" right away
+      setEditProduct((p) => (p ? { ...p, id: data!.id } : p));
       clearErrors();
       fetchProducts();
     }
@@ -343,19 +349,61 @@ const AdminProducts = () => {
     setShowPriceDialog(true);
   };
 
+  // Live duplicate detection across all visible variants (trim + case-fold)
+  const visibleVolumes = useMemo(
+    () => [...DEFAULT_VOLUME_SUGGESTIONS.filter(v => !hiddenVolumes.includes(v)), ...customVolumes],
+    [hiddenVolumes, customVolumes]
+  );
+  useEffect(() => {
+    const seen = new Map<string, string>();
+    const dups: string[] = [];
+    for (const v of visibleVolumes) {
+      const key = v.trim().toLowerCase();
+      if (seen.has(key)) dups.push(v, seen.get(key)!);
+      else seen.set(key, v);
+    }
+    setDuplicateVolumes(Array.from(new Set(dups)));
+  }, [visibleVolumes]);
+
   const savePrices = async () => {
     if (!selectedProductId) return;
 
-    // --- Real-time validation: detect duplicates & missing prices ---
-    const allVolumes = [...DEFAULT_VOLUME_SUGGESTIONS.filter(v => !hiddenVolumes.includes(v)), ...customVolumes];
-    const dupCheck = new Set<string>();
-    for (const v of allVolumes) {
-      const key = v.trim().toLowerCase();
-      if (dupCheck.has(key)) {
-        toast({ title: "Duplicate quantity", description: `"${v}" is listed twice. Remove the duplicate before saving.`, variant: "destructive" });
-        return;
+    // Block on duplicates
+    if (duplicateVolumes.length > 0) {
+      toast({
+        title: "Duplicate quantities",
+        description: `Remove duplicates: ${duplicateVolumes.join(", ")}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Determine which cities are "selected" (have any input or existing prices)
+    const citiesWithInput = new Set<string>(
+      Object.keys(priceInputs).filter(cityId =>
+        Object.values(priceInputs[cityId] || {}).some(v => v.price && v.price.trim() !== "")
+      )
+    );
+    productPrices.forEach(p => citiesWithInput.add(p.city_id));
+
+    // Block on missing prices: any visible variant × any selected city must have a price
+    const missing: string[] = [];
+    for (const cityId of citiesWithInput) {
+      const cityName = cities.find(c => c.id === cityId)?.name || cityId;
+      for (const volume of visibleVolumes) {
+        const val = priceInputs[cityId]?.[volume]?.price;
+        if (!val || isNaN(Number(val)) || Number(val) <= 0) {
+          missing.push(`${cityName} → ${volume}`);
+        }
       }
-      dupCheck.add(key);
+    }
+    if (missing.length > 0) {
+      toast({
+        title: `Missing ${missing.length} price${missing.length > 1 ? "s" : ""}`,
+        description: missing.slice(0, 6).join(" • ") + (missing.length > 6 ? ` …+${missing.length - 6} more` : ""),
+        variant: "destructive",
+      });
+      return;
     }
 
     const updates: any[] = [];
@@ -388,7 +436,6 @@ const AdminProducts = () => {
       return;
     }
 
-    // Run all updates in parallel + one batch insert = near-instant save
     const tasks: any[] = [...updates];
     if (inserts.length) tasks.push(supabase.from("product_prices").insert(inserts));
     const results = await Promise.all(tasks);
@@ -1265,33 +1312,172 @@ const AdminProducts = () => {
         setShowPriceDialog(open);
         if (!open) {
           setBulkMode(false);
+          setVariantMode(false);
           setSelectedBulkCities([]);
           setBulkPriceInputs({});
           setCitySearchQuery("");
         }
       }}>
-        <DialogContent className="max-w-2xl max-h-[90vh]">
+        <DialogContent className="max-w-3xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>Manage Prices by City</span>
-              <Button
-                size="sm"
-                variant={bulkMode ? "default" : "outline"}
-                onClick={() => {
-                  setBulkMode(!bulkMode);
-                  if (!bulkMode) {
-                    setSelectedBulkCities([]);
-                    setBulkPriceInputs({});
-                  }
-                }}
-              >
-                <Copy className="w-4 h-4 mr-1" />
-                {bulkMode ? "Exit Bulk Mode" : "Bulk Pricing"}
-              </Button>
+            <DialogTitle className="flex items-center justify-between flex-wrap gap-2">
+              <span>Manage Variants & Prices</span>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant={variantMode ? "default" : "outline"}
+                  onClick={() => { setVariantMode(true); setBulkMode(false); }}
+                >
+                  By Variant
+                </Button>
+                <Button
+                  size="sm"
+                  variant={bulkMode ? "default" : "outline"}
+                  onClick={() => { setBulkMode(true); setVariantMode(false); setSelectedBulkCities([]); setBulkPriceInputs({}); }}
+                >
+                  <Copy className="w-4 h-4 mr-1" /> Bulk
+                </Button>
+                <Button
+                  size="sm"
+                  variant={!variantMode && !bulkMode ? "default" : "outline"}
+                  onClick={() => { setVariantMode(false); setBulkMode(false); }}
+                >
+                  By City
+                </Button>
+              </div>
             </DialogTitle>
+            {duplicateVolumes.length > 0 && (
+              <div className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
+                Duplicate quantities detected (case-insensitive): <strong>{duplicateVolumes.join(", ")}</strong>. Saving is blocked until removed.
+              </div>
+            )}
           </DialogHeader>
 
-          {bulkMode ? (
+          {variantMode ? (
+            /* Variant-First Mode: each variant lists all cities */
+            <ScrollArea className="h-[60vh] pr-3">
+              <div className="space-y-2 mb-3">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Add new variant (e.g., 2.5L)"
+                    value={newVolumeInput}
+                    onChange={(e) => setNewVolumeInput(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const v = newVolumeInput.trim();
+                      if (!v) return;
+                      const exists = visibleVolumes.some(x => x.trim().toLowerCase() === v.toLowerCase());
+                      if (exists) {
+                        toast({ title: "Already exists", description: `"${v}" already in the list.`, variant: "destructive" });
+                        return;
+                      }
+                      setCustomVolumes([...customVolumes, v]);
+                      setNewVolumeInput("");
+                    }}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  For each variant below, set price for every city. Variants with duplicate names are flagged.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {visibleVolumes.map((volume) => {
+                  const isDup = duplicateVolumes.includes(volume);
+                  return (
+                    <div
+                      key={volume}
+                      className={`rounded-lg border p-3 ${isDup ? "border-destructive bg-destructive/5" : "border-border bg-card"}`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-sm">{volume}</Badge>
+                          {isDup && <span className="text-xs text-destructive font-medium">⚠ Duplicate name</span>}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-destructive hover:text-destructive"
+                          onClick={() => {
+                            if (customVolumes.includes(volume)) setCustomVolumes(prev => prev.filter(v => v !== volume));
+                            else setHiddenVolumes(prev => [...prev, volume]);
+                            // Clear inputs for this volume across all cities
+                            setPriceInputs(prev => {
+                              const next = { ...prev };
+                              for (const cid of Object.keys(next)) {
+                                if (next[cid]?.[volume]) {
+                                  next[cid] = { ...next[cid] };
+                                  delete next[cid][volume];
+                                }
+                              }
+                              return next;
+                            });
+                          }}
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" /> Remove
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {cities.map((city) => {
+                          const v = priceInputs[city.id]?.[volume] || { price: "", mrp: "", in_stock: true };
+                          const missing = !v.price || isNaN(Number(v.price)) || Number(v.price) <= 0;
+                          const hasAnyForCity = Object.values(priceInputs[city.id] || {}).some(x => x.price);
+                          const showError = hasAnyForCity && missing;
+                          return (
+                            <div
+                              key={city.id}
+                              className={`rounded-md p-2 border ${showError ? "border-destructive/60 bg-destructive/5" : "border-border bg-secondary/30"}`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-medium truncate">{city.name}</span>
+                                {showError && <span className="text-[10px] text-destructive">Missing</span>}
+                              </div>
+                              <div className="grid grid-cols-2 gap-1">
+                                <Input
+                                  type="number"
+                                  placeholder="Price ₹"
+                                  value={v.price}
+                                  className="h-8 text-sm"
+                                  onChange={(e) =>
+                                    setPriceInputs(prev => ({
+                                      ...prev,
+                                      [city.id]: { ...prev[city.id], [volume]: { ...v, price: e.target.value } },
+                                    }))
+                                  }
+                                />
+                                <Input
+                                  type="number"
+                                  placeholder="MRP"
+                                  value={v.mrp}
+                                  className="h-8 text-sm"
+                                  onChange={(e) =>
+                                    setPriceInputs(prev => ({
+                                      ...prev,
+                                      [city.id]: { ...prev[city.id], [volume]: { ...v, mrp: e.target.value } },
+                                    }))
+                                  }
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <Button className="w-full mt-4" onClick={savePrices} disabled={duplicateVolumes.length > 0}>
+                Save All Variants & Prices
+              </Button>
+            </ScrollArea>
+          ) : bulkMode ? (
             /* Bulk Pricing Mode */
             <div className="space-y-4">
               {/* City Search & Selection */}
