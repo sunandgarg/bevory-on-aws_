@@ -389,7 +389,7 @@ const AdminProducts = () => {
     }
 
     // Run all updates in parallel + one batch insert = near-instant save
-    const tasks: Promise<any>[] = [...updates];
+    const tasks: any[] = [...updates];
     if (inserts.length) tasks.push(supabase.from("product_prices").insert(inserts));
     const results = await Promise.all(tasks);
     const errs = results.map(r => (r as any)?.error).filter(Boolean);
