@@ -7,11 +7,13 @@
     <!-- Preconnect to critical origins -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://gjqufuefmblroghfdalp.supabase.co" crossorigin />
-    
+    <link rel="preconnect" href="https://wahbpewusxrlgqxpnrhc.supabase.co" crossorigin />
+    <link rel="preconnect" href="https://wsrv.nl" crossorigin />
+
     <!-- DNS prefetch for image CDNs -->
     <link rel="dns-prefetch" href="https://wsrv.nl" />
-    <link rel="dns-prefetch" href="https://gjqufuefmblroghfdalp.supabase.co" />
+    <link rel="dns-prefetch" href="https://wahbpewusxrlgqxpnrhc.supabase.co" />
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
     <link rel="icon" type="image/png" href="/favicon.png">
 
     <!-- Canonical URL - www.bevory.in is the primary domain -->
@@ -24,14 +26,28 @@
       }
     </script>
 
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MR4YYVJKGY"></script>
+    <!-- Google tag (gtag.js) - defer to after page load for performance -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
-      gtag('config', 'G-MR4YYVJKGY');
+      gtag('config', 'G-MR4YYVJKGY', { 'send_page_view': true });
+      // Lazy-load gtag script after main content
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => {
+          const s = document.createElement('script');
+          s.async = true;
+          s.src = 'https://www.googletagmanager.com/gtag/js?id=G-MR4YYVJKGY';
+          document.head.appendChild(s);
+        });
+      } else {
+        setTimeout(() => {
+          const s = document.createElement('script');
+          s.async = true;
+          s.src = 'https://www.googletagmanager.com/gtag/js?id=G-MR4YYVJKGY';
+          document.head.appendChild(s);
+        }, 2000);
+      }
     </script>
 
     <!-- Google Fonts - non-render-blocking -->
