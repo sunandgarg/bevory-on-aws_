@@ -136,8 +136,10 @@ const AdminProducts = () => {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [citySearchQuery, setCitySearchQuery] = useState("");
   const [bulkMode, setBulkMode] = useState(false);
+  const [variantMode, setVariantMode] = useState(false);
   const [selectedBulkCities, setSelectedBulkCities] = useState<string[]>([]);
   const [bulkPriceInputs, setBulkPriceInputs] = useState<Record<string, { price: string; mrp: string; in_stock: boolean }>>({});
+  const [duplicateVolumes, setDuplicateVolumes] = useState<string[]>([]);
   const { toast } = useToast();
   const { errors, validate, clearErrors, clearError } = useFormValidation(validationSchema);
 
