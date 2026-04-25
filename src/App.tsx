@@ -174,6 +174,7 @@ const App = () => (
                     <Route path="bulk-upload" element={<AdminBulkUpload />} />
                     <Route path="database" element={<AdminDatabaseTools />} />
                     <Route path="ai-settings" element={<AdminAISettings />} />
+                    <Route path="performance-report" element={<AdminPerformanceReport />} />
                   </Route>
 
                   <Route path="*" element={<NotFound />} />
