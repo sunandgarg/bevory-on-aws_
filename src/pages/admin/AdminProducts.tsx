@@ -1312,12 +1312,13 @@ const AdminProducts = () => {
         setShowPriceDialog(open);
         if (!open) {
           setBulkMode(false);
+          setVariantMode(false);
           setSelectedBulkCities([]);
           setBulkPriceInputs({});
           setCitySearchQuery("");
         }
       }}>
-        <DialogContent className="max-w-2xl max-h-[90vh]">
+        <DialogContent className="max-w-3xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between flex-wrap gap-2">
               <span>Manage Variants & Prices</span>
