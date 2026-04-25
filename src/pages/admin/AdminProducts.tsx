@@ -314,16 +314,20 @@ const AdminProducts = () => {
       faqs: JSON.parse(JSON.stringify(editProduct.faqs || [])),
     };
 
-    const { error } = editProduct.id
-      ? await supabase.from("products").update(productData).eq("id", editProduct.id)
-      : await supabase.from("products").insert([productData]);
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
+    if (editProduct.id) {
+      const { error } = await supabase.from("products").update(productData).eq("id", editProduct.id);
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Success", description: "Product saved!" });
       setShowDialog(false);
       setEditProduct(null);
+      clearErrors();
+      fetchProducts();
+    } else {
+      const { data, error } = await supabase.from("products").insert([productData]).select("id").single();
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+      toast({ title: "Success", description: "Product created — you can now add prices." });
+      // Keep the dialog open with the new id so admin can click "Manage Variants" right away
+      setEditProduct((p) => (p ? { ...p, id: data!.id } : p));
       clearErrors();
       fetchProducts();
     }
