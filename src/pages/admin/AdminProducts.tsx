@@ -1357,7 +1357,18 @@ const AdminProducts = () => {
                 Duplicate quantities detected (case-insensitive): <strong>{duplicateVolumes.join(", ")}</strong>. Saving is blocked until removed.
               </div>
             )}
-          </DialogHeader>
+            {missingPriceErrors.length > 0 && (
+              <div className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+                <div className="font-semibold mb-1">
+                  ⚠ {missingPriceErrors.length} missing price{missingPriceErrors.length > 1 ? "s" : ""} — fill these to save:
+                </div>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5 max-h-40 overflow-auto pr-1 list-disc list-inside">
+                  {missingPriceErrors.map((m, i) => (
+                    <li key={i}>{m}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
           {variantMode ? (
             /* Variant-First Mode: each variant lists all cities */
