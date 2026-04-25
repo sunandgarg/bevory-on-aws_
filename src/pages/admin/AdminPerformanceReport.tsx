@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, CheckCircle2, AlertTriangle, XCircle, Loader2, Download, FileText } from "lucide-react";
+import { Activity, CheckCircle2, AlertTriangle, XCircle, Loader2 } from "lucide-react";
 
 type Severity = "good" | "warn" | "bad";
 interface Finding {
@@ -31,9 +31,9 @@ export default function AdminPerformanceReport() {
 
     // 1. Images
     const imgs = Array.from(document.images);
-    const oversize = imgs.filter(i => i.naturalWidth > 1.5 * i.clientWidth && i.clientWidth > 0);
-    const noLazy = imgs.filter(i => !i.loading || i.loading === "eager").slice(0, -1);
-    const nonWebp = imgs.filter(i => i.currentSrc && !/\.webp|wsrv\.nl/i.test(i.currentSrc));
+    const oversize = imgs.filter((i) => i.naturalWidth > 1.5 * i.clientWidth && i.clientWidth > 0);
+    const noLazy = imgs.filter((i) => !i.loading || i.loading === "eager").slice(0, -1);
+    const nonWebp = imgs.filter((i) => i.currentSrc && !/\.webp|wsrv\.nl/i.test(i.currentSrc));
     results.push({
       category: "Images",
       title: `${imgs.length} images on page`,
@@ -49,7 +49,10 @@ export default function AdminPerformanceReport() {
       category: "Fonts",
       title: `${fontLinks.length} font stylesheet(s)`,
       detail: `${preconnects.length} preconnect hint(s) found`,
-      fix: preconnects.length === 0 ? "Add <link rel=preconnect href=https://fonts.gstatic.com crossorigin> in index.html for faster FCP." : "OK — consider self-hosting WOFF2 for max speed.",
+      fix:
+        preconnects.length === 0
+          ? "Add <link rel=preconnect href=https://fonts.gstatic.com crossorigin> in index.html for faster FCP."
+          : "OK — consider self-hosting WOFF2 for max speed.",
       severity: preconnects.length === 0 ? "warn" : "good",
     });
 
@@ -57,7 +60,7 @@ export default function AdminPerformanceReport() {
     let cacheVerdict: Severity = "good";
     let cacheDetail = "";
     try {
-      const sample = imgs[0]?.currentSrc || "/favicon.ico";
+      const sample = imgs[0]?.currentSrc || "/favicon.png";
       const res = await fetch(sample, { method: "HEAD" });
       const cc = res.headers.get("cache-control") || "";
       cacheDetail = `Cache-Control: ${cc || "missing"}`;
@@ -76,8 +79,8 @@ export default function AdminPerformanceReport() {
     });
 
     // 4. Bundle splits
-    const scripts = Array.from(document.querySelectorAll<HTMLScriptElement>('script[src]'));
-    const chunks = scripts.filter(s => /assets\/.+-[a-z0-9]{6,}\.js$/i.test(s.src));
+    const scripts = Array.from(document.querySelectorAll<HTMLScriptElement>("script[src]"));
+    const chunks = scripts.filter((s) => /assets\/.+-[a-z0-9]{6,}\.js$/i.test(s.src));
     results.push({
       category: "Bundle",
       title: `${chunks.length} JS chunks loaded`,
@@ -103,7 +106,9 @@ export default function AdminPerformanceReport() {
       category: "Offline / SW",
       title: swReg ? "Service worker active" : "No service worker",
       detail: swReg ? `Scope: ${swReg.scope}` : "Repeat-visit performance can improve with caching SW.",
-      fix: swReg ? "Verify SW caches static assets with stale-while-revalidate." : "Register /sw.js for offline + repeat-visit gains.",
+      fix: swReg
+        ? "Verify SW caches static assets with stale-while-revalidate."
+        : "Register /sw.js for offline + repeat-visit gains.",
       severity: swReg ? "good" : "warn",
     });
 
@@ -115,63 +120,9 @@ export default function AdminPerformanceReport() {
     setRunning(false);
   };
 
-  const exportCSV = () => {
-    if (!findings.length) return;
-    const esc = (s: string) => `"${(s ?? "").replace(/"/g, '""')}"`;
-    const rows = [
-      ["Category", "Severity", "Title", "Detail", "Recommended Fix"].join(","),
-      ...findings.map(f => [esc(f.category), esc(f.severity), esc(f.title), esc(f.detail), esc(f.fix)].join(",")),
-    ];
-    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `bevory-performance-${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const exportPDF = () => {
-    if (!findings.length) return;
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Bevory Performance Report</title>
-<style>
-  body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;padding:32px;color:#111;max-width:880px;margin:auto}
-  h1{margin:0 0 4px;font-size:24px}
-  .meta{color:#666;font-size:12px;margin-bottom:24px}
-  .score{font-size:64px;font-weight:800;text-align:center;margin:8px 0;color:${score && score >= 90 ? "#16a34a" : score && score >= 70 ? "#d97706" : "#dc2626"}}
-  .card{border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:10px;page-break-inside:avoid}
-  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
-  .badge{display:inline-block;border:1px solid #d1d5db;border-radius:999px;padding:1px 8px;font-size:11px}
-  .sev-good{color:#16a34a}.sev-warn{color:#d97706}.sev-bad{color:#dc2626}
-  .title{font-weight:600}
-  .detail{color:#555;font-size:13px;margin:4px 0}
-  .fix{font-size:13px;background:#f9fafb;padding:8px;border-radius:6px;margin-top:6px}
-  @media print { body{padding:16px} button{display:none} }
-</style></head><body>
-  <h1>Bevory — Performance Report</h1>
-  <div class="meta">Generated ${new Date().toLocaleString()} • ${location.host}</div>
-  ${score !== null ? `<div class="score">${score}</div><div style="text-align:center;color:#666;font-size:12px;margin-bottom:24px">Overall environment score</div>` : ""}
-  ${findings.map(f => `
-    <div class="card">
-      <div class="row">
-        <span class="badge">${f.category}</span>
-        <span class="title">${f.title}</span>
-        <span class="sev-${f.severity}" style="margin-left:auto;font-size:12px;font-weight:600">${f.severity.toUpperCase()}</span>
-      </div>
-      <div class="detail">${f.detail}</div>
-      <div class="fix"><strong>Fix:</strong> ${f.fix}</div>
-    </div>`).join("")}
-  <script>window.onload=()=>setTimeout(()=>window.print(),300)</script>
-</body></html>`;
-    const w = window.open("", "_blank");
-    if (!w) return;
-    w.document.write(html);
-    w.document.close();
-  };
-
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Activity className="w-6 h-6" /> Performance Report
@@ -180,22 +131,22 @@ export default function AdminPerformanceReport() {
             Lighthouse-style in-browser audit for the current environment.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={exportCSV} disabled={!findings.length}>
-            <Download className="w-4 h-4 mr-2" /> CSV
-          </Button>
-          <Button variant="outline" onClick={exportPDF} disabled={!findings.length}>
-            <FileText className="w-4 h-4 mr-2" /> PDF
-          </Button>
-          <Button onClick={runAudit} disabled={running}>
-            {running ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Running…</> : "Run Audit"}
-          </Button>
-        </div>
+        <Button onClick={runAudit} disabled={running}>
+          {running ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Running…
+            </>
+          ) : (
+            "Run Audit"
+          )}
+        </Button>
       </div>
 
       {score !== null && (
         <Card className="p-6 mb-6 text-center">
-          <div className={`text-6xl font-bold ${score >= 90 ? "text-green-600" : score >= 70 ? "text-amber-600" : "text-destructive"}`}>
+          <div
+            className={`text-6xl font-bold ${score >= 90 ? "text-green-600" : score >= 70 ? "text-amber-600" : "text-destructive"}`}
+          >
             {score}
           </div>
           <p className="text-sm text-muted-foreground mt-2">Overall environment score (0–100)</p>
@@ -215,14 +166,18 @@ export default function AdminPerformanceReport() {
                     <span className="font-medium">{f.title}</span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">{f.detail}</p>
-                  <p className="text-sm mt-2"><strong>Fix:</strong> {f.fix}</p>
+                  <p className="text-sm mt-2">
+                    <strong>Fix:</strong> {f.fix}
+                  </p>
                 </div>
               </div>
             </Card>
           );
         })}
         {!running && findings.length === 0 && (
-          <p className="text-center text-muted-foreground py-12">Click <strong>Run Audit</strong> to scan this environment.</p>
+          <p className="text-center text-muted-foreground py-12">
+            Click <strong>Run Audit</strong> to scan this environment.
+          </p>
         )}
       </div>
     </div>
