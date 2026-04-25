@@ -1319,23 +1319,37 @@ const AdminProducts = () => {
       }}>
         <DialogContent className="max-w-2xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>Manage Prices by City</span>
-              <Button
-                size="sm"
-                variant={bulkMode ? "default" : "outline"}
-                onClick={() => {
-                  setBulkMode(!bulkMode);
-                  if (!bulkMode) {
-                    setSelectedBulkCities([]);
-                    setBulkPriceInputs({});
-                  }
-                }}
-              >
-                <Copy className="w-4 h-4 mr-1" />
-                {bulkMode ? "Exit Bulk Mode" : "Bulk Pricing"}
-              </Button>
+            <DialogTitle className="flex items-center justify-between flex-wrap gap-2">
+              <span>Manage Variants & Prices</span>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant={variantMode ? "default" : "outline"}
+                  onClick={() => { setVariantMode(true); setBulkMode(false); }}
+                >
+                  By Variant
+                </Button>
+                <Button
+                  size="sm"
+                  variant={bulkMode ? "default" : "outline"}
+                  onClick={() => { setBulkMode(true); setVariantMode(false); setSelectedBulkCities([]); setBulkPriceInputs({}); }}
+                >
+                  <Copy className="w-4 h-4 mr-1" /> Bulk
+                </Button>
+                <Button
+                  size="sm"
+                  variant={!variantMode && !bulkMode ? "default" : "outline"}
+                  onClick={() => { setVariantMode(false); setBulkMode(false); }}
+                >
+                  By City
+                </Button>
+              </div>
             </DialogTitle>
+            {duplicateVolumes.length > 0 && (
+              <div className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
+                Duplicate quantities detected (case-insensitive): <strong>{duplicateVolumes.join(", ")}</strong>. Saving is blocked until removed.
+              </div>
+            )}
           </DialogHeader>
 
           {bulkMode ? (
