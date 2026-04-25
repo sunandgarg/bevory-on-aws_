@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, CheckCircle2, AlertTriangle, XCircle, Loader2 } from "lucide-react";
+import { Activity, CheckCircle2, AlertTriangle, XCircle, Loader2, Download, FileText } from "lucide-react";
 
 type Severity = "good" | "warn" | "bad";
 interface Finding {
