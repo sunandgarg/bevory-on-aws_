@@ -10,7 +10,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
-  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger,
+  SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -60,7 +61,7 @@ const navGroups = [
   },
 ];
 
-const AdminSidebar = () => {
+const AdminSidebar = ({ email }: { email?: string }) => {
   const { pathname } = useLocation();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -72,23 +73,39 @@ const AdminSidebar = () => {
     return init;
   });
 
+  const initials = email ? email.slice(0, 2).toUpperCase() : "AD";
+
   return (
-    <Sidebar collapsible="icon">
-      <SidebarContent>
+    <Sidebar collapsible="icon" className="border-r border-border bg-background">
+      <SidebarHeader className="px-4 py-5">
+        <Link to="/admin" className="flex items-center gap-2.5 group">
+          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm shadow-primary/20 shrink-0">
+            <div className="w-4 h-4 border-2 border-primary-foreground rounded-sm" />
+          </div>
+          {!collapsed && (
+            <div className="flex flex-col leading-tight">
+              <span className="font-bold text-base tracking-tight text-foreground">Admin</span>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Bevory</span>
+            </div>
+          )}
+        </Link>
+      </SidebarHeader>
+
+      <SidebarContent className="px-2">
         {navGroups.map((group) => {
           const hasActive = group.items.some((i) => pathname === i.path);
           const isOpen = collapsed ? true : (openGroups[group.label] ?? hasActive);
           return (
-            <SidebarGroup key={group.label}>
+            <SidebarGroup key={group.label} className="py-2">
               {!collapsed ? (
                 <Collapsible
                   open={isOpen}
                   onOpenChange={(o) => setOpenGroups((p) => ({ ...p, [group.label]: o }))}
                 >
                   <CollapsibleTrigger asChild>
-                    <SidebarGroupLabel className="flex items-center justify-between cursor-pointer hover:text-foreground">
+                    <SidebarGroupLabel className="flex items-center justify-between cursor-pointer text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground px-3 mb-1">
                       <span>{group.label}</span>
-                      <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isOpen && "rotate-180")} />
+                      <ChevronDown className={cn("w-3 h-3 transition-transform", isOpen && "rotate-180")} />
                     </SidebarGroupLabel>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
@@ -96,10 +113,14 @@ const AdminSidebar = () => {
                       <SidebarMenu>
                         {group.items.map((item) => (
                           <SidebarMenuItem key={item.path}>
-                            <SidebarMenuButton asChild isActive={pathname === item.path}>
+                            <SidebarMenuButton
+                              asChild
+                              isActive={pathname === item.path}
+                              className="h-9 rounded-lg data-[active=true]:bg-primary/8 data-[active=true]:text-primary data-[active=true]:font-medium"
+                            >
                               <NavLink to={item.path} end={item.path === "/admin"}>
                                 <item.icon className="w-4 h-4" />
-                                <span>{item.label}</span>
+                                <span className="text-sm">{item.label}</span>
                               </NavLink>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
@@ -113,7 +134,12 @@ const AdminSidebar = () => {
                   <SidebarMenu>
                     {group.items.map((item) => (
                       <SidebarMenuItem key={item.path}>
-                        <SidebarMenuButton asChild isActive={pathname === item.path} tooltip={item.label}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={pathname === item.path}
+                          tooltip={item.label}
+                          className="h-9 rounded-lg data-[active=true]:bg-primary/8 data-[active=true]:text-primary"
+                        >
                           <NavLink to={item.path} end={item.path === "/admin"}>
                             <item.icon className="w-4 h-4" />
                             <span>{item.label}</span>
@@ -128,6 +154,20 @@ const AdminSidebar = () => {
           );
         })}
       </SidebarContent>
+
+      {!collapsed && (
+        <SidebarFooter className="border-t border-border p-3">
+          <div className="flex items-center gap-3 px-2 py-1">
+            <div className="w-9 h-9 rounded-full bg-secondary text-foreground/70 flex items-center justify-center text-xs font-bold shrink-0">
+              {initials}
+            </div>
+            <div className="flex flex-col min-w-0 leading-tight">
+              <span className="text-xs font-semibold truncate">Admin User</span>
+              <span className="text-[10px] text-muted-foreground truncate">{email}</span>
+            </div>
+          </div>
+        </SidebarFooter>
+      )}
     </Sidebar>
   );
 };
@@ -151,24 +191,38 @@ const AdminLayout = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-secondary/30">
-        <AdminSidebar />
+      <div className="min-h-screen flex w-full bg-[hsl(var(--background))]" style={{ background: "#fafbfc" }}>
+        <AdminSidebar email={user?.email} />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="sticky top-0 z-40 bg-background border-b border-border">
-            <div className="flex items-center justify-between h-12 px-3">
-              <div className="flex items-center gap-2">
-                <SidebarTrigger />
-                <Link to="/" className="p-1.5 hover:bg-secondary rounded-lg transition-colors">
+          <header className="sticky top-0 z-40 h-16 bg-background/80 backdrop-blur-md border-b border-border">
+            <div className="flex items-center justify-between h-full px-6 lg:px-10">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger className="hover:bg-secondary rounded-full" />
+                <Link
+                  to="/"
+                  className="p-2 hover:bg-secondary rounded-full transition-colors text-muted-foreground"
+                  title="Back to site"
+                >
                   <ArrowLeft className="w-4 h-4" />
                 </Link>
-                <div className="w-px h-5 bg-border" />
-                <h1 className="text-sm font-semibold">Admin</h1>
+                <div className="w-px h-6 bg-border" />
+                <h1 className="text-base font-semibold tracking-tight">Admin Console</h1>
               </div>
-              <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
+              <div className="flex items-center gap-3">
+                <div className="hidden md:flex flex-col items-end leading-tight">
+                  <span className="text-xs font-medium text-foreground">Admin User</span>
+                  <span className="text-[11px] text-muted-foreground">{user?.email}</span>
+                </div>
+                <div className="w-9 h-9 rounded-full bg-secondary text-foreground/70 flex items-center justify-center text-xs font-bold">
+                  {user?.email?.slice(0, 2).toUpperCase() ?? "AD"}
+                </div>
+              </div>
             </div>
           </header>
-          <main className="p-4 max-w-[1400px] w-full mx-auto">
-            <Outlet />
+          <main className="flex-1 w-full">
+            <div className="p-6 lg:p-10 max-w-[1600px] w-full mx-auto">
+              <Outlet />
+            </div>
           </main>
         </div>
       </div>
