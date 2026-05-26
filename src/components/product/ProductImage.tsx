@@ -12,14 +12,22 @@ interface ProductImageProps {
   height?: number;
 }
 
-const SRCSET_WIDTHS = [200, 400, 600, 800];
+// Wider responsive ladder — covers small thumbs to retina large screens
+const SRCSET_WIDTHS = [200, 320, 480, 640, 800, 1200, 1600];
 
-/** Convert any image URL to WebP via wsrv.nl */
-function toWebP(url: string, w: number, h?: number): string {
+/** Convert any image URL through wsrv.nl with a chosen output format */
+function toFormat(url: string, w: number, fmt: "webp" | "avif", h?: number): string {
   if (!url || !url.startsWith("http")) return url;
   if (url.includes("wsrv.nl")) return url;
   try {
-    const p = new URLSearchParams({ url, w: String(w), output: "webp", q: "80", fit: "contain", bg: "ffffff" });
+    const p = new URLSearchParams({
+      url,
+      w: String(w),
+      output: fmt,
+      q: fmt === "avif" ? "60" : "80", // AVIF compresses much harder at same quality
+      fit: "contain",
+      bg: "ffffff",
+    });
     if (h) p.set("h", String(h));
     return `https://wsrv.nl/?${p.toString()}`;
   } catch {
@@ -27,9 +35,9 @@ function toWebP(url: string, w: number, h?: number): string {
   }
 }
 
-function buildSrcSet(url: string): string {
+function buildSrcSet(url: string, fmt: "webp" | "avif"): string {
   if (!url || !url.startsWith("http")) return "";
-  return SRCSET_WIDTHS.map(w => `${toWebP(url, w)} ${w}w`).join(", ");
+  return SRCSET_WIDTHS.map((w) => `${toFormat(url, w, fmt)} ${w}w`).join(", ");
 }
 
 const ProductImage = memo(({
@@ -62,8 +70,10 @@ const ProductImage = memo(({
     return () => observer.disconnect();
   }, [priority]);
 
-  const optimizedSrc = useMemo(() => src ? toWebP(src, width, height) : null, [src, width, height]);
-  const srcSet = useMemo(() => src ? buildSrcSet(src) : "", [src]);
+  const fallbackSrc = useMemo(() => (src ? toFormat(src, width, "webp", height) : null), [src, width, height]);
+  const webpSrcSet = useMemo(() => (src ? buildSrcSet(src, "webp") : ""), [src]);
+  const avifSrcSet = useMemo(() => (src ? buildSrcSet(src, "avif") : ""), [src]);
+  const sizes = "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 240px";
 
   if (!src || hasError) {
     return (
@@ -91,27 +101,29 @@ const ProductImage = memo(({
         <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-muted/50 to-muted/30" />
       )}
       {isInView && (
-        <img
-          src={optimizedSrc || undefined}
-          srcSet={srcSet || undefined}
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 200px"
-          alt={alt}
-          width={width}
-          height={height || width}
-          loading={priority ? "eager" : "lazy"}
-          decoding={priority ? "sync" : "async"}
-          {...({ fetchpriority: priority ? "high" : "auto" } as any)}
-          onLoad={() => setIsLoaded(true)}
-          onError={() => setHasError(true)}
-          className={cn(
-            "absolute inset-0 m-auto block max-w-full max-h-full transition-all duration-500",
-            objectFit === "contain" && "object-contain p-3",
-            objectFit === "cover" && "w-full h-full object-cover",
-            !isLoaded && "opacity-0 scale-95",
-            isLoaded && "opacity-100 scale-100"
-          )}
-          style={{ objectPosition: "center center" }}
-        />
+        <picture>
+          {avifSrcSet && <source type="image/avif" srcSet={avifSrcSet} sizes={sizes} />}
+          {webpSrcSet && <source type="image/webp" srcSet={webpSrcSet} sizes={sizes} />}
+          <img
+            src={fallbackSrc || undefined}
+            alt={alt}
+            width={width}
+            height={height || width}
+            loading={priority ? "eager" : "lazy"}
+            decoding={priority ? "sync" : "async"}
+            {...({ fetchpriority: priority ? "high" : "auto" } as any)}
+            onLoad={() => setIsLoaded(true)}
+            onError={() => setHasError(true)}
+            className={cn(
+              "absolute inset-0 m-auto block max-w-full max-h-full transition-all duration-500",
+              objectFit === "contain" && "object-contain p-3",
+              objectFit === "cover" && "w-full h-full object-cover",
+              !isLoaded && "opacity-0 scale-95",
+              isLoaded && "opacity-100 scale-100"
+            )}
+            style={{ objectPosition: "center center" }}
+          />
+        </picture>
       )}
     </div>
   );
