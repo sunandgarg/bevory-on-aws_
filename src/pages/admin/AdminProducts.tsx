@@ -184,6 +184,8 @@ const AdminProducts = () => {
     if (data) setCities(data);
   };
 
+  const draftKey = (id: string) => `bevory:price-draft:${id}`;
+
   const fetchProductPrices = async (productId: string) => {
     const { data } = await supabase
       .from("product_prices")
@@ -191,7 +193,6 @@ const AdminProducts = () => {
       .eq("product_id", productId);
     if (data) {
       setProductPrices(data.map(p => ({ ...p, volume: p.volume || '750ml' })));
-      // Group prices by city and volume
       const inputs: Record<string, Record<string, { price: string; mrp: string; in_stock: boolean }>> = {};
       const existingVolumes = new Set<string>();
       data.forEach((p) => {
@@ -204,11 +205,39 @@ const AdminProducts = () => {
           in_stock: p.in_stock ?? true,
         };
       });
+      let nonDefaultVolumes = Array.from(existingVolumes).filter(v => !DEFAULT_VOLUME_SUGGESTIONS.includes(v));
+      let hidden: string[] = [];
+
+      // Restore unsaved draft (overlays empty fields and adds custom volumes)
+      try {
+        const raw = localStorage.getItem(draftKey(productId));
+        if (raw) {
+          const draft = JSON.parse(raw) as {
+            priceInputs?: typeof inputs;
+            customVolumes?: string[];
+            hiddenVolumes?: string[];
+          };
+          if (draft.priceInputs) {
+            for (const [cid, vols] of Object.entries(draft.priceInputs)) {
+              if (!inputs[cid]) inputs[cid] = {};
+              for (const [vol, val] of Object.entries(vols)) {
+                // Only restore draft cell if DB had no value (avoid overwriting saved data)
+                if (!inputs[cid][vol]) inputs[cid][vol] = val;
+              }
+            }
+          }
+          if (Array.isArray(draft.customVolumes)) {
+            const set = new Set([...nonDefaultVolumes, ...draft.customVolumes]);
+            nonDefaultVolumes = Array.from(set);
+          }
+          if (Array.isArray(draft.hiddenVolumes)) hidden = draft.hiddenVolumes;
+          toast({ title: "Draft restored", description: "Loaded your previous unsaved inputs." });
+        }
+      } catch { /* ignore corrupt draft */ }
+
       setPriceInputs(inputs);
-      // Set custom volumes from existing data
-      const nonDefaultVolumes = Array.from(existingVolumes).filter(v => !DEFAULT_VOLUME_SUGGESTIONS.includes(v));
       setCustomVolumes(nonDefaultVolumes);
-      // Set first city as selected
+      setHiddenVolumes(hidden);
       if (cities.length > 0 && !selectedPriceCity) {
         setSelectedPriceCity(cities[0].id);
       }
