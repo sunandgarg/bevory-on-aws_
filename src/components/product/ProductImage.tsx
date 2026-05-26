@@ -100,7 +100,7 @@ const ProductImage = memo(({
           height={height || width}
           loading={priority ? "eager" : "lazy"}
           decoding={priority ? "sync" : "async"}
-          fetchPriority={priority ? "high" : "auto"}
+          {...({ fetchpriority: priority ? "high" : "auto" } as any)}
           onLoad={() => setIsLoaded(true)}
           onError={() => setHasError(true)}
           className={cn(
