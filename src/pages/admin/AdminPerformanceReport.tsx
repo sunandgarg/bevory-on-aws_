@@ -120,9 +120,35 @@ export default function AdminPerformanceReport() {
     setRunning(false);
   };
 
+  const downloadCsv = () => {
+    // Spreadsheet-friendly schema: stable column order + sample rows so it imports cleanly
+    const columns = ["category", "title", "detail", "severity", "score", "fix", "audited_at"];
+    const sevScore: Record<Severity, number> = { good: 100, warn: 70, bad: 30 };
+    const ts = new Date().toISOString();
+    const escape = (v: unknown) => {
+      const s = v === null || v === undefined ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows: string[][] = [columns];
+    // Two sample rows at top (commented-style hint via leading "#")
+    rows.push(["# SAMPLE", "Images", "12 images on page", "good", "100", "Use ProductImage for WebP/AVIF.", ts]);
+    rows.push(["# SAMPLE", "Web Vitals", "DOM Interactive: 1200 ms", "warn", "70", "Reduce blocking scripts.", ts]);
+    for (const f of findings) {
+      rows.push([f.category, f.category, f.detail, f.severity, String(sevScore[f.severity]), f.fix, ts]);
+    }
+    const csv = rows.map((r) => r.map(escape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `bevory-performance-${ts.slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Activity className="w-6 h-6" /> Performance Report
@@ -131,15 +157,20 @@ export default function AdminPerformanceReport() {
             Lighthouse-style in-browser audit for the current environment.
           </p>
         </div>
-        <Button onClick={runAudit} disabled={running}>
-          {running ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Running…
-            </>
-          ) : (
-            "Run Audit"
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={downloadCsv} disabled={findings.length === 0}>
+            Download CSV
+          </Button>
+          <Button onClick={runAudit} disabled={running}>
+            {running ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Running…
+              </>
+            ) : (
+              "Run Audit"
+            )}
+          </Button>
+        </div>
       </div>
 
       {score !== null && (
