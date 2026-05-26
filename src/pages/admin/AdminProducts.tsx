@@ -399,18 +399,6 @@ const AdminProducts = () => {
     setDuplicateVolumes(Array.from(new Set(dups)));
   }, [visibleVolumes]);
 
-  const savePrices = async () => {
-    if (!selectedProductId) return;
-
-    // Block on duplicates
-    if (duplicateVolumes.length > 0) {
-      toast({
-        title: "Duplicate quantities",
-        description: `Remove duplicates: ${duplicateVolumes.join(", ")}`,
-        variant: "destructive",
-      });
-      return;
-    }
 
   // Persist a draft on every edit so closing the dialog doesn't lose work
   useEffect(() => {
