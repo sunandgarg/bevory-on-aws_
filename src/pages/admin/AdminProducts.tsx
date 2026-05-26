@@ -184,6 +184,8 @@ const AdminProducts = () => {
     if (data) setCities(data);
   };
 
+  const draftKey = (id: string) => `bevory:price-draft:${id}`;
+
   const fetchProductPrices = async (productId: string) => {
     const { data } = await supabase
       .from("product_prices")
@@ -191,7 +193,6 @@ const AdminProducts = () => {
       .eq("product_id", productId);
     if (data) {
       setProductPrices(data.map(p => ({ ...p, volume: p.volume || '750ml' })));
-      // Group prices by city and volume
       const inputs: Record<string, Record<string, { price: string; mrp: string; in_stock: boolean }>> = {};
       const existingVolumes = new Set<string>();
       data.forEach((p) => {
@@ -204,11 +205,39 @@ const AdminProducts = () => {
           in_stock: p.in_stock ?? true,
         };
       });
+      let nonDefaultVolumes = Array.from(existingVolumes).filter(v => !DEFAULT_VOLUME_SUGGESTIONS.includes(v));
+      let hidden: string[] = [];
+
+      // Restore unsaved draft (overlays empty fields and adds custom volumes)
+      try {
+        const raw = localStorage.getItem(draftKey(productId));
+        if (raw) {
+          const draft = JSON.parse(raw) as {
+            priceInputs?: typeof inputs;
+            customVolumes?: string[];
+            hiddenVolumes?: string[];
+          };
+          if (draft.priceInputs) {
+            for (const [cid, vols] of Object.entries(draft.priceInputs)) {
+              if (!inputs[cid]) inputs[cid] = {};
+              for (const [vol, val] of Object.entries(vols)) {
+                // Only restore draft cell if DB had no value (avoid overwriting saved data)
+                if (!inputs[cid][vol]) inputs[cid][vol] = val;
+              }
+            }
+          }
+          if (Array.isArray(draft.customVolumes)) {
+            const set = new Set([...nonDefaultVolumes, ...draft.customVolumes]);
+            nonDefaultVolumes = Array.from(set);
+          }
+          if (Array.isArray(draft.hiddenVolumes)) hidden = draft.hiddenVolumes;
+          toast({ title: "Draft restored", description: "Loaded your previous unsaved inputs." });
+        }
+      } catch { /* ignore corrupt draft */ }
+
       setPriceInputs(inputs);
-      // Set custom volumes from existing data
-      const nonDefaultVolumes = Array.from(existingVolumes).filter(v => !DEFAULT_VOLUME_SUGGESTIONS.includes(v));
       setCustomVolumes(nonDefaultVolumes);
-      // Set first city as selected
+      setHiddenVolumes(hidden);
       if (cities.length > 0 && !selectedPriceCity) {
         setSelectedPriceCity(cities[0].id);
       }
@@ -370,10 +399,20 @@ const AdminProducts = () => {
     setDuplicateVolumes(Array.from(new Set(dups)));
   }, [visibleVolumes]);
 
+
+  // Persist a draft on every edit so closing the dialog doesn't lose work
+  useEffect(() => {
+    if (!selectedProductId || !showPriceDialog) return;
+    try {
+      const payload = JSON.stringify({ priceInputs, customVolumes, hiddenVolumes });
+      localStorage.setItem(draftKey(selectedProductId), payload);
+    } catch { /* quota / private mode — ignore */ }
+  }, [priceInputs, customVolumes, hiddenVolumes, selectedProductId, showPriceDialog]);
+
   const savePrices = async () => {
     if (!selectedProductId) return;
 
-    // Block on duplicates
+    // 1) Duplicate quantity names
     if (duplicateVolumes.length > 0) {
       toast({
         title: "Duplicate quantities",
@@ -383,7 +422,7 @@ const AdminProducts = () => {
       return;
     }
 
-    // Determine which cities are "selected" (have any input or existing prices)
+    // Cities considered "in play": any input OR existing DB price
     const citiesWithInput = new Set<string>(
       Object.keys(priceInputs).filter(cityId =>
         Object.values(priceInputs[cityId] || {}).some(v => v.price && v.price.trim() !== "")
@@ -391,21 +430,32 @@ const AdminProducts = () => {
     );
     productPrices.forEach(p => citiesWithInput.add(p.city_id));
 
-    // Block on missing prices: any visible variant × any selected city must have a price
+    // 2) Batch validation: missing, non-numeric, negative, MRP < price
     const missing: string[] = [];
+    const invalid: string[] = [];
     for (const cityId of citiesWithInput) {
       const cityName = cities.find(c => c.id === cityId)?.name || cityId;
       for (const volume of visibleVolumes) {
-        const val = priceInputs[cityId]?.[volume]?.price;
-        if (!val || isNaN(Number(val)) || Number(val) <= 0) {
-          missing.push(`${cityName} → ${volume}`);
+        const cell = priceInputs[cityId]?.[volume];
+        const priceStr = cell?.price?.trim() || "";
+        const mrpStr = cell?.mrp?.trim() || "";
+        if (!priceStr) { missing.push(`${cityName} → ${volume}`); continue; }
+        const price = Number(priceStr);
+        if (!Number.isFinite(price)) { invalid.push(`${cityName} → ${volume}: price "${priceStr}" is not a number`); continue; }
+        if (price <= 0) { invalid.push(`${cityName} → ${volume}: price must be > 0`); continue; }
+        if (price > 10_000_000) { invalid.push(`${cityName} → ${volume}: price unrealistically high`); continue; }
+        if (mrpStr) {
+          const mrp = Number(mrpStr);
+          if (!Number.isFinite(mrp) || mrp <= 0) { invalid.push(`${cityName} → ${volume}: MRP "${mrpStr}" is invalid`); continue; }
+          if (mrp < price) { invalid.push(`${cityName} → ${volume}: MRP (${mrp}) < price (${price})`); continue; }
         }
       }
     }
-    if (missing.length > 0) {
-      setMissingPriceErrors(missing);
+    const allErrors = [...missing.map(m => `Missing — ${m}`), ...invalid];
+    if (allErrors.length > 0) {
+      setMissingPriceErrors(allErrors);
       toast({
-        title: `Missing ${missing.length} price${missing.length > 1 ? "s" : ""}`,
+        title: `${allErrors.length} validation issue${allErrors.length > 1 ? "s" : ""}`,
         description: "See the highlighted list at the top of the dialog.",
         variant: "destructive",
       });
@@ -419,7 +469,7 @@ const AdminProducts = () => {
 
     for (const [cityId, volumePrices] of Object.entries(priceInputs)) {
       for (const [volume, { price, mrp, in_stock }] of Object.entries(volumePrices)) {
-        if (!price || isNaN(Number(price)) || Number(price) <= 0) continue;
+        if (!price || !Number.isFinite(Number(price)) || Number(price) <= 0) continue;
         count++;
         const existingPrice = productPrices.find((p) => p.city_id === cityId && p.volume === volume);
         const priceData = {
@@ -451,6 +501,8 @@ const AdminProducts = () => {
       toast({ title: "Some prices failed", description: errs[0].message, variant: "destructive" });
     } else {
       toast({ title: `Saved ${count} price${count > 1 ? "s" : ""} ⚡` });
+      // Clear draft only on full success
+      try { localStorage.removeItem(draftKey(selectedProductId)); } catch {}
     }
     setShowPriceDialog(false);
   };
