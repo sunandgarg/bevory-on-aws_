@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Preconnect to critical origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://wahbpewusxrlgqxpnrhc.supabase.co" crossorigin />
+    <link rel="preconnect" href="https://wsrv.nl" crossorigin />
+
+    <!-- DNS prefetch for image CDNs -->
+    <link rel="dns-prefetch" href="https://wsrv.nl" />
+    <link rel="dns-prefetch" href="https://wahbpewusxrlgqxpnrhc.supabase.co" />
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+    <link rel="icon" type="image/png" href="/favicon.png">
+
+    <!-- Canonical URL - www.bevory.in is the primary domain -->
+    <link rel="canonical" href="https://www.bevory.in/" />
+
+    <!-- Redirect non-www to www -->
+    <script>
+      if (window.location.hostname === 'bevory.in') {
+        window.location.replace('https://www.bevory.in' + window.location.pathname + window.location.search);
+      }
+    </script>
+
+    <!-- Google tag (gtag.js) - defer to after page load for performance -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-MR4YYVJKGY', { 'send_page_view': true });
+      // Lazy-load gtag script after main content
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => {
+          const s = document.createElement('script');
+          s.async = true;
+          s.src = 'https://www.googletagmanager.com/gtag/js?id=G-MR4YYVJKGY';
+          document.head.appendChild(s);
+        });
+      } else {
+        setTimeout(() => {
+          const s = document.createElement('script');
+          s.async = true;
+          s.src = 'https://www.googletagmanager.com/gtag/js?id=G-MR4YYVJKGY';
+          document.head.appendChild(s);
+        }, 2000);
+      }
+    </script>
+
+    <!-- Google Fonts - non-render-blocking -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+
+    <title>Bevory  Know Before You Drink | Compare Prices, Discover Brands</title>
+    <meta name="description" content="Bevory is your ultimate guide to the world of beverages. Compare prices, explore brands, plan parties, and make informed choices for every celebration.">
+    <meta name="author" content="Bevory" />
+    <meta name="keywords" content="alcohol prices, liquor comparison, party planner, whisky, gin, rum, wine, beer, cocktails, drink responsibly" />
+
+    <!-- Open Graph -->
+    
+    
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.bevory.in/" />
+    <meta property="og:image" content="https://www.bevory.in/og-image.png">
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Bevory" />
+    <meta property="og:locale" content="en_IN" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@Bevory" />
+    <meta name="twitter:image" content="https://www.bevory.in/og-image.png">
+
+    <!-- Apple touch icon + shortcut for tab/search/PWA -->
+    <link rel="apple-touch-icon" href="/favicon.png">
+    <link rel="shortcut icon" type="image/png" href="/favicon.png">
+
+    <!-- Logo for Google rich results / structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Bevory",
+      "url": "https://www.bevory.in/",
+      "logo": "https://www.bevory.in/favicon.png",
+      "sameAs": ["https://www.bevory.in"]
+    }
+    </script>
+
+    <!-- Alternate URLs for SEO -->
+    <link rel="alternate" href="https://www.bevory.in/" hreflang="en-in" />
+    <link rel="alternate" href="https://www.bevory.in/" hreflang="x-default" />
+    <meta property="og:title" content="Bevory  Know Before You Drink | Compare Prices, Discover Brands">
+  <meta name="twitter:title" content="Bevory  Know Before You Drink | Compare Prices, Discover Brands">
+  <meta property="og:description" content="Bevory is your ultimate guide to the world of beverages. Compare prices, explore brands, plan parties, and make informed choices for every celebration.">
+  <meta name="twitter:description" content="Bevory is your ultimate guide to the world of beverages. Compare prices, explore brands, plan parties, and make informed choices for every celebration.">
+</head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
