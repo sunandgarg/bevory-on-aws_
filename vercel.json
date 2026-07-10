@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "framework": "vite",
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/((?!assets/.*|_next/.*|favicon.ico|robots.txt|sitemap.xml|sw.js|manifest.json|.*\\.(js|css|svg|png|jpg|jpeg|webp|ico|json|woff|woff2|ttf|otf|eot)).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
