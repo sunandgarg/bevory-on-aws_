@@ -252,52 +252,52 @@
 
   /* Admin readability and accessibility baseline */
   .admin-shell {
-    font-size: 17px;
-    line-height: 1.55;
+    font-size: 15px;
+    line-height: 1.5;
   }
 
   .admin-shell .text-xs,
   .admin-shell [class*="text-[10px]"],
   .admin-shell [class*="text-[11px]"] {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .admin-shell .text-sm {
     font-size: 0.875rem;
     line-height: 1.45;
   }
 
-  .admin-shell .text-sm {
-    font-size: 1rem;
-    line-height: 1.5;
-  }
-
   .admin-shell main label {
-    font-size: 1rem;
+    font-size: 0.875rem;
     line-height: 1.4;
   }
 
   .admin-shell main input:not([type="checkbox"]):not([type="radio"]),
   .admin-shell main textarea,
   .admin-shell main [role="combobox"] {
-    min-height: 2.75rem;
-    font-size: 1rem;
-  }
-
-  .admin-shell main button {
     min-height: 2.5rem;
-    font-size: 0.95rem;
-  }
-
-  .admin-shell .admin-table {
-    font-size: 1rem;
-  }
-
-  .admin-shell .admin-table th {
-    padding-top: 0.875rem;
-    padding-bottom: 0.875rem;
     font-size: 0.875rem;
   }
 
-  .admin-shell .admin-table td {
+  .admin-shell main button {
+    min-height: 2.375rem;
+    font-size: 0.875rem;
+  }
+
+  .admin-shell .admin-table {
+    font-size: 0.875rem;
+  }
+
+  .admin-shell .admin-table th {
     padding-top: 0.75rem;
     padding-bottom: 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .admin-shell .admin-table td {
+    padding-top: 0.625rem;
+    padding-bottom: 0.625rem;
   }
 
   /* Custom thin scrollbars */

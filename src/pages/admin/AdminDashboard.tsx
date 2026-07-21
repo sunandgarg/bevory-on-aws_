@@ -129,16 +129,16 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="space-y-7">
-        <Skeleton className="h-20 w-full max-w-xl" />
+      <div className="space-y-6">
+        <Skeleton className="h-16 w-full max-w-xl" />
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[0, 1, 2, 3].map((item) => (
-            <Skeleton key={item} className="h-36 rounded-2xl" />
+            <Skeleton key={item} className="h-28 rounded-xl" />
           ))}
         </div>
         <div className="grid gap-6 lg:grid-cols-2">
-          <Skeleton className="h-80 rounded-2xl" />
-          <Skeleton className="h-80 rounded-2xl" />
+          <Skeleton className="h-72 rounded-xl" />
+          <Skeleton className="h-72 rounded-xl" />
         </div>
       </div>
     );
@@ -184,53 +184,50 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="space-y-8">
-      <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+    <div className="space-y-6">
+      <section className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
         <div>
-          <Badge variant="secondary" className="mb-3 px-3 py-1 text-sm">
-            Admin overview
-          </Badge>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Welcome back</h1>
-          <p className="mt-2 max-w-2xl text-lg text-muted-foreground">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Welcome back</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground sm:text-base">
             Manage the catalog, content, users, and settings from one simple workspace.
           </p>
         </div>
-        <Button asChild size="lg" className="min-h-12 rounded-xl px-5 text-base">
+        <Button asChild className="h-10 rounded-lg px-4 text-sm">
           <Link to="/admin/products">
-            <Plus className="mr-2 h-5 w-5" />
+            <Plus className="mr-2 h-4 w-4" />
             Add product
           </Link>
         </Button>
       </section>
 
       {loadError && (
-        <div className="flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-destructive">
+        <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-destructive">
           <CircleAlert className="mt-0.5 h-5 w-5 shrink-0" />
           <div>
             <p className="font-semibold">Some dashboard information could not be loaded.</p>
-            <p className="text-base">Refresh the page or check the database connection.</p>
+            <p className="text-sm">Refresh the page or check the database connection.</p>
           </div>
         </div>
       )}
 
       <section aria-labelledby="key-numbers">
         <div className="mb-4 flex items-center justify-between">
-          <h2 id="key-numbers" className="text-2xl font-semibold">Key numbers</h2>
-          <span className="text-base text-muted-foreground">Live database totals</span>
+          <h2 id="key-numbers" className="text-lg font-semibold">Key numbers</h2>
+          <span className="text-sm text-muted-foreground">Live database totals</span>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {primaryStats.map((stat) => (
-            <Link key={stat.label} to={stat.href} className="group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <Card className="h-full rounded-2xl border-border/80 transition-all group-hover:-translate-y-0.5 group-hover:border-primary/30 group-hover:shadow-md">
-                <CardContent className="p-5">
+            <Link key={stat.label} to={stat.href} className="group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <Card className="h-full rounded-xl border-border/80 transition-all group-hover:-translate-y-0.5 group-hover:border-primary/30 group-hover:shadow-sm">
+                <CardContent className="p-4">
                   <div className="flex items-start justify-between">
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${stat.tone}`}>
-                      <stat.icon className="h-6 w-6" />
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${stat.tone}`}>
+                      <stat.icon className="h-[18px] w-[18px]" />
                     </div>
-                    <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+                    <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
                   </div>
-                  <p className="mt-5 text-4xl font-bold tracking-tight">{stat.value.toLocaleString()}</p>
-                  <p className="mt-1 text-base font-medium text-muted-foreground">{stat.label}</p>
+                  <p className="mt-3 text-3xl font-bold tracking-tight">{stat.value.toLocaleString()}</p>
+                  <p className="mt-0.5 text-sm font-medium text-muted-foreground">{stat.label}</p>
                 </CardContent>
               </Card>
             </Link>
@@ -238,35 +235,35 @@ const AdminDashboard = () => {
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-2xl">Get the site ready</CardTitle>
-            <CardDescription className="text-base">
+      <section className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+        <Card className="rounded-xl">
+          <CardHeader className="p-5 pb-3">
+            <CardTitle className="text-lg">Get the site ready</CardTitle>
+            <CardDescription className="text-sm">
               Complete these core setup steps in order.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2.5 p-5 pt-0">
             {setupItems.map((item, index) => (
               <div
                 key={item.title}
-                className="flex flex-col gap-4 rounded-xl border border-border p-4 sm:flex-row sm:items-center"
+                className="flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-center"
               >
                 <div
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
                     item.complete ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
                   }`}
                 >
-                  {item.complete ? <CheckCircle2 className="h-6 w-6" /> : <span className="text-lg font-bold">{index + 1}</span>}
+                  {item.complete ? <CheckCircle2 className="h-5 w-5" /> : <span className="text-sm font-bold">{index + 1}</span>}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-lg font-semibold">{item.title}</p>
+                    <p className="text-sm font-semibold sm:text-base">{item.title}</p>
                     {item.complete && <Badge className="bg-emerald-600">Done</Badge>}
                   </div>
-                  <p className="mt-1 text-base text-muted-foreground">{item.description}</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{item.description}</p>
                 </div>
-                <Button asChild variant={item.complete ? "outline" : "default"} className="min-h-11 rounded-xl text-base">
+                <Button asChild variant={item.complete ? "outline" : "default"} size="sm" className="h-9 rounded-lg text-sm">
                   <Link to={item.href}>{item.complete ? "Review" : item.action}</Link>
                 </Button>
               </div>
@@ -274,12 +271,12 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-2xl">Quick actions</CardTitle>
-            <CardDescription className="text-base">Common tasks, one click away.</CardDescription>
+        <Card className="rounded-xl">
+          <CardHeader className="p-5 pb-3">
+            <CardTitle className="text-lg">Quick actions</CardTitle>
+            <CardDescription className="text-sm">Common tasks, one click away.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+          <CardContent className="grid gap-2.5 p-5 pt-0 sm:grid-cols-2 xl:grid-cols-1">
             {[
               { label: "Add a product", description: "Create one catalog item", icon: Plus, href: "/admin/products" },
               { label: "Import data", description: "Upload products in bulk", icon: FileUp, href: "/admin/bulk-upload" },
@@ -289,68 +286,68 @@ const AdminDashboard = () => {
               <Link
                 key={action.label}
                 to={action.href}
-                className="group flex min-h-[72px] items-center gap-4 rounded-xl border border-border p-4 hover:border-primary/30 hover:bg-primary/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="group flex min-h-[60px] items-center gap-3 rounded-lg border border-border p-3 hover:border-primary/30 hover:bg-primary/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <action.icon className="h-5 w-5" />
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <action.icon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-base font-semibold">{action.label}</p>
-                  <p className="text-sm text-muted-foreground">{action.description}</p>
+                  <p className="text-sm font-semibold">{action.label}</p>
+                  <p className="text-xs text-muted-foreground">{action.description}</p>
                 </div>
-                <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
               </Link>
             ))}
           </CardContent>
         </Card>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-2xl">Content overview</CardTitle>
-            <CardDescription className="text-base">Published and submitted content totals.</CardDescription>
+      <section className="grid gap-5 xl:grid-cols-[0.85fr_1.15fr]">
+        <Card className="rounded-xl">
+          <CardHeader className="p-5 pb-3">
+            <CardTitle className="text-lg">Content overview</CardTitle>
+            <CardDescription className="text-sm">Published and submitted content totals.</CardDescription>
           </CardHeader>
-          <CardContent className="divide-y divide-border">
+          <CardContent className="divide-y divide-border p-5 pt-0">
             {contentStats.map((item) => (
               <Link
                 key={item.label}
                 to={item.href}
-                className="group flex min-h-14 items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                className="group flex min-h-12 items-center justify-between gap-3 py-2 first:pt-0 last:pb-0"
               >
-                <span className="flex items-center gap-3 text-base font-medium">
-                  <item.icon className="h-5 w-5 text-muted-foreground group-hover:text-primary" />
+                <span className="flex items-center gap-3 text-sm font-medium">
+                  <item.icon className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
                   {item.label}
                 </span>
-                <span className="text-xl font-bold">{item.value.toLocaleString()}</span>
+                <span className="text-base font-bold">{item.value.toLocaleString()}</span>
               </Link>
             ))}
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-2xl">Recent activity</CardTitle>
-            <CardDescription className="text-base">Newest reviews and articles.</CardDescription>
+        <Card className="rounded-xl">
+          <CardHeader className="p-5 pb-3">
+            <CardTitle className="text-lg">Recent activity</CardTitle>
+            <CardDescription className="text-sm">Newest reviews and articles.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-5 pt-0">
             {recentActivity.length > 0 ? (
               <div className="space-y-2">
                 {recentActivity.map((activity) => (
-                  <div key={`${activity.kind}-${activity.id}`} className="flex min-h-16 items-center gap-3 rounded-xl bg-muted/50 px-4 py-3">
-                    <Badge variant="outline" className="shrink-0 text-sm">{activity.kind}</Badge>
-                    <p className="min-w-0 flex-1 truncate text-base font-medium">{activity.title}</p>
-                    <time className="hidden shrink-0 text-sm text-muted-foreground sm:block">
+                  <div key={`${activity.kind}-${activity.id}`} className="flex min-h-14 items-center gap-3 rounded-lg bg-muted/50 px-3 py-2.5">
+                    <Badge variant="outline" className="shrink-0 text-xs">{activity.kind}</Badge>
+                    <p className="min-w-0 flex-1 truncate text-sm font-medium">{activity.title}</p>
+                    <time className="hidden shrink-0 text-xs text-muted-foreground sm:block">
                       {new Date(activity.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                     </time>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed border-border p-6 text-center">
-                <BookOpen className="h-9 w-9 text-muted-foreground" />
-                <p className="mt-3 text-lg font-semibold">No activity yet</p>
-                <p className="mt-1 text-base text-muted-foreground">New reviews and articles will appear here.</p>
+              <div className="flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed border-border p-5 text-center">
+                <BookOpen className="h-8 w-8 text-muted-foreground" />
+                <p className="mt-2 text-base font-semibold">No activity yet</p>
+                <p className="mt-1 text-sm text-muted-foreground">New reviews and articles will appear here.</p>
               </div>
             )}
           </CardContent>
