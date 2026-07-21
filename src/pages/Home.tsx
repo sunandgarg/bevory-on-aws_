@@ -10,6 +10,7 @@ import {
   Wine,
   MapPin,
   ShieldCheck,
+  PackageOpen,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import MobileLayout from "@/components/layout/MobileLayout";
@@ -53,9 +54,30 @@ const TRUST_STATS = [
 const serifStyle = { fontFamily: "'Instrument Serif', Georgia, serif" } as const;
 
 const Home = () => {
-  const { categories } = useProducts();
+  const { categories, products, loading } = useProducts();
   const { selectedCity } = useLocation();
   const cityName = selectedCity?.name || "your city";
+
+  if (!loading && categories.length === 0 && products.length === 0) {
+    return (
+      <MobileLayout showSearch={false} showCheersGuide={false}>
+        <AgeVerificationModal />
+        <div className="min-h-[65vh] px-6 flex items-center justify-center">
+          <div className="max-w-sm text-center space-y-4">
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center">
+              <PackageOpen className="w-7 h-7 text-muted-foreground" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold">Catalog is being prepared</h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Products and city pricing have not been loaded yet. Please check back shortly.
+              </p>
+            </div>
+          </div>
+        </div>
+      </MobileLayout>
+    );
+  }
 
   return (
     <MobileLayout showSearch={true} showCheersGuide={true}>

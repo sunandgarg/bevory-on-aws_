@@ -7,7 +7,6 @@ export interface GASettings {
   measurementId: string;
   propertyId: string;
   enabled: boolean;
-  serviceAccountJson?: string;
 }
 
 export interface GAData {
@@ -36,7 +35,6 @@ const DEFAULT_GA_SETTINGS: GASettings = {
   measurementId: '',
   propertyId: '',
   enabled: false,
-  serviceAccountJson: '',
 };
 
 export const useGoogleAnalytics = () => {
@@ -58,7 +56,12 @@ export const useGoogleAnalytics = () => {
         .single();
 
       if (data && !error) {
-        setSettings(data.value as unknown as GASettings);
+        const value = data.value as Partial<GASettings> | null;
+        setSettings({
+          measurementId: typeof value?.measurementId === 'string' ? value.measurementId : '',
+          propertyId: typeof value?.propertyId === 'string' ? value.propertyId : '',
+          enabled: value?.enabled === true,
+        });
       }
     } catch (error) {
       console.error('Error fetching GA settings:', error);
@@ -136,15 +139,12 @@ export const useGoogleAnalytics = () => {
     }
   };
 
-  const hasServiceAccount = !!settings.serviceAccountJson;
-
   return {
     settings,
     loading,
     saving,
     updateSettings,
     fetchAnalyticsData,
-    isConfigured: settings.enabled && !!settings.propertyId && hasServiceAccount,
-    hasServiceAccount,
+    isConfigured: settings.enabled && !!settings.propertyId,
   };
 };

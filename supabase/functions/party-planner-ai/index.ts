@@ -5,6 +5,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const RATE_WINDOW_MS = 60_000;
+const RATE_LIMIT = 5;
+const requestBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function enforceRateLimit(req: Request) {
+  const now = Date.now();
+  const clientId = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const bucket = requestBuckets.get(clientId);
+  if (!bucket || bucket.resetAt <= now) {
+    requestBuckets.set(clientId, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return;
+  }
+  if (bucket.count >= RATE_LIMIT) throw new Error("RATE_LIMITED");
+  bucket.count += 1;
+}
+
 async function fetchFromSupabase(url: string, table: string, query: string, apiKey: string) {
   const response = await fetch(`${url}/rest/v1/${table}?${query}`, {
     headers: {
@@ -25,7 +41,32 @@ serve(async (req) => {
   }
 
   try {
+    enforceRateLimit(req);
     const { guests, budget, city, categories: selectedCategories } = await req.json();
+    if (!Number.isInteger(guests) || guests < 1 || guests > 500) {
+      return new Response(JSON.stringify({ error: "Guests must be an integer between 1 and 500" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (typeof budget !== "number" || !Number.isFinite(budget) || budget < 100 || budget > 10_000_000) {
+      return new Response(JSON.stringify({ error: "Budget must be between 100 and 10,000,000" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (city != null && (typeof city !== "string" || city.length > 100)) {
+      return new Response(JSON.stringify({ error: "Invalid city" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (selectedCategories != null && (!Array.isArray(selectedCategories) || selectedCategories.length > 20 || selectedCategories.some((item) => typeof item !== "string" || item.length > 80))) {
+      return new Response(JSON.stringify({ error: "Invalid categories" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -55,7 +96,7 @@ serve(async (req) => {
     );
 
     // Fetch product prices
-    let pricesQuery = "select=product_id,price,city_id";
+    const pricesQuery = "select=product_id,price,city_id";
     const prices = await fetchFromSupabase(
       SUPABASE_URL,
       "product_prices",
@@ -205,6 +246,12 @@ Format your response as JSON with this structure:
 
   } catch (error) {
     console.error("Party planner error:", error);
+    if (error instanceof Error && error.message === "RATE_LIMITED") {
+      return new Response(JSON.stringify({ error: "Too many requests. Please wait a minute." }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : "An error occurred" 

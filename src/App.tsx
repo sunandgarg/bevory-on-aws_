@@ -14,7 +14,6 @@ import CityHome from "./pages/CityHome";
 import Auth from "./pages/Auth";
 
 // Lazy-loaded pages for code splitting
-const Home = lazy(() => import("./pages/Home"));
 const Search = lazy(() => import("./pages/Search"));
 const Categories = lazy(() => import("./pages/Categories"));
 const CategoryDetail = lazy(() => import("./pages/CategoryDetail"));

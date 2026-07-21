@@ -1,3 +1,5 @@
+import { errorResponse, requireAdmin } from "../_shared/requireAdmin.ts";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
@@ -9,6 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    await requireAdmin(req);
     const { prompt, provider, context } = await req.json();
 
     if (!prompt) {
@@ -42,7 +45,7 @@ Deno.serve(async (req) => {
 
     switch (selectedProvider) {
       case 'openai': {
-        apiKey = aiSettings.openai_api_key || Deno.env.get('OPENAI_API_KEY');
+        apiKey = Deno.env.get('OPENAI_API_KEY');
         if (!apiKey) throw new Error('OpenAI API key not configured');
         apiUrl = 'https://api.openai.com/v1/chat/completions';
         model = aiSettings.openai_model || 'gpt-4o-mini';
@@ -55,7 +58,7 @@ Deno.serve(async (req) => {
         break;
       }
       case 'claude': {
-        apiKey = aiSettings.claude_api_key || Deno.env.get('ANTHROPIC_API_KEY');
+        apiKey = Deno.env.get('ANTHROPIC_API_KEY');
         if (!apiKey) throw new Error('Claude API key not configured');
         apiUrl = 'https://api.anthropic.com/v1/messages';
         model = aiSettings.claude_model || 'claude-3-haiku-20240307';
@@ -68,7 +71,7 @@ Deno.serve(async (req) => {
         break;
       }
       case 'perplexity': {
-        apiKey = aiSettings.perplexity_api_key || Deno.env.get('PERPLEXITY_API_KEY');
+        apiKey = Deno.env.get('PERPLEXITY_API_KEY');
         if (!apiKey) throw new Error('Perplexity API key not configured');
         apiUrl = 'https://api.perplexity.ai/chat/completions';
         model = aiSettings.perplexity_model || 'llama-3.1-sonar-small-128k-online';
@@ -141,10 +144,6 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('AI recommendation error:', error);
-    return new Response(
-      JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return errorResponse(error, corsHeaders);
   }
 });

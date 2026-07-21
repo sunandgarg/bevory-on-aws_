@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, Loader2, BarChart3, ExternalLink, CheckCircle2, AlertCircle, Info, Key } from "lucide-react";
+import { Save, Loader2, BarChart3, ExternalLink, CheckCircle2, AlertCircle, Info, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { useToast } from "@/hooks/use-toast";
 import { useGoogleAnalytics, GASettings } from "@/hooks/useGoogleAnalytics";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 
 const GoogleAnalyticsSettings = () => {
   const { settings, loading, saving, updateSettings, isConfigured } = useGoogleAnalytics();
@@ -18,7 +17,6 @@ const GoogleAnalyticsSettings = () => {
     measurementId: '',
     propertyId: '',
     enabled: false,
-    serviceAccountJson: '',
   });
   const { toast } = useToast();
 
@@ -122,28 +120,13 @@ const GoogleAnalyticsSettings = () => {
           </p>
         </div>
 
-        {/* Service Account JSON */}
-        <div className="space-y-2">
-          <Label className="flex items-center gap-2">
-            <Key className="w-4 h-4" />
-            Service Account JSON
-          </Label>
-          <Textarea
-            value={formData.serviceAccountJson || ''}
-            onChange={(e) => setFormData({ ...formData, serviceAccountJson: e.target.value })}
-            placeholder='Paste your Google Service Account JSON here (starts with { "type": "service_account", ... })'
-            className="font-mono text-xs min-h-[120px]"
-          />
-          <p className="text-xs text-muted-foreground">
-            Paste the entire contents of your service account JSON key file. This is stored securely and used to authenticate with Google Analytics.
-          </p>
-          {formData.serviceAccountJson && (
-            <div className="flex items-center gap-2 text-xs text-green-600">
-              <CheckCircle2 className="w-3 h-3" />
-              Service account JSON provided
-            </div>
-          )}
-        </div>
+        <Alert>
+          <ShieldCheck className="h-4 w-4" />
+          <AlertTitle>Server-side credential required</AlertTitle>
+          <AlertDescription>
+            Store the service-account JSON as the <code>GOOGLE_SERVICE_ACCOUNT_JSON</code> Supabase Edge Function secret. Private keys are never accepted by or returned to this browser.
+          </AlertDescription>
+        </Alert>
 
         {/* Setup Instructions */}
         <Accordion type="single" collapsible className="w-full">

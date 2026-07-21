@@ -39,7 +39,7 @@ interface VideoCategory {
 }
 
 const getYouTubeThumbnail = (url: string): string => {
-  const videoId = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/shorts\/))([^"&?\/\s]{11})/)?.[1];
+  const videoId = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/shorts\/))([^"&?/\s]{11})/)?.[1];
   return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : "";
 };
 

@@ -1,7 +1,6 @@
 // Bevory Service Worker v1 — 2026
-const CACHE_VERSION = 'bevory-v1';
+const CACHE_VERSION = 'bevory-v2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
-const API_CACHE = `${CACHE_VERSION}-api`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 
 // Static assets to precache on install
@@ -25,7 +24,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key.startsWith('bevory-') && key !== STATIC_CACHE && key !== API_CACHE && key !== IMAGE_CACHE)
+          .filter((key) => key.startsWith('bevory-') && key !== STATIC_CACHE && key !== IMAGE_CACHE)
           .map((key) => caches.delete(key))
       )
     )
@@ -50,9 +49,9 @@ self.addEventListener('fetch', (event) => {
     url.pathname.includes('token')
   ) return;
 
-  // Strategy 1: Supabase REST API — Network first, cache fallback (5 min TTL)
+  // Never cache Supabase REST responses. They may be scoped by Authorization
+  // and CacheStorage does not partition entries safely by user session.
   if (url.hostname.includes('supabase.co') && url.pathname.includes('/rest/')) {
-    event.respondWith(networkFirstWithCache(request, API_CACHE, 5 * 60 * 1000));
     return;
   }
 
@@ -71,10 +70,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Strategy 4: App shell (JS, CSS, HTML) — Stale while revalidate
+  // Strategy 4: Documents are network-first so a deployment cannot serve an
+  // old HTML shell that references deleted hashed assets.
+  if (url.origin === self.location.origin && request.destination === 'document') {
+    event.respondWith(networkFirstDocument(request));
+    return;
+  }
+
+  // Scripts and styles may safely use stale-while-revalidate because their
+  // filenames are content-hashed by Vite.
   if (
     url.origin === self.location.origin &&
-    (request.destination === 'script' || request.destination === 'style' || request.destination === 'document')
+    (request.destination === 'script' || request.destination === 'style')
   ) {
     event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
     return;
@@ -83,29 +90,14 @@ self.addEventListener('fetch', (event) => {
 
 // --- Strategies ---
 
-async function networkFirstWithCache(request, cacheName, maxAge) {
+async function networkFirstDocument(request) {
+  const cache = await caches.open(STATIC_CACHE);
   try {
     const response = await fetch(request);
-    if (response.ok) {
-      const clone = response.clone();
-      const cache = await caches.open(cacheName);
-      // Store with timestamp header
-      const headers = new Headers(clone.headers);
-      headers.set('sw-cached-at', Date.now().toString());
-      const body = await clone.blob();
-      cache.put(request, new Response(body, { status: clone.status, statusText: clone.statusText, headers }));
-    }
+    if (response.ok) await cache.put(request, response.clone());
     return response;
   } catch {
-    const cached = await caches.match(request);
-    if (cached) {
-      const cachedAt = parseInt(cached.headers.get('sw-cached-at') || '0');
-      if (Date.now() - cachedAt < maxAge) return cached;
-    }
-    return new Response(JSON.stringify({ error: 'offline' }), {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return (await cache.match(request)) || (await cache.match('/')) || new Response('Offline', { status: 503 });
   }
 }
 

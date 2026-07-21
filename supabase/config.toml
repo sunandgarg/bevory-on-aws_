@@ -1,1 +1,22 @@
-project_id = "pixecsdehfdrtwcouarf"
+project_id = "iceigamjlzzwhgmqhiqi"
+
+[functions.export-database]
+verify_jwt = true
+
+[functions.scrape-prices]
+verify_jwt = true
+
+[functions.bulk-seed-products]
+verify_jwt = true
+
+[functions.seed-trending-content]
+verify_jwt = true
+
+[functions.ai-recommend]
+verify_jwt = true
+
+[functions.create-admin-user]
+verify_jwt = true
+
+[functions.google-analytics]
+verify_jwt = true

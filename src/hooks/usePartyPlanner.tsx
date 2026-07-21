@@ -67,7 +67,7 @@ export const usePartyPlanner = () => {
         }
 
         // Fetch prices - prioritize city-specific prices
-        let priceMap = new Map<string, { price: number; mrp: number | null }>();
+        const priceMap = new Map<string, { price: number; mrp: number | null }>();
 
         if (selectedCity) {
           // Get city-specific prices first

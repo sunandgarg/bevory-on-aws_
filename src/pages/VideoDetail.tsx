@@ -43,7 +43,7 @@ interface VideoReview {
 }
 
 const getYouTubeEmbedUrl = (url: string): string => {
-  const videoId = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/shorts\/))([^"&?\/\s]{11})/)?.[1];
+  const videoId = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/shorts\/))([^"&?/\s]{11})/)?.[1];
   // Using youtube-nocookie.com for privacy mode and adding parameters to minimize ads/recommendations
   return videoId
     ? `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1`
@@ -145,7 +145,7 @@ const VideoDetail = () => {
 
   const embedUrl = getYouTubeEmbedUrl(video.youtube_url);
   const thumbnailUrl = video.thumbnail_url || 
-    `https://img.youtube.com/vi/${video.youtube_url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/shorts\/))([^"&?\/\s]{11})/)?.[1]}/maxresdefault.jpg`;
+    `https://img.youtube.com/vi/${video.youtube_url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/shorts\/))([^"&?/\s]{11})/)?.[1]}/maxresdefault.jpg`;
 
   return (
     <MobileLayout showBack title={video.category?.name || "MasterClass"}>
@@ -259,7 +259,7 @@ const VideoDetail = () => {
                   >
                     <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
                       <img
-                        src={related.thumbnail_url || `https://img.youtube.com/vi/${related.youtube_url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/shorts\/))([^"&?\/\s]{11})/)?.[1]}/hqdefault.jpg`}
+                        src={related.thumbnail_url || `https://img.youtube.com/vi/${related.youtube_url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/shorts\/))([^"&?/\s]{11})/)?.[1]}/hqdefault.jpg`}
                         alt={related.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       />

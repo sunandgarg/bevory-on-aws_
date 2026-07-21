@@ -69,7 +69,7 @@ serve(async (req) => {
     if (!serviceAccountJson) {
       return new Response(
         JSON.stringify({ 
-          error: 'Google Service Account not configured. Please add your service account JSON in Admin Settings → Google Analytics.',
+          error: 'Google Service Account not configured. Set the GOOGLE_SERVICE_ACCOUNT_JSON Edge Function secret.',
           configured: false 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }

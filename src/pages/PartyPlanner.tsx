@@ -109,9 +109,10 @@ const PartyPlanner = () => {
       console.error("AI Party Planner error:", error);
       toast({
         title: "Error",
-        description: "Failed to get AI recommendations. Try again later.",
+        description: "AI is unavailable. Using standard recommendations instead.",
         variant: "destructive",
       });
+      await handleGetRecommendations();
     } finally {
       setAiLoading(false);
     }

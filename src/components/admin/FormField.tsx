@@ -28,10 +28,10 @@ const FormField = ({
         {children}
       </div>
       {hint && !error && (
-        <p className="text-xs text-muted-foreground">{hint}</p>
+        <p className="text-sm text-muted-foreground">{hint}</p>
       )}
       {error && (
-        <p className="text-xs text-destructive font-medium">{error}</p>
+        <p className="text-sm text-destructive font-medium">{error}</p>
       )}
     </div>
   );
