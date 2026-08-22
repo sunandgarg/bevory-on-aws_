@@ -31,6 +31,7 @@ const SESSION_KEY = "bevory-session";
 const listeners = new Set<(event: string, session: Session | null) => void>();
 
 let currentSession: Session | null = null;
+const uploadedPublicUrls = new Map<string, string>();
 try {
   currentSession = JSON.parse(localStorage.getItem(SESSION_KEY) || "null") as Session | null;
 } catch {
@@ -167,6 +168,25 @@ const auth = {
   },
 
   async getSession() {
+    const oauthToken = new URLSearchParams(window.location.hash.slice(1)).get("bevory_oauth");
+    if (oauthToken) {
+      currentSession = {
+        access_token: oauthToken,
+        token_type: "bearer",
+        expires_in: 604800,
+        expires_at: Math.floor(Date.now() / 1000) + 604800,
+        refresh_token: "",
+        user: { id: "", email: null, phone: null, user_metadata: {}, created_at: "" },
+      };
+      const result = await request<{ user: User }>("/auth/me");
+      if (result.data?.user) {
+        const session = { ...currentSession, user: result.data.user };
+        setSession(session, "SIGNED_IN");
+      } else {
+        setSession(null, "SIGNED_OUT");
+      }
+      window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+    }
     if (!currentSession) return { data: { session: null }, error: null };
     const result = await request<{ user: User }>("/auth/me");
     if (result.error || !result.data?.user) {
@@ -203,16 +223,34 @@ const auth = {
     return result;
   },
 
-  async signInWithOAuth() {
-    return { data: null, error: { message: "Google sign-in requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET." } };
+  async signInWithOAuth(input?: { provider?: string; options?: { redirectTo?: string } }) {
+    if (input?.provider && input.provider !== "google") {
+      return { data: null, error: { message: `Unsupported OAuth provider: ${input.provider}` } };
+    }
+    const providers = await request<{ google: boolean }>("/auth/providers");
+    if (providers.error || !providers.data?.google) {
+      return { data: null, error: { message: providers.error?.message || "Google sign-in is not configured yet." } };
+    }
+    const redirectTo = input?.options?.redirectTo || window.location.origin;
+    const url = `${API_URL}/auth/google?redirect_to=${encodeURIComponent(redirectTo)}`;
+    window.location.assign(url);
+    return { data: { url }, error: null };
   },
 
-  async signInWithOtp() {
-    return { data: null, error: { message: "Phone OTP requires Twilio credentials." } };
+  async signInWithOtp(input: { phone: string }) {
+    return request<{ phone: string; expiresIn: number }>("/auth/otp/send", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
   },
 
-  async verifyOtp() {
-    return { data: null, error: { message: "Phone OTP requires Twilio credentials." } };
+  async verifyOtp(input: { phone: string; token: string; type?: string }) {
+    const result = await request<{ user: User; session: Session }>("/auth/otp/verify", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+    if (result.data?.session) setSession(result.data.session, "SIGNED_IN");
+    return result;
   },
 
   async signOut() {
@@ -229,11 +267,15 @@ const storage = {
         body.set("bucket", bucket);
         body.set("path", path);
         body.set("file", file);
-        return request<{ id: string; path: string }>("/storage/upload", { method: "POST", body });
+        const result = await request<{ id: string; path: string; publicUrl: string; provider: string }>("/storage/upload", { method: "POST", body });
+        if (result.data?.publicUrl) uploadedPublicUrls.set(`${bucket}/${result.data.path}`, result.data.publicUrl);
+        return result;
       },
       getPublicUrl(path: string) {
         const encoded = path.split("/").map(encodeURIComponent).join("/");
-        return { data: { publicUrl: `${window.location.origin}/uploads/${encodeURIComponent(bucket)}/${encoded}` } };
+        const publicUrl = uploadedPublicUrls.get(`${bucket}/${path}`)
+          || `${window.location.origin}/uploads/${encodeURIComponent(bucket)}/${encoded}`;
+        return { data: { publicUrl } };
       },
     };
   },
@@ -241,11 +283,22 @@ const storage = {
 
 const functions = {
   async invoke(name: string, options?: { body?: unknown }) {
-    const result = await request<any>(`/functions/${encodeURIComponent(name)}`, {
-      method: "POST",
-      body: JSON.stringify(options?.body ?? {}),
-    });
-    return result.error ? { data: result.data, error: result.error } : { data: result.data, error: null };
+    try {
+      const headers = new Headers({ "Content-Type": "application/json" });
+      if (currentSession?.access_token) headers.set("Authorization", `Bearer ${currentSession.access_token}`);
+      const response = await fetch(`${API_URL}/functions/${encodeURIComponent(name)}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(options?.body ?? {}),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return { data: null, error: { message: body?.error?.message || body?.error || `Function failed (${response.status})` } };
+      }
+      return { data: body, error: null };
+    } catch (error) {
+      return { data: null, error: { message: error instanceof Error ? error.message : "Function request failed" } };
+    }
   },
 };
 

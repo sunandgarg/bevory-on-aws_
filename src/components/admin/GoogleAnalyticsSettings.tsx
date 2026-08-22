@@ -10,7 +10,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { useToast } from "@/hooks/use-toast";
 import { useGoogleAnalytics, GASettings } from "@/hooks/useGoogleAnalytics";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 
 const GoogleAnalyticsSettings = () => {
   const { settings, loading, saving, updateSettings, isConfigured } = useGoogleAnalytics();
@@ -18,7 +17,7 @@ const GoogleAnalyticsSettings = () => {
     measurementId: '',
     propertyId: '',
     enabled: false,
-    serviceAccountJson: '',
+    serviceAccountConfigured: false,
   });
   const { toast } = useToast();
 
@@ -122,28 +121,16 @@ const GoogleAnalyticsSettings = () => {
           </p>
         </div>
 
-        {/* Service Account JSON */}
-        <div className="space-y-2">
-          <Label className="flex items-center gap-2">
-            <Key className="w-4 h-4" />
-            Service Account JSON
-          </Label>
-          <Textarea
-            value={formData.serviceAccountJson || ''}
-            onChange={(e) => setFormData({ ...formData, serviceAccountJson: e.target.value })}
-            placeholder='Paste your Google Service Account JSON here (starts with { "type": "service_account", ... })'
-            className="font-mono text-xs min-h-[120px]"
-          />
-          <p className="text-xs text-muted-foreground">
-            Paste the entire contents of your service account JSON key file. This is stored securely and used to authenticate with Google Analytics.
-          </p>
-          {formData.serviceAccountJson && (
-            <div className="flex items-center gap-2 text-xs text-green-600">
-              <CheckCircle2 className="w-3 h-3" />
-              Service account JSON provided
-            </div>
-          )}
-        </div>
+        {/* Service-account credentials stay in the backend secret manager. */}
+        <Alert>
+          <Key className="w-4 h-4" />
+          <AlertTitle>Server-side service account</AlertTitle>
+          <AlertDescription>
+            {formData.serviceAccountConfigured
+              ? "A GA4 service account is configured securely in the backend environment."
+              : "Set GOOGLE_ANALYTICS_CREDENTIALS_JSON in the backend environment. Secrets are never stored in public application settings."}
+          </AlertDescription>
+        </Alert>
 
         {/* Setup Instructions */}
         <Accordion type="single" collapsible className="w-full">
@@ -166,7 +153,7 @@ const GoogleAnalyticsSettings = () => {
                       <li>Create a new project or select existing</li>
                       <li>Navigate to IAM & Admin → Service Accounts</li>
                       <li>Create a new service account</li>
-                      <li>Generate a JSON key and download it</li>
+                      <li>Generate a JSON key and add it to the server secret manager as GOOGLE_ANALYTICS_CREDENTIALS_JSON</li>
                     </ol>
                     <Button variant="link" size="sm" className="p-0 h-auto" asChild>
                       <a href="https://console.cloud.google.com/iam-admin/serviceaccounts" target="_blank" rel="noopener noreferrer">

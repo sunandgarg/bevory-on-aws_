@@ -2,19 +2,37 @@ import "dotenv/config";
 import cors from "cors";
 import express from "express";
 import multer from "multer";
-import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { fileURLToPath } from "node:url";
 import { Prisma } from "@prisma/client";
-import { createSession, getUserFromToken, optionalAuth, signIn, signUp, userIsAdmin, type AuthenticatedRequest } from "./auth.js";
+import {
+  createOAuthState,
+  createSession,
+  findOrCreateExternalUser,
+  findOrCreatePhoneUser,
+  getUserFromToken,
+  optionalAuth,
+  signIn,
+  signUp,
+  userIsAdmin,
+  verifyOAuthState,
+  type AuthenticatedRequest,
+} from "./auth.js";
 import { queryHandler } from "./data.js";
 import { functionsHandler } from "./functions.js";
 import { prisma } from "./db.js";
+import {
+  buildGoogleAuthorizationUrl,
+  exchangeGoogleCode,
+  googleOAuthConfigured,
+  googleRedirectUri,
+} from "./integrations/googleOAuth.js";
+import { phoneOtpConfigured, sendPhoneOtp, verifyPhoneOtp } from "./integrations/phoneOtp.js";
+import { objectStorageConfigured, storeUpload } from "./storage.js";
 
 const app = express();
 const port = Number(process.env.PORT) || 3001;
-const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const projectRoot = process.cwd();
 const uploadsRoot = path.join(projectRoot, "uploads");
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -32,7 +50,17 @@ app.get("/api/health", async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
     const records = await prisma.contentRecord.count();
-    res.json({ status: "ok", database: "mysql", orm: "prisma", records });
+    res.json({
+      status: "ok",
+      database: "mysql",
+      orm: "prisma",
+      records,
+      integrations: {
+        googleOAuth: googleOAuthConfigured(),
+        phoneOtp: phoneOtpConfigured(),
+        objectStorage: objectStorageConfigured() ? "s3" : "local",
+      },
+    });
   } catch (error) {
     res.status(503).json({ status: "error", error: error instanceof Error ? error.message : "Database unavailable" });
   }
@@ -54,6 +82,75 @@ app.post("/api/auth/signin", async (req, res) => {
     res.json({ data: { user, session: createSession(user) }, error: null });
   } catch (error) {
     res.status(401).json({ data: null, error: { message: error instanceof Error ? error.message : "Sign-in failed" } });
+  }
+});
+
+app.get("/api/auth/providers", (_req, res) => {
+  res.json({
+    data: { google: googleOAuthConfigured(), phone: phoneOtpConfigured() },
+    error: null,
+  });
+});
+
+const allowedRedirect = (requested: string | undefined) => {
+  const fallback = process.env.APP_URL || "http://localhost:8080";
+  if (!requested) return fallback;
+  try {
+    const candidate = new URL(requested);
+    const allowed = new URL(fallback);
+    return candidate.origin === allowed.origin ? candidate.toString() : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+app.get("/api/auth/google", (req, res) => {
+  try {
+    if (!googleOAuthConfigured()) throw new Error("Google OAuth credentials are not configured");
+    const redirectTo = allowedRedirect(typeof req.query.redirect_to === "string" ? req.query.redirect_to : undefined);
+    const state = createOAuthState(redirectTo);
+    res.redirect(buildGoogleAuthorizationUrl(googleRedirectUri(req), state));
+  } catch (error) {
+    res.status(503).json({ data: null, error: { message: error instanceof Error ? error.message : "Google sign-in unavailable" } });
+  }
+});
+
+app.get("/api/auth/google/callback", async (req, res) => {
+  try {
+    const code = typeof req.query.code === "string" ? req.query.code : "";
+    const state = typeof req.query.state === "string" ? req.query.state : "";
+    if (!code || !state) throw new Error("Google callback is missing code or state");
+    const redirectTo = allowedRedirect(verifyOAuthState(state));
+    const profile = await exchangeGoogleCode(code, googleRedirectUri(req));
+    const user = await findOrCreateExternalUser({ ...profile, provider: "google" });
+    const session = createSession(user);
+    const destination = new URL(redirectTo);
+    destination.hash = new URLSearchParams({ bevory_oauth: session.access_token }).toString();
+    res.redirect(destination.toString());
+  } catch (error) {
+    const destination = new URL(process.env.APP_URL || "http://localhost:8080");
+    destination.pathname = "/auth";
+    destination.searchParams.set("oauth_error", error instanceof Error ? error.message : "Google sign-in failed");
+    res.redirect(destination.toString());
+  }
+});
+
+app.post("/api/auth/otp/send", async (req, res) => {
+  try {
+    const result = await sendPhoneOtp(String(req.body?.phone ?? ""));
+    res.json({ data: result, error: null });
+  } catch (error) {
+    res.status(400).json({ data: null, error: { message: error instanceof Error ? error.message : "OTP send failed" } });
+  }
+});
+
+app.post("/api/auth/otp/verify", async (req, res) => {
+  try {
+    const phone = await verifyPhoneOtp(String(req.body?.phone ?? ""), String(req.body?.token ?? ""));
+    const user = await findOrCreatePhoneUser(phone);
+    res.json({ data: { user, session: createSession(user) }, error: null });
+  } catch (error) {
+    res.status(400).json({ data: null, error: { message: error instanceof Error ? error.message : "OTP verification failed" } });
   }
 });
 
@@ -83,20 +180,26 @@ app.post("/api/storage/upload", upload.single("file"), async (req: Authenticated
     .filter((part) => part && part !== "." && part !== "..")
     .map((part) => part.replace(/[^a-zA-Z0-9._-]/g, "-"))
     .join("/");
-  const destination = path.join(uploadsRoot, bucket, safePath);
-  await mkdir(path.dirname(destination), { recursive: true });
-  await writeFile(destination, req.file.buffer);
-  const id = randomUUID();
-  await prisma.uploadedFile.create({
-    data: { id, bucket, path: safePath, mimeType: req.file.mimetype, size: req.file.size },
+  const stored = await storeUpload({
+    uploadsRoot,
+    bucket,
+    filePath: safePath,
+    mimeType: req.file.mimetype,
+    body: req.file.buffer,
   });
-  res.status(201).json({ data: { id, path: safePath }, error: null });
+  const id = randomUUID();
+  await prisma.uploadedFile.upsert({
+    where: { bucket_path: { bucket, path: safePath } },
+    update: { mimeType: req.file.mimetype, size: req.file.size },
+    create: { id, bucket, path: safePath, mimeType: req.file.mimetype, size: req.file.size },
+  });
+  res.status(201).json({ data: { id, path: safePath, publicUrl: stored.publicUrl, provider: stored.provider }, error: null });
 });
 
 if (process.env.NODE_ENV === "production") {
   const clientDist = path.join(projectRoot, "dist");
   app.use(express.static(clientDist));
-  app.get("*", (_req, res) => res.sendFile(path.join(clientDist, "index.html")));
+  app.get("/{*splat}", (_req, res) => res.sendFile(path.join(clientDist, "index.html")));
 }
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

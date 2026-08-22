@@ -3,6 +3,8 @@ import type { AuthenticatedRequest } from "./auth.js";
 import { userIsAdmin } from "./auth.js";
 import { exportAllTables, importAllTables } from "./data.js";
 import { prisma, toRecordData } from "./db.js";
+import { fetchGoogleAnalytics, gaConfigured } from "./integrations/googleAnalytics.js";
+import { importCityPrices, priceProviderConfigured } from "./integrations/priceProvider.js";
 
 const tableRows = async (tableName: string) =>
   (await prisma.contentRecord.findMany({ where: { tableName } })).map(({ data }) => toRecordData(data));
@@ -27,8 +29,10 @@ const partyPlanner = async (body: Record<string, unknown>) => {
       .map((product) => prices.find((price) => price.product_id === product.id)?.price)
       .map(Number)
       .filter((price) => Number.isFinite(price) && price > 0);
-    const unitPrice = availablePrices[0] ?? Math.max(700, perCategoryBudget / 2);
-    const quantity = Math.max(1, Math.floor(perCategoryBudget / unitPrice));
+    const unitPrice = Math.max(500, availablePrices[0] ?? Math.max(700, perCategoryBudget / 2));
+    const servingQuantity = Math.max(1, Math.ceil(guests / 4));
+    const affordableQuantity = Math.max(1, Math.floor(perCategoryBudget / unitPrice));
+    const quantity = Math.min(servingQuantity, affordableQuantity);
     return {
       category: String(category.name ?? "Drinks"),
       quantity,
@@ -89,16 +93,26 @@ export const functionsHandler = async (req: AuthenticatedRequest, res: Response)
     }
 
     if (name === "google-analytics") {
-      return res.status(501).json({
-        error: "Google Analytics reporting requires GOOGLE_ANALYTICS_CREDENTIALS_JSON in the Node backend.",
-      });
+      if (!req.authUser || !await userIsAdmin(req.authUser.id)) {
+        return res.status(403).json({ error: "Administrator access required" });
+      }
+      if (body.action === "status") return res.json({ configured: gaConfigured() });
+      if (!gaConfigured()) return res.status(503).json({ error: "Google Analytics credentials are not configured" });
+      return res.json(await fetchGoogleAnalytics(
+        String(body.propertyId ?? ""),
+        String(body.startDate ?? "30daysAgo"),
+        String(body.endDate ?? "today"),
+      ));
     }
 
     if (name === "scrape-prices") {
-      return res.status(501).json({
-        success: false,
-        error: "Live price scraping requires a verified third-party data source and production network approval.",
-      });
+      if (!req.authUser || !await userIsAdmin(req.authUser.id)) {
+        return res.status(403).json({ success: false, error: "Administrator access required" });
+      }
+      if (!priceProviderConfigured()) {
+        return res.status(503).json({ success: false, error: "PRICE_PROVIDER_URL is not configured" });
+      }
+      return res.json(await importCityPrices(String(body.city_id ?? ""), String(body.city_name ?? "")));
     }
 
     return res.status(404).json({ error: `Unknown function: ${name}` });

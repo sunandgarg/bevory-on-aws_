@@ -4,111 +4,120 @@ Last updated: 2026-08-22
 
 ## Summary
 
-The repository has been converted from a React/Supabase application to a React + Node.js + Prisma + MySQL application. The existing React pages, routes, styles, responsive layouts, and admin screens are retained. A compatibility client maps their existing query chains to the new Node API, avoiding visual rewrites and reducing regression risk.
+The application is migrated from Supabase runtime services to React + Node.js + Express + Prisma + MySQL. The existing pages, routes, styling, responsive behavior, and administration screens remain in place. Public source content and referenced assets are repository-local, and all integrations that can be implemented without private credentials now have production-ready adapters.
 
-The application is locally runnable. Public source content was migrated into a sanitized Prisma seed, and all source Supabase Storage URLs referenced by that content were replaced by repository-local assets.
+The local application is runnable and verified. Items still open are limited to unavailable private source data, third-party credentials/live-account verification, and access to a production deployment environment.
 
 ## Status by area
 
 | Area | Status | Verification |
 | --- | --- | --- |
-| Existing React UI, routes, and styling | ✅ Fully completed | Vite production build succeeded; home, product, auth, and admin pages rendered locally |
-| Node.js/Express API | ✅ Fully completed | TypeScript passed; `/api/health` returned `status: ok` |
-| Prisma/MySQL persistence | ✅ Fully completed | Schema pushed to MySQL 9.6; 603 content/auth records present during verification |
-| Public catalog/content migration | ✅ Fully completed | 601 source rows exported and seeded across 20 public tables |
-| Public Supabase Storage assets | ✅ Fully completed | 8/8 referenced assets downloaded and seed URLs rewritten locally |
-| Query compatibility (read/filter/order/range/count/relations) | 🧪 Completed and verified | Home, product detail, category data, location data, and admin dashboard queries passed |
-| Admin CRUD | 🧪 Completed and verified | Authenticated create/read/update/delete cycle passed against MySQL |
-| Email/password authentication and admin authorization | 🧪 Completed and verified | Local admin sign-in and protected admin dashboard passed |
-| Favorites, notifications, preferences, recent searches, saved locations | ✅ Fully completed | User-scoped API operations implemented; require a new MySQL-backed account |
-| Image uploads | 🧪 Completed and verified | Authenticated multipart upload and public `/uploads` retrieval passed |
-| Database export/import | 🧪 Completed and verified | Authenticated full export returned all populated tables; import/upsert implemented |
-| Party planner | 🧪 Completed and verified | Deterministic local recommendations returned successfully without an external AI dependency |
-| AI recommendation admin tool | ⚠️ Completed but needs production verification | Local catalog-based fallback implemented; external provider needs a production key |
-| Sitemap/PWA configuration | ✅ Fully completed | Supabase API/storage caching removed; canonical sitemap points to `www.bevory.in/sitemap.xml` |
-| Supabase runtime/SDK/functions/migrations | ✅ Fully removed | No Supabase SDK dependency or deployed-function dependency remains in the running stack |
-| Production deployment | ❌ Not completed / blocked | No production database, host, domain access, or deployment target was supplied |
+| Existing React UI, routes, and styling | ✅ Fully completed | Home, product, auth, and admin routes rendered locally; production deep route passed |
+| Node.js/Express API | 🧪 Completed and verified | TypeScript/build passed; health and live endpoint smoke tests passed |
+| Prisma/MySQL persistence | 🧪 Completed and verified | Schema including OTP challenges pushed to MySQL; health returned 603 content/auth records |
+| Public content migration | 🧪 Completed and verified | 601 source rows seeded across 20 tables |
+| Public source storage assets | 🧪 Completed and verified | 8/8 referenced assets migrated and served locally |
+| Query compatibility and admin CRUD | 🧪 Completed and verified | Filters, relations, auth-scoped CRUD, admin dashboard, import/export passed |
+| Email/password authentication | 🧪 Completed and verified | bcrypt passwords, JWT sessions, protected admin access passed |
+| Google OAuth | ⚠️ Implemented; live verification requires credentials | Authorization, signed state, callback exchange, verified-email linking, session handoff, and error handling implemented |
+| Phone OTP | ⚠️ Implemented; production SMS requires credentials | MySQL challenge, hashing, 10-minute expiry, resend delay, attempt limits, account linking, and local end-to-end OTP passed |
+| GA4 live reporting | ⚠️ Implemented; live verification requires credentials | Server-side service-account JWT and three GA4 Data API reports implemented; secrets removed from public settings |
+| Approved price-provider ingestion | ⚠️ Implemented; live verification requires provider access | Admin-only provider adapter, matching, normalization, upsert, timeout, HTTPS enforcement, and explicit configuration status implemented |
+| Image uploads | 🧪 Local completed; S3 needs production verification | Local upload/retrieval passed; S3-compatible adapter and returned public URLs implemented |
+| Party planner and catalog recommendations | 🧪 Completed and verified | Local deterministic/catalog modes return working recommendations without an external dependency |
+| Private Supabase import tooling | 🧪 Completed and dry-run verified | User-ID reconciliation, supported bcrypt preservation, reset marking, and all private user tables supported |
+| Container/deployment configuration | ⚠️ Completed; Docker/production verification pending | Dockerfile and MySQL/app Compose stack added; YAML parsed, but Docker is unavailable in this environment |
+| Production deployment | ❌ Blocked by missing infrastructure access | No production database, host, storage bucket, secret manager, or DNS access supplied |
 
 ## Remaining Work / Blockers
 
 ### 1. Existing private Supabase users and per-user records
 
-- **What is left:** Import existing authentication accounts plus private profiles, roles, preferences, favorites, notifications, saved locations, comparisons, and recent searches.
-- **Why it could not be completed:** The repository contains only a public/publishable Supabase key. Anonymous access cannot export protected auth identities, password hashes, or RLS-protected rows.
-- **Required to complete:** A secure Supabase auth export and database dump produced by an authorized administrator. Passwords may require a reset flow if Supabase hashes cannot be imported safely.
-- **Affected:** Existing-user sign-in continuity and historical per-user data. New MySQL-backed accounts work now.
-- **Safe to run without it:** Yes. Public content, new sign-ups, email/password sign-in, and admin functions run safely. Existing production users will not be recognized until migrated.
-- **Recommended next action:** Provide a private database/auth export through a secure channel; never commit service-role keys or user exports to this public repository.
+- **What is left:** Run the completed private import against the real authorized auth/database export.
+- **Why it could not be completed:** Only anonymous source access was available; private identities and RLS-protected records cannot be retrieved with the public key.
+- **Exactly required:** An administrator-generated JSON export matching `docs/PRIVATE_DATA_IMPORT_FORMAT.md`, delivered through a secure channel outside Git.
+- **Affected files/features/services:** Existing-user continuity for profiles, roles, preferences, favorites, notifications, saved locations, comparisons, recent searches, and preferred brands.
+- **Safe without it:** Yes for public content and new accounts. Existing production accounts/data will remain absent.
+- **Recommended next action:** Generate the private export, run a dry run, back up MySQL, then run `pnpm data:import-private -- /secure/export.json --apply` and reconcile counts.
 
-### 2. Google sign-in
+### 2. Google OAuth live verification
 
-- **What is left:** OAuth callback endpoints and production Google OAuth verification.
-- **Why it could not be completed:** No `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, approved redirect URI, or production domain was supplied.
-- **Required to complete:** Google Cloud OAuth credentials and allowed callback URLs for local and production environments.
-- **Affected:** “Continue with Google” on `src/pages/Auth.tsx`; email/password auth is unaffected.
-- **Safe to run without it:** Yes. The button reports a clear configuration error and does not create a partial session.
-- **Recommended next action:** Configure Google OAuth, then add server callback/session linking tests.
+- **What is left:** Execute a real Google authorization/callback cycle.
+- **Why it could not be completed:** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and an approved redirect URI were not supplied.
+- **Exactly required:** Google Cloud OAuth web credentials and registration of `GOOGLE_REDIRECT_URI` for local/staging/production.
+- **Affected:** “Continue with Google.” Email/password and phone code paths are independent.
+- **Safe without it:** Yes. The frontend now shows a clear configuration error before redirecting.
+- **Recommended next action:** Add credentials to the secret manager and test new-user, existing-email linking, cancellation, and expired-state flows.
 
-### 3. Phone OTP sign-in
+### 3. Twilio production SMS delivery
 
-- **What is left:** SMS send/verify implementation and production delivery testing.
-- **Why it could not be completed:** No SMS provider account, credentials, sending number, or regional template approval was supplied.
-- **Required to complete:** `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` (or an approved alternative provider), plus OTP abuse/rate-limit policy.
-- **Affected:** Phone login on `src/pages/Auth.tsx` and auth methods in `src/integrations/supabase/client.ts`.
-- **Safe to run without it:** Yes. Email/password authentication works; phone actions return an explicit configuration error.
-- **Recommended next action:** Supply the SMS provider credentials and verify send, retry, expiry, and lockout flows.
+- **What is left:** Send and verify real SMS messages in staging/production.
+- **Why it could not be completed:** Twilio account credentials and a sender number were not supplied.
+- **Exactly required:** `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, regional sender/template approval, and production rate-limit monitoring.
+- **Affected:** Real phone delivery only. The complete OTP/database/session flow passed with the non-production test code.
+- **Safe without it:** Yes. Email/password works and phone requests return a clear configuration error when unavailable.
+- **Recommended next action:** Configure Twilio secrets, remove any `OTP_TEST_CODE` from production, and verify delivery, retry, expiry, and lockout.
 
-### 4. Live Google Analytics reporting
+### 4. GA4 live property verification
 
-- **What is left:** GA4 Data API calls and production property validation.
-- **Why it could not be completed:** No service-account JSON, GA4 property access, or property ID was supplied.
-- **Required to complete:** `GOOGLE_ANALYTICS_CREDENTIALS_JSON`, a GA4 property ID, and Viewer access for that service account.
-- **Affected:** Live reporting in `src/hooks/useGoogleAnalytics.tsx` and `/api/functions/google-analytics`.
-- **Safe to run without it:** Yes. The admin dashboard clearly displays sample analytics and other live database statistics still work.
-- **Recommended next action:** Add credentials only to the production secret manager, implement the GA4 Data API adapter, then compare results with the GA console.
+- **What is left:** Query a real GA4 property and compare dashboard totals.
+- **Why it could not be completed:** No service-account JSON or GA4 property access was supplied.
+- **Exactly required:** `GOOGLE_ANALYTICS_CREDENTIALS_JSON`, numeric property ID, GA4 Data API enabled, and Viewer access for the service-account email.
+- **Affected:** Live admin analytics only; database/admin statistics remain available.
+- **Safe without it:** Yes. Secrets are never stored in public `app_settings`, and the UI reports configuration status.
+- **Recommended next action:** Inject the JSON through the production secret manager and compare daily, page, and source reports with GA4.
 
-### 5. Third-party live price scraping
+### 5. Live price-provider verification
 
-- **What is left:** Production-approved data-source integration for automatic city price refresh.
-- **Why it could not be completed:** The legacy scraper relies on a third-party website whose current markup, permission/terms, rate limits, and production reachability were not verified.
-- **Required to complete:** An approved price-data source/API or written approval to scrape, sample responses/current selectors, and a production egress policy.
-- **Affected:** “Scrape Prices” in `src/pages/admin/AdminProductPrices.tsx` and `/api/functions/scrape-prices`. Manual CSV and admin price CRUD remain available.
-- **Safe to run without it:** Yes. Existing prices and manual management work; automatic scraping returns a clear unsupported response.
-- **Recommended next action:** Prefer a licensed price API, then implement normalization, retry/rate limiting, and city-by-city verification.
+- **What is left:** Connect and validate the approved live price feed.
+- **Why it could not be completed:** No licensed/approved provider URL, credentials, or sample response was supplied.
+- **Exactly required:** `PRICE_PROVIDER_URL`, optional `PRICE_PROVIDER_KEY` and header name, provider response mapping confirmation, and data-use approval.
+- **Affected:** Automatic price refresh. Manual price CRUD and CSV management remain available.
+- **Safe without it:** Yes. The admin action returns an explicit configuration response and makes no partial writes.
+- **Recommended next action:** Supply a staging provider endpoint, run one city, inspect unmatched products, then expand city-by-city.
 
-### 6. Production infrastructure and uploads persistence
+### 6. Production object storage verification
 
-- **What is left:** Production MySQL provisioning, deployment, secrets, HTTPS/domain configuration, backups, and persistent object/file storage.
-- **Why it could not be completed:** No cloud account, production database credentials, hosting target, DNS permissions, or storage bucket was supplied.
-- **Required to complete:** Deployment target access, production `DATABASE_URL`, strong `JWT_SECRET`, domain/DNS access, and a persistent volume or S3-compatible bucket.
-- **Affected:** Production availability and durability of new image uploads. Local and single-server operation works.
-- **Safe to run without it:** Safe locally. Do not treat an ephemeral deployment filesystem as durable production storage.
-- **Recommended next action:** Provision managed MySQL and object storage, inject secrets, run `pnpm db:setup`, deploy, and complete smoke/load/backup-restore tests.
+- **What is left:** Upload and retrieve a real object through the implemented S3-compatible adapter.
+- **Why it could not be completed:** No bucket, endpoint, keys, public/CDN URL, or cloud account access was supplied.
+- **Exactly required:** The `S3_*` variables in `.env.example`, bucket CORS/public-delivery policy, and lifecycle/backup rules.
+- **Affected:** Durability of new uploads on ephemeral or horizontally scaled production hosts.
+- **Safe without it:** Yes locally or on a single server with a persistent `/uploads` volume. Not safe on an ephemeral filesystem.
+- **Recommended next action:** Provision a private-write/public-read delivery path, inject credentials, and verify upload, overwrite policy, CDN cache, and restore.
 
-## Exact completion order for remaining work
+### 7. Production deployment and container verification
 
-1. Securely export private Supabase database/auth data and decide the account password-reset/import strategy.
-2. Provision production MySQL, import the sanitized public seed plus authorized private export, and reconcile counts.
-3. Provision persistent uploads/object storage and replace the local-disk storage adapter for production.
-4. Supply and configure Google OAuth and phone OTP credentials; verify authentication callbacks and abuse controls.
-5. Supply GA4 service-account access and verify live reports.
-6. Approve/select a price data source and verify automatic price ingestion.
-7. Provision the production host and secret manager, deploy the built application, configure DNS/HTTPS, and run full production smoke tests.
-8. Run backup/restore and rollback drills before directing live traffic to the new stack.
+- **What is left:** Build the container, provision production services, deploy, configure DNS/HTTPS, and run operational tests.
+- **Why it could not be completed:** Docker is not installed in this execution environment and no host/database/storage/DNS permissions were supplied.
+- **Exactly required:** A Docker-capable CI/host, production MySQL URL, strong JWT/admin secrets, object storage, deployment access, and DNS/HTTPS permissions.
+- **Affected:** Public production availability only. The compiled production Node server and React deep routes passed locally.
+- **Safe without it:** Yes for the provided local environment; no production claim should be made yet.
+- **Recommended next action:** Build `Dockerfile` in CI, deploy first to staging, then run smoke/load/backup-restore tests before live traffic.
+
+## Exact completion order
+
+1. Obtain the authorized private Supabase export and run the importer dry run.
+2. Provision production MySQL, object storage, secret manager, and a staging host.
+3. Import private data into backed-up staging MySQL and reconcile user/table counts.
+4. Configure Google OAuth and Twilio, then verify all authentication paths.
+5. Configure GA4 and compare live reports.
+6. Configure the approved price provider and validate one city before the full refresh.
+7. Build/deploy the container in staging, verify S3 uploads, then run full browser/API/load tests.
+8. Complete backup/restore and rollback drills, configure DNS/HTTPS, and only then direct production traffic.
 
 ## Verification record
 
-- Frontend TypeScript: passed (`tsc -p tsconfig.app.json --noEmit`)
-- Backend TypeScript: passed (`tsc -p tsconfig.server.json --noEmit`)
-- Production frontend build: passed (`vite build`)
-- Full production build: passed (`pnpm build`)
-- Automated compatibility tests: passed (`pnpm test`)
-- ESLint: passed with zero errors (22 advisory warnings in retained UI code)
-- MySQL/Prisma health: passed
-- Authentication: passed
-- Admin authorization/dashboard: passed
-- MySQL CRUD: passed
-- Party planner endpoint: passed
-- Database export endpoint: passed
-- Authenticated image upload and retrieval: passed
-- Browser smoke tests: home, product detail, authentication, and admin dashboard passed
+- Automated tests: 9 passed across query filters, Google OAuth configuration, MySQL OTP/account/profile lifecycle, and storage
+- Frontend TypeScript: passed
+- Backend TypeScript: passed
+- ESLint: passed with 0 errors and 22 advisory warnings in retained UI code
+- Production React/Node build: passed
+- Compiled production API and React deep-route serving: passed
+- MySQL/Prisma schema and health: passed
+- Email/password and admin authorization: passed
+- Local phone OTP send/invalid-code/valid-code/session cycle: passed
+- Direct authenticated admin deep-link reload: passed after role-loading race fix
+- Admin CRUD, database export/import, image upload/retrieval, party planner: passed
+- Private import dry run: passed
+- Browser party-planner integration: passed with quantity safeguards for invalidly low source prices
+- Docker Compose YAML parsing: passed; Docker build not run because the Docker executable is unavailable

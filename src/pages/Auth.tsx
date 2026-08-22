@@ -33,6 +33,13 @@ const Auth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    const oauthError = new URLSearchParams(window.location.search).get("oauth_error");
+    if (!oauthError) return;
+    toast({ title: "Google sign-in failed", description: oauthError, variant: "destructive" });
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }, [toast]);
+
+  useEffect(() => {
     if (user) navigate("/");
   }, [user, navigate]);
 

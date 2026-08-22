@@ -1,0 +1,43 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: bevory
+      MYSQL_USER: bevory
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-bevory-local-only}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-bevory-root-local-only}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-bevory-root-local-only}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      APP_URL: http://localhost:3001
+      DATABASE_URL: mysql://bevory:${MYSQL_PASSWORD:-bevory-local-only}@mysql:3306/bevory
+      JWT_SECRET: ${JWT_SECRET:-replace-this-before-shared-use}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@bevory.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-replace-this-before-shared-use}
+    command: ["sh", "-c", "pnpm db:setup && pnpm start"]
+    ports:
+      - "3001:3001"
+    volumes:
+      - uploads-data:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/health').then(r=>{if(!r.ok)process.exit(1)})"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  mysql-data:
+  uploads-data:

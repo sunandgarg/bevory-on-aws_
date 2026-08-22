@@ -31,6 +31,32 @@ const serializeUser = (user: {
   created_at: user.createdAt.toISOString(),
 });
 
+const upsertProfile = async (user: AuthUser) => {
+  const now = new Date().toISOString();
+  const existing = await prisma.contentRecord.findUnique({ where: { key: `profiles:${user.id}` } });
+  const previous = existing ? toRecordData(existing.data) : {};
+  const fullName = user.user_metadata.full_name ?? user.user_metadata.name ?? previous.full_name ?? null;
+  const data = {
+    ...previous,
+    id: user.id,
+    email: user.email,
+    phone: user.phone,
+    full_name: fullName,
+    created_at: previous.created_at ?? now,
+    updated_at: now,
+  } as Prisma.InputJsonObject;
+  await prisma.contentRecord.upsert({
+    where: { key: `profiles:${user.id}` },
+    update: { data },
+    create: {
+      key: `profiles:${user.id}`,
+      tableName: "profiles",
+      recordId: user.id,
+      data,
+    },
+  });
+};
+
 export const createSession = (user: AuthUser) => ({
   access_token: jwt.sign({ sub: user.id }, jwtSecret(), { expiresIn: "7d" }),
   token_type: "bearer",
@@ -101,22 +127,9 @@ export const signUp = async (input: {
       metadata: (input.data ?? {}) as Prisma.InputJsonObject,
     },
   });
-  const now = new Date().toISOString();
-  await prisma.contentRecord.create({
-    data: {
-      key: `profiles:${id}`,
-      tableName: "profiles",
-      recordId: id,
-      data: {
-        id,
-        email,
-        full_name: input.data?.full_name ?? null,
-        created_at: now,
-        updated_at: now,
-      },
-    },
-  });
-  return serializeUser(user);
+  const serialized = serializeUser(user);
+  await upsertProfile(serialized);
+  return serialized;
 };
 
 export const signIn = async (email: string, password: string) => {
@@ -131,4 +144,49 @@ export const getUserFromToken = async (token: string) => {
   const payload = jwt.verify(token, jwtSecret()) as { sub: string };
   const user = await prisma.user.findUnique({ where: { id: payload.sub } });
   return user ? serializeUser(user) : null;
+};
+
+export const createOAuthState = (redirectTo: string) =>
+  jwt.sign({ purpose: "google-oauth", redirectTo }, jwtSecret(), { expiresIn: "10m" });
+
+export const verifyOAuthState = (state: string) => {
+  const payload = jwt.verify(state, jwtSecret()) as { purpose?: string; redirectTo?: string };
+  if (payload.purpose !== "google-oauth" || !payload.redirectTo) throw new Error("Invalid OAuth state");
+  return payload.redirectTo;
+};
+
+export const findOrCreateExternalUser = async (profile: {
+  email: string;
+  fullName?: string;
+  avatarUrl?: string;
+  provider: "google";
+  providerId: string;
+}) => {
+  const email = profile.email.trim().toLowerCase();
+  const existing = await prisma.user.findUnique({ where: { email } });
+  const previousMetadata = existing ? toRecordData(existing.metadata) : {};
+  const metadata = JSON.parse(JSON.stringify({
+    ...previousMetadata,
+    full_name: profile.fullName ?? previousMetadata.full_name,
+    avatar_url: profile.avatarUrl ?? previousMetadata.avatar_url,
+    provider: profile.provider,
+    provider_id: profile.providerId,
+  })) as Prisma.InputJsonObject;
+  const user = existing
+    ? await prisma.user.update({ where: { id: existing.id }, data: { metadata } })
+    : await prisma.user.create({ data: { id: randomUUID(), email, metadata } });
+  const serialized = serializeUser(user);
+  await upsertProfile(serialized);
+  return serialized;
+};
+
+export const findOrCreatePhoneUser = async (phone: string) => {
+  const normalized = phone.trim();
+  const existing = await prisma.user.findUnique({ where: { phone: normalized } });
+  const user = existing ?? await prisma.user.create({
+    data: { id: randomUUID(), phone: normalized, metadata: { provider: "phone" } },
+  });
+  const serialized = serializeUser(user);
+  await upsertProfile(serialized);
+  return serialized;
 };

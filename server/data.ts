@@ -60,6 +60,19 @@ type QueryPayload = {
 const jsonSafe = (value: Record<string, unknown>) =>
   JSON.parse(JSON.stringify(value)) as Prisma.InputJsonObject;
 
+const stripCredentialFields = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(stripCredentialFields);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>)
+    .filter(([key]) => !/(secret|token|password|credential|service.?account|api.?key)/i.test(key))
+    .map(([key, nested]) => [key, stripCredentialFields(nested)]));
+};
+
+const safeTableInput = (table: string, value: Record<string, unknown>) =>
+  table === "app_settings"
+    ? stripCredentialFields(value) as Record<string, unknown>
+    : value;
+
 const comparable = (value: unknown) => value instanceof Date ? value.toISOString() : value;
 
 export const matchesFilter = (row: Record<string, unknown>, filter: Filter): boolean => {
@@ -172,7 +185,6 @@ const applyUserScope = (req: AuthenticatedRequest, payload: QueryPayload, rows: 
   if (isAdmin) return rows;
   if (!req.authUser || !USER_TABLES.has(payload.table)) return rows;
   if (payload.table === "profiles") return rows.filter((row) => row.id === req.authUser!.id);
-  if (payload.table === "user_roles" || payload.table === "user_permissions") return rows;
   return rows.filter((row) => row.user_id === req.authUser!.id);
 };
 
@@ -216,9 +228,10 @@ export const queryHandler = async (req: AuthenticatedRequest, res: Response) => 
       const result: Array<Record<string, unknown>> = [];
       for (const input of inputRows) {
         const now = new Date().toISOString();
+        const safeInput = safeTableInput(payload.table, input);
         const scoped: Record<string, unknown> = !isAdmin && USER_TABLES.has(payload.table) && payload.table !== "profiles" && req.authUser
-          ? { ...input, user_id: input.user_id ?? req.authUser.id }
-          : { ...input };
+          ? { ...safeInput, user_id: safeInput.user_id ?? req.authUser.id }
+          : { ...safeInput };
         const existing = payload.operation === "upsert"
           ? await findUpsertRecord(payload.table, scoped, payload.onConflict)
           : null;
@@ -252,7 +265,8 @@ export const queryHandler = async (req: AuthenticatedRequest, res: Response) => 
     });
 
     if (payload.operation === "update") {
-      const changes = Array.isArray(payload.values) ? payload.values[0] : payload.values ?? {};
+      const rawChanges = Array.isArray(payload.values) ? payload.values[0] : payload.values ?? {};
+      const changes = safeTableInput(payload.table, rawChanges);
       const updated: Array<Record<string, unknown>> = [];
       for (const record of matches) {
         const data = jsonSafe({ ...toRecordData(record.data), ...changes, updated_at: new Date().toISOString() });

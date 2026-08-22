@@ -7,7 +7,7 @@ export interface GASettings {
   measurementId: string;
   propertyId: string;
   enabled: boolean;
-  serviceAccountJson?: string;
+  serviceAccountConfigured?: boolean;
 }
 
 export interface GAData {
@@ -36,7 +36,7 @@ const DEFAULT_GA_SETTINGS: GASettings = {
   measurementId: '',
   propertyId: '',
   enabled: false,
-  serviceAccountJson: '',
+  serviceAccountConfigured: false,
 };
 
 export const useGoogleAnalytics = () => {
@@ -51,15 +51,13 @@ export const useGoogleAnalytics = () => {
 
   const fetchSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('app_settings')
-        .select('value')
-        .eq('key', 'google_analytics')
-        .single();
+      const [{ data, error }, status] = await Promise.all([
+        supabase.from('app_settings').select('value').eq('key', 'google_analytics').single(),
+        supabase.functions.invoke('google-analytics', { body: { action: 'status' } }),
+      ]);
 
-      if (data && !error) {
-        setSettings(data.value as unknown as GASettings);
-      }
+      const stored = data && !error ? data.value as unknown as GASettings : DEFAULT_GA_SETTINGS;
+      setSettings({ ...stored, serviceAccountConfigured: status.data?.configured === true });
     } catch (error) {
       console.error('Error fetching GA settings:', error);
     } finally {
@@ -77,7 +75,8 @@ export const useGoogleAnalytics = () => {
         .eq('key', 'google_analytics')
         .single();
 
-      const valueAsJson = newSettings as unknown as Json;
+      const { serviceAccountConfigured: _configured, ...publicSettings } = newSettings;
+      const valueAsJson = publicSettings as unknown as Json;
 
       if (existing) {
         // Update existing
@@ -136,7 +135,7 @@ export const useGoogleAnalytics = () => {
     }
   };
 
-  const hasServiceAccount = !!settings.serviceAccountJson;
+  const hasServiceAccount = settings.serviceAccountConfigured === true;
 
   return {
     settings,

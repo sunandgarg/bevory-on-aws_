@@ -1,0 +1,23 @@
+{
+  "users": [
+    {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "email": "example-user@example.com",
+      "raw_user_meta_data": {
+        "full_name": "Example User"
+      }
+    }
+  ],
+  "tables": {
+    "profiles": [],
+    "user_roles": [],
+    "user_preferences": [],
+    "user_favorites": [],
+    "notifications": [],
+    "saved_locations": [],
+    "comparisons": [],
+    "recent_searches": [],
+    "preferred_brands": [],
+    "user_permissions": []
+  }
+}
