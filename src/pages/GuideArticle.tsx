@@ -4,7 +4,7 @@ import { ArrowLeft, Calendar, User, Clock, Share2, BookOpen, ChevronRight, Heart
 import { useQuery } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
 import MobileLayout from "@/components/layout/MobileLayout";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,7 +37,7 @@ const GuideArticle = () => {
   const { data: post, isLoading } = useQuery({
     queryKey: ["guide-article", slug],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("blog_posts")
         .select("*")
         .eq("slug", slug)
@@ -54,7 +54,7 @@ const GuideArticle = () => {
   const { data: relatedPosts = [] } = useQuery({
     queryKey: ["related-posts", post?.category],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("blog_posts")
         .select("id, title, slug, cover_image_url, cover_emoji, category")
         .eq("is_published", true)

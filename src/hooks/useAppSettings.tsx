@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import type { Json } from "@/types/json";
 
 export interface AgeVerificationSettings {
@@ -28,7 +28,7 @@ export const useAppSettings = () => {
 
   const fetchSettings = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("app_settings")
         .select("*")
         .eq("key", "age_verification")
@@ -53,20 +53,20 @@ export const useAppSettings = () => {
     try {
       const jsonValue = JSON.parse(JSON.stringify(newSettings)) as Json;
       
-      const { data: existing } = await supabase
+      const { data: existing } = await apiClient
         .from("app_settings")
         .select("id")
         .eq("key", "age_verification")
         .maybeSingle();
 
       if (existing) {
-        const { error } = await supabase
+        const { error } = await apiClient
           .from("app_settings")
           .update({ value: jsonValue })
           .eq("key", "age_verification");
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { error } = await apiClient
           .from("app_settings")
           .insert([{ key: "age_verification", value: jsonValue, description: "Age verification popup settings" }]);
         if (error) throw error;

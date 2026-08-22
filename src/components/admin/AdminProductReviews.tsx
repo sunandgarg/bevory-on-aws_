@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Star, Trash2, Check, X, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
@@ -27,7 +27,7 @@ const AdminProductReviews = ({ productId }: AdminProductReviewsProps) => {
   const { toast } = useToast();
 
   const fetchReviews = async () => {
-    let query = supabase
+    let query = apiClient
       .from("product_reviews")
       .select("*, product:products(name, brand)")
       .order("created_at", { ascending: false });
@@ -46,7 +46,7 @@ const AdminProductReviews = ({ productId }: AdminProductReviewsProps) => {
   }, [productId]);
 
   const toggleApproval = async (id: string, currentStatus: boolean | null) => {
-    const { error } = await supabase
+    const { error } = await apiClient
       .from("product_reviews")
       .update({ is_approved: !currentStatus })
       .eq("id", id);
@@ -59,7 +59,7 @@ const AdminProductReviews = ({ productId }: AdminProductReviewsProps) => {
 
   const deleteReview = async (id: string) => {
     if (!confirm("Delete this review?")) return;
-    const { error } = await supabase.from("product_reviews").delete().eq("id", id);
+    const { error } = await apiClient.from("product_reviews").delete().eq("id", id);
     if (!error) {
       toast({ title: "Review deleted" });
       fetchReviews();
@@ -98,9 +98,9 @@ const AdminProductReviews = ({ productId }: AdminProductReviewsProps) => {
       };
 
       if (id && id !== "id") {
-        await supabase.from("product_reviews").update(reviewData).eq("id", id);
+        await apiClient.from("product_reviews").update(reviewData).eq("id", id);
       } else {
-        await supabase.from("product_reviews").insert([reviewData]);
+        await apiClient.from("product_reviews").insert([reviewData]);
       }
     }
     

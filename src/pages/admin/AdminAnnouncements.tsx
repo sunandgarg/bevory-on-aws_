@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import FormField from "@/components/admin/FormField";
@@ -31,7 +31,7 @@ const AdminAnnouncements = () => {
   const { toast } = useToast();
 
   const fetchAnnouncements = async () => {
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("announcements")
       .select("*")
       .order("created_at", { ascending: false });
@@ -56,10 +56,10 @@ const AdminAnnouncements = () => {
 
     let error;
     if (editItem.id) {
-      const result = await supabase.from("announcements").update(toSave).eq("id", editItem.id);
+      const result = await apiClient.from("announcements").update(toSave).eq("id", editItem.id);
       error = result.error;
     } else {
-      const result = await supabase.from("announcements").insert(toSave);
+      const result = await apiClient.from("announcements").insert(toSave);
       error = result.error;
     }
 
@@ -75,7 +75,7 @@ const AdminAnnouncements = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this announcement?")) return;
-    await supabase.from("announcements").delete().eq("id", id);
+    await apiClient.from("announcements").delete().eq("id", id);
     toast({ title: "Deleted" });
     fetchAnnouncements();
   };
@@ -84,7 +84,7 @@ const AdminAnnouncements = () => {
     if (!confirm("Send this announcement to all users now?")) return;
 
     // Get all user IDs
-    const { data: profiles } = await supabase.from("profiles").select("id");
+    const { data: profiles } = await apiClient.from("profiles").select("id");
     if (!profiles || profiles.length === 0) {
       toast({ title: "No users to notify", variant: "destructive" });
       return;
@@ -99,14 +99,14 @@ const AdminAnnouncements = () => {
       notification_channel: announcement.notification_channel,
     }));
 
-    const { error } = await supabase.from("notifications").insert(notifications);
+    const { error } = await apiClient.from("notifications").insert(notifications);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
 
     // Mark as sent
-    await supabase
+    await apiClient
       .from("announcements")
       .update({ sent_at: new Date().toISOString() })
       .eq("id", announcement.id);

@@ -23,7 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import MobileLayout from "@/components/layout/MobileLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 type Theme = "light" | "dark" | "system";
 
@@ -64,7 +64,7 @@ const Settings = () => {
       }
 
       try {
-        const { data } = await supabase
+        const { data } = await apiClient
           .from("user_preferences")
           .select("preferences")
           .eq("user_id", user.id)
@@ -109,7 +109,7 @@ const Settings = () => {
 
     setSaving(true);
     try {
-      const { data: existing } = await supabase
+      const { data: existing } = await apiClient
         .from("user_preferences")
         .select("id")
         .eq("user_id", user.id)
@@ -118,12 +118,12 @@ const Settings = () => {
       const preferences = JSON.parse(JSON.stringify(newPreferences));
 
       if (existing) {
-        await supabase
+        await apiClient
           .from("user_preferences")
           .update({ preferences, updated_at: new Date().toISOString() })
           .eq("user_id", user.id);
       } else {
-        await supabase
+        await apiClient
           .from("user_preferences")
           .insert([{ user_id: user.id, preferences }]);
       }

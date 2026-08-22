@@ -1,9 +1,6 @@
-/**
- * Compatibility client for the migrated Node.js/Prisma/MySQL backend.
- *
- * Existing screens keep their original Supabase-style query chains so their
- * rendering and behavior stay unchanged while all requests now go to /api.
- */
+/** First-party client for the Bevory Node.js/Prisma/MySQL API. */
+
+import { parseFilterScalar } from "./filterParser";
 
 export type User = {
   id: string;
@@ -112,7 +109,7 @@ class QueryBuilder implements PromiseLike<ApiResult<any>> {
   or(expression: string) {
     const filters = expression.split(",").map((part) => {
       const [column, operator, ...rest] = part.split(".");
-      return { column, operator, value: rest.join(".") };
+      return { column, operator, value: parseFilterScalar(rest.join(".")) };
     });
     this.filters.push({ operator: "or", filters });
     return this;
@@ -302,7 +299,7 @@ const functions = {
   },
 };
 
-export const supabase: any = {
+export const apiClient: any = {
   from: (table: string) => new QueryBuilder(table),
   auth,
   storage,

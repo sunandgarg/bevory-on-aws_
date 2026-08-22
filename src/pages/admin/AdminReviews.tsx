@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Star, Trash2, Check, X, Download, Upload, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,7 +27,7 @@ const AdminReviews = () => {
   const { toast } = useToast();
 
   const fetchReviews = async () => {
-    let query = supabase
+    let query = apiClient
       .from("product_reviews")
       .select("*, product:products(name, brand, slug)")
       .eq("is_reported", false)
@@ -49,7 +49,7 @@ const AdminReviews = () => {
   }, [filter]);
 
   const toggleApproval = async (id: string, currentStatus: boolean | null) => {
-    const { error } = await supabase
+    const { error } = await apiClient
       .from("product_reviews")
       .update({ is_approved: !currentStatus })
       .eq("id", id);
@@ -62,7 +62,7 @@ const AdminReviews = () => {
 
   const deleteReview = async (id: string) => {
     if (!confirm("Delete this review permanently?")) return;
-    const { error } = await supabase.from("product_reviews").delete().eq("id", id);
+    const { error } = await apiClient.from("product_reviews").delete().eq("id", id);
     if (!error) {
       toast({ title: "Review deleted" });
       fetchReviews();
@@ -104,9 +104,9 @@ const AdminReviews = () => {
       };
 
       if (id && id !== "id" && id.length > 10) {
-        await supabase.from("product_reviews").update(reviewData).eq("id", id);
+        await apiClient.from("product_reviews").update(reviewData).eq("id", id);
       } else if (product_id) {
-        await supabase.from("product_reviews").insert([reviewData]);
+        await apiClient.from("product_reviews").insert([reviewData]);
       }
     }
     

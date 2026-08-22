@@ -56,12 +56,10 @@ docker compose up --build
 
 The Compose stack provisions MySQL with persistent database/upload volumes and initializes the schema and seed automatically. Replace every default password before shared use. For horizontally scaled or ephemeral deployments, configure the `S3_*` variables instead of relying on the upload volume.
 
-## Data migration
+## Data and integrations
 
-`prisma/seed-data.json` contains the existing anonymously readable Bevory catalog/content exported on 2026-08-22. Private users and per-user data are intentionally excluded. Credential-like fields were removed, and the eight public Supabase Storage assets referenced by the exported content were copied into `public/migrated-assets`.
+This repository is standalone and has no dependency on the earlier backend or its data. `pnpm db:setup` creates the Prisma schema and a clean starter dataset containing Gurgaon location metadata and six beverage categories; it does not import any previous catalog or user records.
 
-The compatibility client at `src/integrations/supabase/client.ts` retains the original query-chain interface so the frontend screens and styling did not need to be rewritten. It sends all requests to the Node API; the Supabase SDK and Supabase runtime are not dependencies.
+The frontend uses the first-party client at `src/integrations/api/client.ts`, which talks only to the Node API configured by `VITE_API_URL`. Google OAuth, Twilio OTP, GA4 reporting, an approved price provider, and S3-compatible uploads activate only when their server-side environment variables are supplied.
 
 See [docs/MIGRATION_STATUS.md](docs/MIGRATION_STATUS.md) for verified coverage and production blockers.
-
-An authorized private Supabase export can be previewed and imported with `pnpm data:import-private`; see [docs/PRIVATE_DATA_IMPORT_FORMAT.md](docs/PRIVATE_DATA_IMPORT_FORMAT.md). Google OAuth, Twilio OTP, GA4 reporting, an approved price provider, and S3-compatible uploads are fully wired and activate when their server-side environment variables are supplied.

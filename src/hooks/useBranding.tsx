@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import type { Json } from "@/types/json";
 
 interface BrandingItem {
@@ -65,7 +65,7 @@ export const useBranding = () => {
   useEffect(() => {
     const fetchBranding = async () => {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await apiClient
           .from("app_settings")
           .select("*")
           .eq("key", "branding")
@@ -114,20 +114,20 @@ export const useBranding = () => {
       const jsonValue = JSON.parse(JSON.stringify(newBranding)) as Json;
       
       // Check if record exists
-      const { data: existing } = await supabase
+      const { data: existing } = await apiClient
         .from("app_settings")
         .select("id")
         .eq("key", "branding")
         .maybeSingle();
 
       if (existing) {
-        const { error } = await supabase
+        const { error } = await apiClient
           .from("app_settings")
           .update({ value: jsonValue })
           .eq("key", "branding");
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { error } = await apiClient
           .from("app_settings")
           .insert([{ key: "branding", value: jsonValue, description: "Header and footer branding settings" }]);
         if (error) throw error;

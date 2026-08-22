@@ -1,7 +1,7 @@
 import { useState, useCallback, memo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { X, ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { isValidExternalUrl, openExternalUrl } from "@/lib/urlValidation";
@@ -33,7 +33,7 @@ interface CheersGuideProps {
 }
 
 const fetchGuides = async (): Promise<CheersGuideItem[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await apiClient
     .from("cheers_guides")
     .select("*")
     .eq("is_active", true)

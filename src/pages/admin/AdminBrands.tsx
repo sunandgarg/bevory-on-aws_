@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Plus, Pencil, Trash2, GripVertical, X, Search } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -76,7 +76,7 @@ const AdminBrands = () => {
   const { errors, validate, clearErrors, clearError } = useFormValidation(validationSchema);
 
   const fetchData = async () => {
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("brand_spotlights")
       .select("*")
       .order("order_index");
@@ -131,8 +131,8 @@ const AdminBrands = () => {
     };
 
     const { error } = editItem.id
-      ? await supabase.from("brand_spotlights").update(brandData).eq("id", editItem.id)
-      : await supabase.from("brand_spotlights").insert(brandData);
+      ? await apiClient.from("brand_spotlights").update(brandData).eq("id", editItem.id)
+      : await apiClient.from("brand_spotlights").insert(brandData);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -146,12 +146,12 @@ const AdminBrands = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this brand?")) return;
-    await supabase.from("brand_spotlights").delete().eq("id", id);
+    await apiClient.from("brand_spotlights").delete().eq("id", id);
     fetchData();
   };
 
   const handleToggleActive = async (id: string, isActive: boolean) => {
-    await supabase.from("brand_spotlights").update({ is_active: isActive }).eq("id", id);
+    await apiClient.from("brand_spotlights").update({ is_active: isActive }).eq("id", id);
     fetchData();
   };
 
@@ -269,9 +269,9 @@ const AdminBrands = () => {
         faqs: JSON.parse(JSON.stringify(faqs || [])),
       };
       if (id) {
-        await supabase.from("brand_spotlights").update(data).eq("id", id);
+        await apiClient.from("brand_spotlights").update(data).eq("id", id);
       } else {
-        await supabase.from("brand_spotlights").insert([data]);
+        await apiClient.from("brand_spotlights").insert([data]);
       }
     }
     fetchData();

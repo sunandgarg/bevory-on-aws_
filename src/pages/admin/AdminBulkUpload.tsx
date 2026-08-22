@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { toast } from "sonner";
 
 type UploadMode = "products" | "prices";
@@ -59,7 +59,7 @@ const AdminBulkUpload = () => {
 
   const handleUploadProducts = async (rows: Record<string, string>[]) => {
     // Fetch categories for mapping
-    const { data: categories } = await supabase
+    const { data: categories } = await apiClient
       .from("categories")
       .select("id, slug");
     const catMap = new Map(categories?.map((c) => [c.slug.toLowerCase(), c.id]) ?? []);
@@ -89,7 +89,7 @@ const AdminBulkUpload = () => {
         meta_description: row.meta_description || null,
       }));
 
-      const { error } = await supabase.from("products").upsert(batch, { onConflict: "slug" });
+      const { error } = await apiClient.from("products").upsert(batch, { onConflict: "slug" });
       if (error) {
         failed += batch.length;
         errors.push(`Batch ${Math.floor(i / BATCH) + 1}: ${error.message}`);
@@ -103,11 +103,11 @@ const AdminBulkUpload = () => {
 
   const handleUploadPrices = async (rows: Record<string, string>[]) => {
     // Fetch products for slug → id mapping
-    const { data: products } = await supabase.from("products").select("id, slug");
+    const { data: products } = await apiClient.from("products").select("id, slug");
     const prodMap = new Map(products?.map((p) => [p.slug?.toLowerCase(), p.id]) ?? []);
 
     // Fetch cities for name → id mapping
-    const { data: cities } = await supabase.from("cities").select("id, name");
+    const { data: cities } = await apiClient.from("cities").select("id, name");
     const cityMap = new Map(cities?.map((c) => [c.name.toLowerCase(), c.id]) ?? []);
 
     let success = 0;
@@ -138,7 +138,7 @@ const AdminBulkUpload = () => {
         continue;
       }
 
-      const { error } = await supabase.from("product_prices").insert(batch as any[]);
+      const { error } = await apiClient.from("product_prices").insert(batch as any[]);
       if (error) {
         failed += batch.length;
         errors.push(`Batch ${Math.floor(i / BATCH) + 1}: ${error.message}`);

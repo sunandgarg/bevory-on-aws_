@@ -3,7 +3,7 @@ import { Plus, Pencil, Trash2, TrendingUp, GripVertical, Hash } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -175,7 +175,7 @@ const AdminCategories = () => {
   );
 
   const fetchData = async () => {
-    const { data } = await supabase.from("categories").select("*").order("order_index").order("name");
+    const { data } = await apiClient.from("categories").select("*").order("order_index").order("name");
     if (data) setCategories(data);
     setLoading(false);
   };
@@ -210,7 +210,7 @@ const AdminCategories = () => {
 
       // Update all order_index values in database
       const updates = reordered.map((cat, index) => 
-        supabase.from("categories").update({ order_index: index }).eq("id", cat.id)
+        apiClient.from("categories").update({ order_index: index }).eq("id", cat.id)
       );
       
       await Promise.all(updates);
@@ -233,8 +233,8 @@ const AdminCategories = () => {
     const saveData = { ...dataWithoutId, slug };
 
     const { error } = id
-      ? await supabase.from("categories").update(saveData).eq("id", id)
-      : await supabase.from("categories").insert(saveData);
+      ? await apiClient.from("categories").update(saveData).eq("id", id)
+      : await apiClient.from("categories").insert(saveData);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -248,7 +248,7 @@ const AdminCategories = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete?")) return;
-    await supabase.from("categories").delete().eq("id", id);
+    await apiClient.from("categories").delete().eq("id", id);
     fetchData();
   };
 
@@ -258,7 +258,7 @@ const AdminCategories = () => {
   );
 
   const handleToggleTrending = async (id: string, isTrending: boolean) => {
-    await supabase.from("categories").update({ is_trending: isTrending }).eq("id", id);
+    await apiClient.from("categories").update({ is_trending: isTrending }).eq("id", id);
     fetchData();
   };
 
@@ -291,9 +291,9 @@ const AdminCategories = () => {
     for (const row of rows) {
       const { id, ...data } = row as Category;
       if (id) {
-        await supabase.from("categories").update(data).eq("id", id);
+        await apiClient.from("categories").update(data).eq("id", id);
       } else {
-        await supabase.from("categories").insert(data);
+        await apiClient.from("categories").insert(data);
       }
     }
     fetchData();

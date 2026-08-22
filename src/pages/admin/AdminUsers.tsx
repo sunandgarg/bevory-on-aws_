@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -104,9 +104,9 @@ const AdminUsers = () => {
   const fetchData = async () => {
     setLoading(true);
     const [profilesRes, rolesRes, permissionsRes] = await Promise.all([
-      supabase.from("profiles").select("*").order("created_at", { ascending: false }),
-      supabase.from("user_roles").select("*"),
-      supabase.from("user_permissions").select("*"),
+      apiClient.from("profiles").select("*").order("created_at", { ascending: false }),
+      apiClient.from("user_roles").select("*"),
+      apiClient.from("user_permissions").select("*"),
     ]);
 
     if (profilesRes.data) setProfiles(profilesRes.data);
@@ -180,7 +180,7 @@ const AdminUsers = () => {
       return;
     }
 
-    const { error } = await supabase.from("user_roles").insert([
+    const { error } = await apiClient.from("user_roles").insert([
       {
         user_id: selectedUserId,
         role: newRole as "admin" | "user" | "content_manager" | "content_writer",
@@ -194,7 +194,7 @@ const AdminUsers = () => {
       if (newRole === "content_writer") {
         const defaultSections = ["blog", "cocktails"];
         for (const section of defaultSections) {
-          await supabase.from("user_permissions").upsert({
+          await apiClient.from("user_permissions").upsert({
             user_id: selectedUserId,
             section,
             can_view: true,
@@ -214,7 +214,7 @@ const AdminUsers = () => {
   const removeRole = async (roleId: string) => {
     if (!confirm("Remove this role?")) return;
 
-    const { error } = await supabase.from("user_roles").delete().eq("id", roleId);
+    const { error } = await apiClient.from("user_roles").delete().eq("id", roleId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
@@ -232,9 +232,9 @@ const AdminUsers = () => {
     const existing = userPermissions.find((p) => p.user_id === userId && p.section === section);
     
     if (existing) {
-      await supabase.from("user_permissions").update({ [permission]: value }).eq("id", existing.id);
+      await apiClient.from("user_permissions").update({ [permission]: value }).eq("id", existing.id);
     } else {
-      await supabase.from("user_permissions").insert({
+      await apiClient.from("user_permissions").insert({
         user_id: userId,
         section,
         can_view: permission === "can_view" ? value : true,
@@ -262,7 +262,7 @@ const AdminUsers = () => {
     setCreating(true);
     
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await apiClient.auth.signUp({
         email: newUserEmail,
         password: newUserPassword,
         options: {
@@ -276,7 +276,7 @@ const AdminUsers = () => {
 
       if (data.user) {
         if (newUserRole !== "user") {
-          await supabase.from("user_roles").insert({
+          await apiClient.from("user_roles").insert({
             user_id: data.user.id,
             role: newUserRole as "admin" | "user" | "content_manager" | "content_writer",
           });

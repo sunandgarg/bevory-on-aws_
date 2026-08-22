@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import type { Json } from "@/types/json";
 
 export interface ImageOptimizationSettings {
@@ -39,18 +39,6 @@ const getOptimizedImageUrl = (
   try {
     const url = new URL(src);
     
-    // For Supabase storage URLs, add transformation parameters
-    if (url.hostname.includes('supabase')) {
-      const params = new URLSearchParams();
-      if (width) params.set('width', String(Math.min(width, settings.maxWidth)));
-      if (height) params.set('height', String(Math.min(height, settings.maxHeight)));
-      params.set('quality', String(settings.quality));
-      if (settings.format !== 'auto') {
-        params.set('format', settings.format);
-      }
-      return `${src}${src.includes('?') ? '&' : '?'}${params.toString()}`;
-    }
-
     // For external URLs, use wsrv.nl (free image CDN)
     // This converts and optimizes images on the fly
     const optimizedWidth = width ? Math.min(width, settings.maxWidth) : settings.maxWidth;
@@ -97,7 +85,7 @@ export const useImageOptimization = () => {
 
   const fetchSettings = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("app_settings")
         .select("*")
         .eq("key", "image_optimization")
@@ -122,20 +110,20 @@ export const useImageOptimization = () => {
     try {
       const jsonValue = JSON.parse(JSON.stringify(newSettings)) as Json;
       
-      const { data: existing } = await supabase
+      const { data: existing } = await apiClient
         .from("app_settings")
         .select("id")
         .eq("key", "image_optimization")
         .maybeSingle();
 
       if (existing) {
-        const { error } = await supabase
+        const { error } = await apiClient
           .from("app_settings")
           .update({ value: jsonValue })
           .eq("key", "image_optimization");
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { error } = await apiClient
           .from("app_settings")
           .insert([{ 
             key: "image_optimization", 

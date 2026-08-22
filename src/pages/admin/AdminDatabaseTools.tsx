@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 const AdminDatabaseTools = () => {
   const [exporting, setExporting] = useState(false);
@@ -20,7 +20,7 @@ const AdminDatabaseTools = () => {
     setProgress(10);
 
     try {
-      const { data, error } = await supabase.functions.invoke('export-database', {
+      const { data, error } = await apiClient.functions.invoke('export-database', {
         body: { action: 'export' },
       });
 
@@ -85,7 +85,7 @@ const AdminDatabaseTools = () => {
 
       setProgress(30);
 
-      const { data, error } = await supabase.functions.invoke('export-database', {
+      const { data, error } = await apiClient.functions.invoke('export-database', {
         body: { action: 'import', data: parsed.data },
       });
 

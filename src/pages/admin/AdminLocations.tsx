@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import FormField from "@/components/admin/FormField";
@@ -56,7 +56,7 @@ const AdminLocations = () => {
   const cityValidation = useFormValidation(cityValidationSchema);
 
   const fetchData = async () => {
-    let { data: countryData } = await supabase
+    let { data: countryData } = await apiClient
       .from("countries")
       .select("id")
       .eq("code", "IN")
@@ -64,7 +64,7 @@ const AdminLocations = () => {
 
     // Auto-seed India if it doesn't exist so admins can add states immediately
     if (!countryData) {
-      const { data: inserted } = await supabase
+      const { data: inserted } = await apiClient
         .from("countries")
         .insert({ name: "India", code: "IN", flag: "🇮🇳" })
         .select("id")
@@ -77,8 +77,8 @@ const AdminLocations = () => {
     }
 
     const [statesRes, citiesRes] = await Promise.all([
-      supabase.from("states").select("*").order("name"),
-      supabase.from("cities").select("*, state:states(*)").order("name"),
+      apiClient.from("states").select("*").order("name"),
+      apiClient.from("cities").select("*, state:states(*)").order("name"),
     ]);
 
     if (statesRes.data) setStates(statesRes.data);
@@ -106,8 +106,8 @@ const AdminLocations = () => {
     if (!stateData.id) delete (stateData as any).id;
 
     const { error } = editState.id
-      ? await supabase.from("states").update(stateData).eq("id", editState.id)
-      : await supabase.from("states").insert(stateData);
+      ? await apiClient.from("states").update(stateData).eq("id", editState.id)
+      : await apiClient.from("states").insert(stateData);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -121,17 +121,17 @@ const AdminLocations = () => {
 
   const handleDeleteState = async (id: string) => {
     if (!confirm("Delete this state? All cities in this state will also be deleted.")) return;
-    await supabase.from("states").delete().eq("id", id);
+    await apiClient.from("states").delete().eq("id", id);
     fetchData();
   };
 
   const toggleStateVisibility = async (id: string, visible: boolean) => {
-    await supabase.from("states").update({ is_visible: visible }).eq("id", id);
+    await apiClient.from("states").update({ is_visible: visible }).eq("id", id);
     fetchData();
   };
 
   const toggleStatePopular = async (id: string, popular: boolean) => {
-    await supabase.from("states").update({ is_popular: popular }).eq("id", id);
+    await apiClient.from("states").update({ is_popular: popular }).eq("id", id);
     fetchData();
   };
 
@@ -148,8 +148,8 @@ const AdminLocations = () => {
     delete (cityData as any).state;
 
     const { error } = editCity.id
-      ? await supabase.from("cities").update(cityData).eq("id", editCity.id)
-      : await supabase.from("cities").insert(cityData);
+      ? await apiClient.from("cities").update(cityData).eq("id", editCity.id)
+      : await apiClient.from("cities").insert(cityData);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -163,17 +163,17 @@ const AdminLocations = () => {
 
   const handleDeleteCity = async (id: string) => {
     if (!confirm("Delete this city?")) return;
-    await supabase.from("cities").delete().eq("id", id);
+    await apiClient.from("cities").delete().eq("id", id);
     fetchData();
   };
 
   const toggleCityVisibility = async (id: string, visible: boolean) => {
-    await supabase.from("cities").update({ is_visible: visible }).eq("id", id);
+    await apiClient.from("cities").update({ is_visible: visible }).eq("id", id);
     fetchData();
   };
 
   const toggleCityPopular = async (id: string, popular: boolean) => {
-    await supabase.from("cities").update({ is_popular: popular }).eq("id", id);
+    await apiClient.from("cities").update({ is_popular: popular }).eq("id", id);
     fetchData();
   };
 
@@ -220,9 +220,9 @@ const AdminLocations = () => {
     for (const row of rows) {
       const { id, state, ...data } = row as City;
       if (id) {
-        await supabase.from("cities").update(data).eq("id", id);
+        await apiClient.from("cities").update(data).eq("id", id);
       } else {
-        await supabase.from("cities").insert([data]);
+        await apiClient.from("cities").insert([data]);
       }
     }
     fetchData();

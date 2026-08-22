@@ -8,7 +8,7 @@
  * - WebP conversion for performance
  */
 
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 // Maximum dimensions for processed images
 const MAX_DIMENSION = 800;
@@ -92,8 +92,8 @@ export async function uploadProductImage(
     const ext = file.name.split(".").pop() || "jpg";
     const filename = `products/${productId}/${Date.now()}.${ext}`;
 
-    // Upload to Supabase storage
-    const { data, error } = await supabase.storage
+    // Upload through the Bevory API
+    const { data, error } = await apiClient.storage
       .from("images")
       .upload(filename, file, {
         cacheControl: "3600",
@@ -105,7 +105,7 @@ export async function uploadProductImage(
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
+    const { data: { publicUrl } } = apiClient.storage
       .from("images")
       .getPublicUrl(data.path);
 

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import FormField from "@/components/admin/FormField";
@@ -127,8 +127,8 @@ const AdminSubCategories = () => {
 
   const fetchData = async () => {
     const [subCatResult, catResult] = await Promise.all([
-      supabase.from("sub_categories").select("*").order("order_index"),
-      supabase.from("categories").select("id, name, emoji").order("name"),
+      apiClient.from("sub_categories").select("*").order("order_index"),
+      apiClient.from("categories").select("id, name, emoji").order("name"),
     ]);
     
     if (subCatResult.data) setSubCategories(subCatResult.data);
@@ -175,7 +175,7 @@ const AdminSubCategories = () => {
       }
 
       const updates = reordered.map((item, index) =>
-        supabase.from("sub_categories").update({ order_index: index }).eq("id", item.id)
+        apiClient.from("sub_categories").update({ order_index: index }).eq("id", item.id)
       );
       await Promise.all(updates);
       toast({ title: "Order updated" });
@@ -196,8 +196,8 @@ const AdminSubCategories = () => {
     const saveData = { ...dataWithoutId, slug };
 
     const { error } = id
-      ? await supabase.from("sub_categories").update(saveData).eq("id", id)
-      : await supabase.from("sub_categories").insert(saveData);
+      ? await apiClient.from("sub_categories").update(saveData).eq("id", id)
+      : await apiClient.from("sub_categories").insert(saveData);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -211,12 +211,12 @@ const AdminSubCategories = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this sub-category?")) return;
-    await supabase.from("sub_categories").delete().eq("id", id);
+    await apiClient.from("sub_categories").delete().eq("id", id);
     fetchData();
   };
 
   const handleToggleActive = async (id: string, isActive: boolean) => {
-    await supabase.from("sub_categories").update({ is_active: isActive }).eq("id", id);
+    await apiClient.from("sub_categories").update({ is_active: isActive }).eq("id", id);
     fetchData();
   };
 
@@ -251,9 +251,9 @@ const AdminSubCategories = () => {
     for (const row of rows) {
       const { id, ...data } = row as SubCategory;
       if (id) {
-        await supabase.from("sub_categories").update(data).eq("id", id);
+        await apiClient.from("sub_categories").update(data).eq("id", id);
       } else {
-        await supabase.from("sub_categories").insert(data);
+        await apiClient.from("sub_categories").insert(data);
       }
     }
     fetchData();

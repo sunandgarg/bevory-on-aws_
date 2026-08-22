@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import FormField from "@/components/admin/FormField";
@@ -49,8 +49,8 @@ const AdminParty = () => {
 
   const fetchData = async () => {
     const [recsRes, catsRes] = await Promise.all([
-      supabase.from("party_recommendations").select("*").order("min_guests, min_budget"),
-      supabase.from("categories").select("id, name, emoji").order("name"),
+      apiClient.from("party_recommendations").select("*").order("min_guests, min_budget"),
+      apiClient.from("categories").select("id, name, emoji").order("name"),
     ]);
     if (recsRes.data) setRecommendations(recsRes.data);
     if (catsRes.data) setCategories(catsRes.data);
@@ -86,8 +86,8 @@ const AdminParty = () => {
     };
 
     const { error } = editItem.id
-      ? await supabase.from("party_recommendations").update(data).eq("id", editItem.id)
-      : await supabase.from("party_recommendations").insert(data);
+      ? await apiClient.from("party_recommendations").update(data).eq("id", editItem.id)
+      : await apiClient.from("party_recommendations").insert(data);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -101,7 +101,7 @@ const AdminParty = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this recommendation?")) return;
-    await supabase.from("party_recommendations").delete().eq("id", id);
+    await apiClient.from("party_recommendations").delete().eq("id", id);
     fetchData();
   };
 
@@ -138,9 +138,9 @@ const AdminParty = () => {
     for (const row of rows) {
       const { id, ...data } = row as PartyRecommendation;
       if (id) {
-        await supabase.from("party_recommendations").update(data).eq("id", id);
+        await apiClient.from("party_recommendations").update(data).eq("id", id);
       } else {
-        await supabase.from("party_recommendations").insert(data);
+        await apiClient.from("party_recommendations").insert(data);
       }
     }
     fetchData();

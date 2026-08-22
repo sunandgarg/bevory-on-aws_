@@ -10,7 +10,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useLocation } from "@/hooks/useLocation";
 import { generateProductUrlStatic } from "@/hooks/useProductUrl";
 
@@ -63,7 +63,7 @@ export const CompareProvider = ({ children }: { children: ReactNode }) => {
     if (compareProducts.length >= 4) return;
     if (compareProducts.find((p) => p.id === productId)) return;
 
-    const { data: product } = await supabase
+    const { data: product } = await apiClient
       .from("products")
       .select(`
         *,
@@ -74,7 +74,7 @@ export const CompareProvider = ({ children }: { children: ReactNode }) => {
       .maybeSingle();
 
     if (product && selectedCity) {
-      const { data: priceData } = await supabase
+      const { data: priceData } = await apiClient
         .from("product_prices")
         .select("*")
         .eq("product_id", productId)

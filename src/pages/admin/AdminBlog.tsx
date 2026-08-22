@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import FormField from "@/components/admin/FormField";
@@ -68,7 +68,7 @@ const AdminBlog = () => {
   const { errors, validate, clearErrors, clearError } = useFormValidation(validationSchema);
 
   const fetchPosts = async () => {
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("blog_posts")
       .select("*")
       .order("created_at", { ascending: false });
@@ -77,12 +77,12 @@ const AdminBlog = () => {
   };
 
   const fetchProducts = async () => {
-    const { data } = await supabase.from("products").select("id, name, brand").order("brand, name");
+    const { data } = await apiClient.from("products").select("id, name, brand").order("brand, name");
     if (data) setProducts(data);
   };
 
   const fetchBrands = async () => {
-    const { data } = await supabase.from("brand_spotlights").select("id, brand_name").order("brand_name");
+    const { data } = await apiClient.from("brand_spotlights").select("id, brand_name").order("brand_name");
     if (data) setBrands(data);
   };
 
@@ -137,10 +137,10 @@ const AdminBlog = () => {
 
     let error;
     if (editPost.id) {
-      const result = await supabase.from("blog_posts").update(postToSave).eq("id", editPost.id);
+      const result = await apiClient.from("blog_posts").update(postToSave).eq("id", editPost.id);
       error = result.error;
     } else {
-      const result = await supabase.from("blog_posts").insert(postToSave);
+      const result = await apiClient.from("blog_posts").insert(postToSave);
       error = result.error;
     }
 
@@ -157,7 +157,7 @@ const AdminBlog = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this blog post?")) return;
-    const { error } = await supabase.from("blog_posts").delete().eq("id", id);
+    const { error } = await apiClient.from("blog_posts").delete().eq("id", id);
     if (!error) {
       toast({ title: "Deleted" });
       fetchPosts();
@@ -204,9 +204,9 @@ const AdminBlog = () => {
     for (const row of rows) {
       const { id, ...data } = row as BlogPost;
       if (id) {
-        await supabase.from("blog_posts").update(data).eq("id", id);
+        await apiClient.from("blog_posts").update(data).eq("id", id);
       } else {
-        await supabase.from("blog_posts").insert(data);
+        await apiClient.from("blog_posts").insert(data);
       }
     }
     fetchPosts();

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -85,7 +85,7 @@ const AdminCheersGuide = () => {
   const { data: guides = [], isLoading } = useQuery({
     queryKey: ["admin-cheers-guides"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("cheers_guides")
         .select("*")
         .order("order_index");
@@ -120,7 +120,7 @@ const AdminCheersGuide = () => {
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase.from("cheers_guides").insert([{
+      const { error } = await apiClient.from("cheers_guides").insert([{
         ...data,
         stories: data.stories.length > 0 ? (data.stories as unknown as any[]) : null,
       }]);
@@ -136,7 +136,7 @@ const AdminCheersGuide = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
-      const { error } = await supabase.from("cheers_guides").update({
+      const { error } = await apiClient.from("cheers_guides").update({
         ...data,
         stories: data.stories.length > 0 ? (data.stories as unknown as any[]) : null,
       }).eq("id", id);
@@ -152,7 +152,7 @@ const AdminCheersGuide = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("cheers_guides").delete().eq("id", id);
+      const { error } = await apiClient.from("cheers_guides").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -257,9 +257,9 @@ const AdminCheersGuide = () => {
       const { id, stories, ...rest } = row as CheersGuide;
       const data = { ...rest, stories: JSON.parse(JSON.stringify(stories || [])) };
       if (id) {
-        await supabase.from("cheers_guides").update(data).eq("id", id);
+        await apiClient.from("cheers_guides").update(data).eq("id", id);
       } else {
-        await supabase.from("cheers_guides").insert([data]);
+        await apiClient.from("cheers_guides").insert([data]);
       }
     }
     queryClient.invalidateQueries({ queryKey: ["admin-cheers-guides"] });

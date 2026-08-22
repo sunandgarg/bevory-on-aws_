@@ -4,7 +4,7 @@ import { Star, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface RateProductSectionProps {
@@ -98,13 +98,13 @@ const RateProductSection = ({ productId, onReviewSubmitted }: RateProductSection
 
       console.log("Submitting review:", reviewData);
 
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("product_reviews")
         .insert(reviewData)
         .select();
 
       if (error) {
-        console.error("Supabase error:", error);
+        console.error("API error:", error);
         throw error;
       }
 

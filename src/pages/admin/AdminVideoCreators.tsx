@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Plus, Pencil, Trash2, User, Youtube, Instagram, Globe, Star } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,7 +37,7 @@ const AdminVideoCreators = () => {
   const { toast } = useToast();
 
   const fetchData = async () => {
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("video_creators")
       .select("*")
       .order("order_index");
@@ -60,8 +60,8 @@ const AdminVideoCreators = () => {
     const data = { ...dataWithoutId, slug };
 
     const { error } = id
-      ? await supabase.from("video_creators").update(data).eq("id", id)
-      : await supabase.from("video_creators").insert(data);
+      ? await apiClient.from("video_creators").update(data).eq("id", id)
+      : await apiClient.from("video_creators").insert(data);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -74,12 +74,12 @@ const AdminVideoCreators = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this creator?")) return;
-    await supabase.from("video_creators").delete().eq("id", id);
+    await apiClient.from("video_creators").delete().eq("id", id);
     fetchData();
   };
 
   const toggleFeatured = async (id: string, isFeatured: boolean) => {
-    await supabase.from("video_creators").update({ is_featured: isFeatured }).eq("id", id);
+    await apiClient.from("video_creators").update({ is_featured: isFeatured }).eq("id", id);
     fetchData();
   };
 

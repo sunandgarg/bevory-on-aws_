@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Play, User, Youtube, Share2, ChevronLeft } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -61,7 +61,7 @@ const VideoDetail = () => {
   useEffect(() => {
     const fetchVideo = async () => {
       // Try to find by slug first, then by ID
-      let query = supabase
+      let query = apiClient
         .from("video_reviews")
         .select(`
           *,
@@ -86,7 +86,7 @@ const VideoDetail = () => {
         setVideo(data as VideoReview);
 
         // Fetch related videos from same category or creator
-        const { data: related } = await supabase
+        const { data: related } = await apiClient
           .from("video_reviews")
           .select(`
             *,

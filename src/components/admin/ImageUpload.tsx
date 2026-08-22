@@ -3,7 +3,7 @@ import { Upload, Link as LinkIcon, X, Loader2, Image as ImageIcon } from "lucide
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { useImageOptimization } from "@/hooks/useImageOptimization";
 
@@ -123,8 +123,8 @@ const ImageUpload = ({
       const randomStr = Math.random().toString(36).substring(2, 8);
       const filename = `${folder}/${timestamp}-${randomStr}.webp`;
 
-      // Upload to Supabase storage
-      const { data, error } = await supabase.storage
+      // Upload through the Bevory API
+      const { data, error } = await apiClient.storage
         .from("images")
         .upload(filename, compressedBlob, {
           contentType: "image/webp",
@@ -134,7 +134,7 @@ const ImageUpload = ({
       if (error) throw error;
 
       // Get public URL
-      const { data: urlData } = supabase.storage
+      const { data: urlData } = apiClient.storage
         .from("images")
         .getPublicUrl(data.path);
 

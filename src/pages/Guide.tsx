@@ -4,7 +4,7 @@ import { Search, BookOpen, Calendar, User, ChevronRight, X, Clock, TrendingUp, S
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import MobileLayout from "@/components/layout/MobileLayout";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -36,7 +36,7 @@ const Guide = () => {
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ["guide-posts"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("blog_posts")
         .select("*")
         .eq("is_published", true)

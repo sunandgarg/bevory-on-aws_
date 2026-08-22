@@ -1,28 +1,88 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
 
 const prisma = new PrismaClient();
 
-type SeedFile = {
-  tables: Record<string, Array<Record<string, unknown>>>;
+type StarterRow = {
+  tableName: string;
+  recordId: string;
+  data: Prisma.InputJsonObject;
 };
 
-const seed = JSON.parse(await readFile(new URL("./seed-data.json", import.meta.url), "utf8")) as SeedFile;
+const createdAt = new Date().toISOString();
+const countryId = "starter-country-india";
+const stateId = "starter-state-haryana";
+const cityId = "starter-city-gurgaon";
 
-for (const [tableName, rows] of Object.entries(seed.tables)) {
-  for (const row of rows) {
-    const recordId = String(row.id ?? randomUUID());
-    const data = { ...row, id: recordId } as Prisma.InputJsonObject;
-    await prisma.contentRecord.upsert({
-      where: { key: `${tableName}:${recordId}` },
-      update: { data },
-      create: { key: `${tableName}:${recordId}`, tableName, recordId, data },
-    });
-  }
-  console.log(`Seeded ${tableName}: ${rows.length}`);
+const starterRows: StarterRow[] = [
+  {
+    tableName: "countries",
+    recordId: countryId,
+    data: { id: countryId, name: "India", code: "IN", created_at: createdAt },
+  },
+  {
+    tableName: "states",
+    recordId: stateId,
+    data: {
+      id: stateId,
+      country_id: countryId,
+      name: "Haryana",
+      code: "HR",
+      is_visible: true,
+      is_popular: true,
+      created_at: createdAt,
+    },
+  },
+  {
+    tableName: "cities",
+    recordId: cityId,
+    data: {
+      id: cityId,
+      state_id: stateId,
+      name: "Gurgaon",
+      slug: "gurgaon",
+      is_visible: true,
+      is_popular: true,
+      created_at: createdAt,
+    },
+  },
+  ...[
+    ["beer", "Beer", "🍺"],
+    ["whisky", "Whisky", "🥃"],
+    ["wine", "Wine", "🍷"],
+    ["vodka", "Vodka", "🍸"],
+    ["gin", "Gin", "🌿"],
+    ["rum", "Rum", "🏴‍☠️"],
+  ].map(([slug, name, emoji], orderIndex) => ({
+    tableName: "categories",
+    recordId: `starter-category-${slug}`,
+    data: {
+      id: `starter-category-${slug}`,
+      name,
+      slug,
+      emoji,
+      order_index: orderIndex,
+      is_active: true,
+      is_trending: false,
+      created_at: createdAt,
+    },
+  })),
+];
+
+for (const row of starterRows) {
+  await prisma.contentRecord.upsert({
+    where: { key: `${row.tableName}:${row.recordId}` },
+    update: { data: row.data },
+    create: {
+      key: `${row.tableName}:${row.recordId}`,
+      tableName: row.tableName,
+      recordId: row.recordId,
+      data: row.data,
+    },
+  });
 }
+console.log(`Seeded ${starterRows.length} clean starter records`);
 
 const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
 const adminPassword = process.env.ADMIN_PASSWORD;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Flag, Trash2, Eye, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
@@ -23,7 +23,7 @@ const AdminReports = () => {
   const { toast } = useToast();
 
   const fetchReports = async () => {
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("product_reviews")
       .select("*, product:products(name, brand, slug)")
       .eq("is_reported", true)
@@ -38,7 +38,7 @@ const AdminReports = () => {
   }, []);
 
   const dismissReport = async (id: string) => {
-    const { error } = await supabase
+    const { error } = await apiClient
       .from("product_reviews")
       .update({ is_reported: false, report_reason: null, reported_at: null })
       .eq("id", id);
@@ -51,7 +51,7 @@ const AdminReports = () => {
 
   const deleteReview = async (id: string) => {
     if (!confirm("Delete this review permanently?")) return;
-    const { error } = await supabase.from("product_reviews").delete().eq("id", id);
+    const { error } = await apiClient.from("product_reviews").delete().eq("id", id);
     if (!error) {
       toast({ title: "Review deleted" });
       fetchReports();

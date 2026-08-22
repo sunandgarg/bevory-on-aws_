@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useAuth } from "./useAuth";
 
 interface Notification {
@@ -28,7 +28,7 @@ export function useNotifications() {
       return;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await apiClient
       .from("notifications")
       .select("*")
       .eq("user_id", user.id)
@@ -48,7 +48,7 @@ export function useNotifications() {
 
   const markAsRead = async (id: string) => {
     if (!user) return;
-    await supabase.from("notifications").update({ is_read: true }).eq("id", id);
+    await apiClient.from("notifications").update({ is_read: true }).eq("id", id);
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
     );
@@ -57,7 +57,7 @@ export function useNotifications() {
 
   const markAllAsRead = async () => {
     if (!user) return;
-    await supabase
+    await apiClient
       .from("notifications")
       .update({ is_read: true })
       .eq("user_id", user.id)
@@ -69,7 +69,7 @@ export function useNotifications() {
   const deleteNotification = async (id: string) => {
     if (!user) return;
     const notification = notifications.find((n) => n.id === id);
-    await supabase.from("notifications").delete().eq("id", id);
+    await apiClient.from("notifications").delete().eq("id", id);
     setNotifications((prev) => prev.filter((n) => n.id !== id));
     if (notification && !notification.is_read) {
       setUnreadCount((prev) => Math.max(0, prev - 1));

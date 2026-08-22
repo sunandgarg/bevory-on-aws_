@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
 
@@ -23,7 +23,7 @@ export function useFavorites() {
       return;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await apiClient
       .from("user_favorites")
       .select("*")
       .eq("user_id", user.id);
@@ -74,7 +74,7 @@ export function useFavorites() {
 
     if (existing) {
       // Remove favorite
-      const { error } = await supabase
+      const { error } = await apiClient
         .from("user_favorites")
         .delete()
         .eq("id", existing.id);
@@ -99,7 +99,7 @@ export function useFavorites() {
         cocktail_id: cocktailId || null,
       };
 
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("user_favorites")
         .insert(newFavorite)
         .select()

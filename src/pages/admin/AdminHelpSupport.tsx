@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import FormField from "@/components/admin/FormField";
 
@@ -48,7 +48,7 @@ const AdminHelpSupport = () => {
   const { toast } = useToast();
 
   const fetchItems = async () => {
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("help_support_items")
       .select("*")
       .order("order_index");
@@ -75,10 +75,10 @@ const AdminHelpSupport = () => {
 
     let error;
     if (editItem.id) {
-      const result = await supabase.from("help_support_items").update(toSave).eq("id", editItem.id);
+      const result = await apiClient.from("help_support_items").update(toSave).eq("id", editItem.id);
       error = result.error;
     } else {
-      const result = await supabase.from("help_support_items").insert(toSave);
+      const result = await apiClient.from("help_support_items").insert(toSave);
       error = result.error;
     }
 
@@ -94,7 +94,7 @@ const AdminHelpSupport = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this help item?")) return;
-    await supabase.from("help_support_items").delete().eq("id", id);
+    await apiClient.from("help_support_items").delete().eq("id", id);
     toast({ title: "Deleted" });
     fetchItems();
   };

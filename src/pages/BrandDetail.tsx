@@ -2,7 +2,7 @@ import { useState, useEffect, memo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Star, ExternalLink, ChevronRight, Wine, Utensils, Sparkles, HelpCircle, Award, BookOpen } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import MobileLayout from "@/components/layout/MobileLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -100,7 +100,7 @@ const BrandDetail = () => {
 
       let brandData = null;
       
-      const { data: dataBySlug } = await supabase
+      const { data: dataBySlug } = await apiClient
         .from("brand_spotlights")
         .select("*")
         .eq("slug", slug)
@@ -109,7 +109,7 @@ const BrandDetail = () => {
       if (dataBySlug) {
         brandData = dataBySlug;
       } else {
-        const { data: dataById } = await supabase
+        const { data: dataById } = await apiClient
           .from("brand_spotlights")
           .select("*")
           .eq("id", slug)
@@ -120,7 +120,7 @@ const BrandDetail = () => {
       if (brandData) {
         setBrand(brandData);
 
-        const { data: productsData } = await supabase
+        const { data: productsData } = await apiClient
           .from("products")
           .select(`
             id, name, slug, brand, image_emoji, rating, review_count, volume, abv,
@@ -136,7 +136,7 @@ const BrandDetail = () => {
           let pricesMap: Record<string, number> = {};
 
           if (selectedCity?.id && productIds.length > 0) {
-            const { data: pricesData } = await supabase
+            const { data: pricesData } = await apiClient
               .from("product_prices")
               .select("product_id, price")
               .eq("city_id", selectedCity.id)

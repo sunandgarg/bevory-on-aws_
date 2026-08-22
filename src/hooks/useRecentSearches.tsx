@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useAuth } from "./useAuth";
 
 interface RecentSearch {
@@ -21,7 +21,7 @@ export function useRecentSearches() {
       return;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await apiClient
       .from("recent_searches")
       .select("*")
       .eq("user_id", user.id)
@@ -47,10 +47,10 @@ export function useRecentSearches() {
     );
     if (existing) {
       // Remove old entry
-      await supabase.from("recent_searches").delete().eq("id", existing.id);
+      await apiClient.from("recent_searches").delete().eq("id", existing.id);
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await apiClient
       .from("recent_searches")
       .insert({ user_id: user.id, search_query: query, search_type: type })
       .select()
@@ -63,13 +63,13 @@ export function useRecentSearches() {
 
   const removeSearch = async (id: string) => {
     if (!user) return;
-    await supabase.from("recent_searches").delete().eq("id", id);
+    await apiClient.from("recent_searches").delete().eq("id", id);
     setSearches((prev) => prev.filter((s) => s.id !== id));
   };
 
   const clearAll = async () => {
     if (!user) return;
-    await supabase.from("recent_searches").delete().eq("user_id", user.id);
+    await apiClient.from("recent_searches").delete().eq("user_id", user.id);
     setSearches([]);
   };
 

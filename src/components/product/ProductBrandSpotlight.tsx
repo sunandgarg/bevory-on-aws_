@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 interface BrandSpotlight {
   id: string;
@@ -22,7 +22,7 @@ const ProductBrandSpotlight = ({ brandName }: ProductBrandSpotlightProps) => {
 
   useEffect(() => {
     const fetchBrand = async () => {
-      const { data } = await supabase
+      const { data } = await apiClient
         .from("brand_spotlights")
         .select("*")
         .ilike("brand_name", brandName)

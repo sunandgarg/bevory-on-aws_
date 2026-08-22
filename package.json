@@ -18,9 +18,6 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:setup": "prisma generate && prisma db push && tsx prisma/seed.ts",
-    "data:export-supabase": "node scripts/export-supabase-data.mjs",
-    "data:import-private": "node scripts/import-private-data.mjs",
-    "data:migrate-assets": "node scripts/migrate-storage-assets.mjs",
     "test": "vitest run",
     "lint": "eslint .",
     "preview": "vite preview"

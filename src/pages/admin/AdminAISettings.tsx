@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import type { Json } from "@/types/json";
 
 interface AISettings {
@@ -52,7 +52,7 @@ const AdminAISettings = () => {
 
   const fetchSettings = async () => {
     try {
-      const { data } = await supabase
+      const { data } = await apiClient
         .from("app_settings")
         .select("value")
         .eq("key", "ai_recommendation_settings")
@@ -74,16 +74,16 @@ const AdminAISettings = () => {
     try {
       const jsonValue = JSON.parse(JSON.stringify(settings)) as Json;
 
-      const { data: existing } = await supabase
+      const { data: existing } = await apiClient
         .from("app_settings")
         .select("id")
         .eq("key", "ai_recommendation_settings")
         .maybeSingle();
 
       if (existing) {
-        await supabase.from("app_settings").update({ value: jsonValue }).eq("key", "ai_recommendation_settings");
+        await apiClient.from("app_settings").update({ value: jsonValue }).eq("key", "ai_recommendation_settings");
       } else {
-        await supabase.from("app_settings").insert([{
+        await apiClient.from("app_settings").insert([{
           key: "ai_recommendation_settings",
           value: jsonValue,
           description: "AI recommendation provider settings",
@@ -102,7 +102,7 @@ const AdminAISettings = () => {
     setTesting(true);
     setTestResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-recommend', {
+      const { data, error } = await apiClient.functions.invoke('ai-recommend', {
         body: {
           prompt: 'Recommend a good whisky under ₹2000 for a beginner.',
           provider: settings.default_provider,

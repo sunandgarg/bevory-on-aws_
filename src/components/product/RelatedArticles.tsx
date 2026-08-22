@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 interface Article {
   id: string;
@@ -22,7 +22,7 @@ const RelatedArticles = ({ productId, brandName }: RelatedArticlesProps) => {
   useEffect(() => {
     const fetchArticles = async () => {
       // Fetch articles linked to this product or brand
-      const { data } = await supabase
+      const { data } = await apiClient
         .from("blog_posts")
         .select("id, title, slug, excerpt, cover_emoji, cover_image_url")
         .eq("is_published", true)

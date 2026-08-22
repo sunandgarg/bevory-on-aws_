@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, X, Star, ExternalLink } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
@@ -28,7 +28,7 @@ const ProductReviews = () => {
 
   useEffect(() => {
     const fetchReviews = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("product_reviews")
         .select(`
           *,

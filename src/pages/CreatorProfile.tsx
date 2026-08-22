@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { Play, User, Youtube, Instagram, Globe, Twitter } from "lucide-react";
 import { motion } from "framer-motion";
 import MobileLayout from "@/components/layout/MobileLayout";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Button } from "@/components/ui/button";
 
 interface VideoCreator {
@@ -41,7 +41,7 @@ const CreatorProfile = () => {
       // Try to find by slug first, then by ID
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug || "");
       
-      let creatorQuery = supabase
+      let creatorQuery = apiClient
         .from("video_creators")
         .select("*")
         .eq("is_active", true);
@@ -58,7 +58,7 @@ const CreatorProfile = () => {
         setCreator(creatorData as VideoCreator);
 
         // Fetch creator's videos
-        const { data: videosData } = await supabase
+        const { data: videosData } = await apiClient
           .from("video_reviews")
           .select(`
             id, title, slug, youtube_url, thumbnail_url,

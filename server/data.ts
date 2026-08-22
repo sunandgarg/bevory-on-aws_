@@ -20,8 +20,6 @@ const USER_TABLES = new Set([
   "saved_locations", "user_favorites", "user_permissions", "user_preferences", "user_roles",
 ]);
 
-const PUBLIC_WRITE_TABLES = new Set(["product_reviews"]);
-
 const UNIQUE_COLUMNS: Record<string, string> = {
   app_settings: "key",
   blog_posts: "slug",
@@ -44,7 +42,7 @@ type Filter = {
   filters?: Filter[];
 };
 
-type QueryPayload = {
+export type QueryPayload = {
   table: string;
   operation: "select" | "insert" | "update" | "delete" | "upsert";
   values?: Record<string, unknown> | Array<Record<string, unknown>>;
@@ -72,6 +70,103 @@ const safeTableInput = (table: string, value: Record<string, unknown>) =>
   table === "app_settings"
     ? stripCredentialFields(value) as Record<string, unknown>
     : value;
+
+const PUBLIC_REVIEW_INSERT_COLUMNS = new Set([
+  "product_id", "rating", "reviewer_name", "content", "taste_rating", "value_rating", "rebuy_rating",
+  "is_approved", "is_featured", "is_reported",
+]);
+
+const publicReviewReport = (payload: QueryPayload) => {
+  if (payload.table !== "product_reviews" || payload.operation !== "update") return false;
+  const changes = Array.isArray(payload.values) ? payload.values[0] : payload.values;
+  const filters = payload.filters ?? [];
+  return Boolean(
+    changes
+    && changes.is_reported === true
+    && Object.keys(changes).every((key) => ["is_reported", "report_reason", "reported_at"].includes(key))
+    && filters.length === 1
+    && filters[0].column === "id"
+    && filters[0].operator === "eq"
+    && typeof filters[0].value === "string"
+    && filters[0].value.length > 0,
+  );
+};
+
+const publicReviewInsert = (payload: QueryPayload) =>
+  payload.table === "product_reviews"
+  && payload.operation === "insert"
+  && Boolean(payload.values)
+  && (!Array.isArray(payload.values) || payload.values.length === 1);
+
+export const queryAccessAllowed = (payload: QueryPayload, hasUser: boolean, isAdmin: boolean) => {
+  if (payload.operation === "select" && !USER_TABLES.has(payload.table)) return true;
+  if (isAdmin) return true;
+  if (payload.table === "product_reviews") {
+    return publicReviewInsert(payload) || publicReviewReport(payload);
+  }
+  if (!hasUser) return false;
+  return USER_TABLES.has(payload.table)
+    && payload.table !== "user_roles"
+    && payload.table !== "user_permissions";
+};
+
+const boundedRating = (value: unknown, field: string) => {
+  if (value == null || value === "") return null;
+  const rating = Number(value);
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) throw new Error(`${field} must be an integer from 1 to 5`);
+  return rating;
+};
+
+const sanitizePublicReviewInsert = (input: Record<string, unknown>): Record<string, unknown> => {
+  const unexpected = Object.keys(input).filter((key) => !PUBLIC_REVIEW_INSERT_COLUMNS.has(key));
+  if (unexpected.length) throw new Error(`Unsupported public review field: ${unexpected[0]}`);
+  const productId = String(input.product_id ?? "").trim();
+  const reviewerName = String(input.reviewer_name ?? "").trim();
+  const content = input.content == null ? null : String(input.content).trim() || null;
+  const rating = boundedRating(input.rating, "Rating");
+  if (!productId || productId.length > 191) throw new Error("A valid product is required");
+  if (reviewerName.length < 2 || reviewerName.length > 100) throw new Error("Reviewer name must be 2 to 100 characters");
+  if (rating == null) throw new Error("Rating is required");
+  if (content && content.length > 2_000) throw new Error("Review content must be at most 2000 characters");
+  return {
+    product_id: productId,
+    rating,
+    reviewer_name: reviewerName,
+    content,
+    taste_rating: boundedRating(input.taste_rating, "Taste rating"),
+    value_rating: boundedRating(input.value_rating, "Value rating"),
+    rebuy_rating: boundedRating(input.rebuy_rating, "Rebuy rating"),
+    is_approved: true,
+    is_featured: false,
+    is_reported: false,
+  };
+};
+
+export const scopeWriteInput = (
+  payload: QueryPayload,
+  input: Record<string, unknown>,
+  authUserId: string | undefined,
+  isAdmin: boolean,
+): Record<string, unknown> => {
+  const safeInput = safeTableInput(payload.table, input);
+  if (isAdmin) return safeInput;
+  if (payload.table === "product_reviews" && payload.operation === "insert") {
+    return sanitizePublicReviewInsert(safeInput);
+  }
+  if (payload.table === "product_reviews" && publicReviewReport(payload)) {
+    return {
+      is_reported: true,
+      report_reason: String(safeInput.report_reason || "Inappropriate content").trim().slice(0, 500),
+      reported_at: new Date().toISOString(),
+    };
+  }
+  if (authUserId && USER_TABLES.has(payload.table)) {
+    if (payload.table === "profiles") return { ...safeInput, id: authUserId };
+    const { id: _untrustedId, ...ownedInput } = safeInput;
+    return { ...ownedInput, user_id: authUserId };
+  }
+  return safeInput;
+};
 
 const comparable = (value: unknown) => value instanceof Date ? value.toISOString() : value;
 
@@ -123,7 +218,7 @@ const attachRelationships = async (table: string, rows: Array<Record<string, unk
     products: [
       { aliases: ["category", "categories"], foreignKey: "category_id", target: "categories" },
       { aliases: ["sub_category", "sub_categories"], foreignKey: "sub_category_id", target: "sub_categories" },
-      { aliases: ["type", "product_types"], foreignKey: "type_id", target: "product_types" },
+      { aliases: ["product_type", "type", "product_types"], foreignKey: "type_id", target: "product_types" },
     ],
     saved_locations: [{ aliases: ["city", "cities"], foreignKey: "city_id", target: "cities" }],
     states: [{ aliases: ["country", "countries"], foreignKey: "country_id", target: "countries" }],
@@ -133,8 +228,8 @@ const attachRelationships = async (table: string, rows: Array<Record<string, unk
       { aliases: ["product", "products"], foreignKey: "product_id", target: "products" },
     ],
     video_reviews: [
-      { aliases: ["video_categories"], foreignKey: "category_id", target: "video_categories" },
-      { aliases: ["video_creators"], foreignKey: "creator_id", target: "video_creators" },
+      { aliases: ["category", "video_categories"], foreignKey: "category_id", target: "video_categories" },
+      { aliases: ["creator", "video_creators"], foreignKey: "creator_id", target: "video_creators" },
       { aliases: ["product", "products"], foreignKey: "product_id", target: "products" },
     ],
   };
@@ -174,11 +269,7 @@ const attachRelationships = async (table: string, rows: Array<Record<string, unk
 };
 
 const canAccess = async (req: AuthenticatedRequest, payload: QueryPayload, isAdmin: boolean) => {
-  if (payload.operation === "select" && !USER_TABLES.has(payload.table)) return true;
-  if (PUBLIC_WRITE_TABLES.has(payload.table)) return true;
-  if (!req.authUser) return false;
-  if (USER_TABLES.has(payload.table) && payload.table !== "user_roles" && payload.table !== "user_permissions") return true;
-  return isAdmin;
+  return queryAccessAllowed(payload, Boolean(req.authUser), isAdmin);
 };
 
 const applyUserScope = (req: AuthenticatedRequest, payload: QueryPayload, rows: Array<Record<string, unknown>>, isAdmin: boolean) => {
@@ -228,10 +319,7 @@ export const queryHandler = async (req: AuthenticatedRequest, res: Response) => 
       const result: Array<Record<string, unknown>> = [];
       for (const input of inputRows) {
         const now = new Date().toISOString();
-        const safeInput = safeTableInput(payload.table, input);
-        const scoped: Record<string, unknown> = !isAdmin && USER_TABLES.has(payload.table) && payload.table !== "profiles" && req.authUser
-          ? { ...safeInput, user_id: safeInput.user_id ?? req.authUser.id }
-          : { ...safeInput };
+        const scoped = scopeWriteInput(payload, input, req.authUser?.id, isAdmin);
         const existing = payload.operation === "upsert"
           ? await findUpsertRecord(payload.table, scoped, payload.onConflict)
           : null;
@@ -266,7 +354,7 @@ export const queryHandler = async (req: AuthenticatedRequest, res: Response) => 
 
     if (payload.operation === "update") {
       const rawChanges = Array.isArray(payload.values) ? payload.values[0] : payload.values ?? {};
-      const changes = safeTableInput(payload.table, rawChanges);
+      const changes = scopeWriteInput(payload, rawChanges, req.authUser?.id, isAdmin);
       const updated: Array<Record<string, unknown>> = [];
       for (const record of matches) {
         const data = jsonSafe({ ...toRecordData(record.data), ...changes, updated_at: new Date().toISOString() });

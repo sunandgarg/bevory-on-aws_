@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 interface Country {
   id: string;
@@ -97,7 +97,7 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
   // Fetch countries
   useEffect(() => {
     const fetchCountries = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("countries")
         .select("*")
         .order("name");
@@ -118,7 +118,7 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
   // Fetch all cities with their states for the new selector
   useEffect(() => {
     const fetchAllCities = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("cities")
         .select(`
           *,
@@ -141,7 +141,7 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const fetchStates = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("states")
         .select("*")
         .eq("country_id", selectedCountry.id)
@@ -162,7 +162,7 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const fetchCities = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("cities")
         .select("*")
         .eq("state_id", selectedState.id)
@@ -212,7 +212,7 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
 
     // If not found locally, fetch from DB
     if (!foundCity) {
-      const { data } = await supabase
+      const { data } = await apiClient
         .from("cities")
         .select(`
           *,
@@ -231,7 +231,7 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
       // Also set the state and country
       if (foundCity.state) {
         // Fetch country for the state
-        const { data: countryData } = await supabase
+        const { data: countryData } = await apiClient
           .from("countries")
           .select("*")
           .eq("id", foundCity.state.country_id)

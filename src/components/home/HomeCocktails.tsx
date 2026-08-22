@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ArrowRight, Clock, ChevronLeft, ChevronRight, Utensils } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ const HomeCocktails = () => {
   const { data: cocktails = [], isLoading } = useQuery({
     queryKey: ["home-cocktails"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("cocktails")
         .select("id, name, slug, description, image_emoji, image_url, base_spirit, prep_time, difficulty, is_featured")
         .or("is_featured.eq.true,is_popular.eq.true")

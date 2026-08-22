@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Package, Tag, MapPin, Users, Star, FileText, Video, TrendingUp, Eye, MousePointer, Clock, Activity, ArrowUp, ArrowDown, Calendar, BarChart3, Settings2, ExternalLink } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from "recharts";
@@ -114,19 +114,19 @@ const AdminDashboard = () => {
         recentBlogPosts,
         categoryStats,
       ] = await Promise.all([
-        supabase.from("products").select("id", { count: "exact", head: true }),
-        supabase.from("categories").select("id", { count: "exact", head: true }),
-        supabase.from("cities").select("id", { count: "exact", head: true }),
-        supabase.from("profiles").select("id", { count: "exact", head: true }),
-        supabase.from("product_reviews").select("id", { count: "exact", head: true }),
-        supabase.from("blog_posts").select("id", { count: "exact", head: true }),
-        supabase.from("video_reviews").select("id", { count: "exact", head: true }),
-        supabase.from("video_creators").select("id", { count: "exact", head: true }),
-        supabase.from("brand_spotlights").select("id", { count: "exact", head: true }),
-        supabase.from("cocktails").select("id", { count: "exact", head: true }),
-        supabase.from("product_reviews").select("id, created_at, title, reviewer_name, rating").order("created_at", { ascending: false }).limit(5),
-        supabase.from("blog_posts").select("id, created_at, title").order("created_at", { ascending: false }).limit(3),
-        supabase.from("categories").select("name, products(id)"),
+        apiClient.from("products").select("id", { count: "exact", head: true }),
+        apiClient.from("categories").select("id", { count: "exact", head: true }),
+        apiClient.from("cities").select("id", { count: "exact", head: true }),
+        apiClient.from("profiles").select("id", { count: "exact", head: true }),
+        apiClient.from("product_reviews").select("id", { count: "exact", head: true }),
+        apiClient.from("blog_posts").select("id", { count: "exact", head: true }),
+        apiClient.from("video_reviews").select("id", { count: "exact", head: true }),
+        apiClient.from("video_creators").select("id", { count: "exact", head: true }),
+        apiClient.from("brand_spotlights").select("id", { count: "exact", head: true }),
+        apiClient.from("cocktails").select("id", { count: "exact", head: true }),
+        apiClient.from("product_reviews").select("id, created_at, title, reviewer_name, rating").order("created_at", { ascending: false }).limit(5),
+        apiClient.from("blog_posts").select("id, created_at, title").order("created_at", { ascending: false }).limit(3),
+        apiClient.from("categories").select("name, products(id)"),
       ]);
 
       setStats({

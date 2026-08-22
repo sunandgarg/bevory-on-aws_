@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useAuth } from "./useAuth";
 
 interface SavedLocation {
@@ -29,7 +29,7 @@ export function useSavedLocations() {
       return;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await apiClient
       .from("saved_locations")
       .select(`
         *,
@@ -51,7 +51,7 @@ export function useSavedLocations() {
   const addLocation = async (cityId: string, label?: string) => {
     if (!user) return false;
 
-    const { data, error } = await supabase
+    const { data, error } = await apiClient
       .from("saved_locations")
       .insert({ user_id: user.id, city_id: cityId, label: label || null })
       .select(`*, city:cities(id, name, state:states(name))`)
@@ -66,7 +66,7 @@ export function useSavedLocations() {
 
   const removeLocation = async (id: string) => {
     if (!user) return;
-    await supabase.from("saved_locations").delete().eq("id", id);
+    await apiClient.from("saved_locations").delete().eq("id", id);
     setLocations((prev) => prev.filter((l) => l.id !== id));
   };
 
@@ -74,13 +74,13 @@ export function useSavedLocations() {
     if (!user) return;
     
     // Unset all defaults first
-    await supabase
+    await apiClient
       .from("saved_locations")
       .update({ is_default: false })
       .eq("user_id", user.id);
     
     // Set new default
-    await supabase
+    await apiClient
       .from("saved_locations")
       .update({ is_default: true })
       .eq("id", id);

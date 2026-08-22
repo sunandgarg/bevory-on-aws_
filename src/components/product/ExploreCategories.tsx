@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 interface Category {
   id: string;
@@ -19,7 +19,7 @@ const ExploreCategories = ({ currentCategoryId }: ExploreCategoriesProps) => {
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const { data } = await supabase
+      const { data } = await apiClient
         .from("categories")
         .select("id, name, slug, emoji")
         .order("name");

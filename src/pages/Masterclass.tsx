@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Play, User, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import MobileLayout from "@/components/layout/MobileLayout";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
@@ -53,7 +53,7 @@ const Masterclass = () => {
   useEffect(() => {
     const fetchData = async () => {
       const [videosRes, categoriesRes] = await Promise.all([
-        supabase
+        apiClient
           .from("video_reviews")
           .select(`
             *,
@@ -62,7 +62,7 @@ const Masterclass = () => {
           `)
           .eq("is_active", true)
           .order("order_index"),
-        supabase
+        apiClient
           .from("video_categories")
           .select("*")
           .eq("is_active", true)

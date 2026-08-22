@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,7 +87,7 @@ const AdminVideoReviews = () => {
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ["admin-video-reviews"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("video_reviews")
         .select("*, video_creators(id, name, avatar_url), video_categories(id, name, emoji)")
         .order("order_index");
@@ -99,7 +99,7 @@ const AdminVideoReviews = () => {
   const { data: creators = [] } = useQuery({
     queryKey: ["video-creators-list"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("video_creators")
         .select("id, name, avatar_url")
         .eq("is_active", true)
@@ -112,7 +112,7 @@ const AdminVideoReviews = () => {
   const { data: categories = [] } = useQuery({
     queryKey: ["video-categories-list"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("video_categories")
         .select("id, name, emoji")
         .eq("is_active", true)
@@ -130,7 +130,7 @@ const AdminVideoReviews = () => {
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase.from("video_reviews").insert([data]);
+      const { error } = await apiClient.from("video_reviews").insert([data]);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -143,7 +143,7 @@ const AdminVideoReviews = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
-      const { error } = await supabase.from("video_reviews").update(data).eq("id", id);
+      const { error } = await apiClient.from("video_reviews").update(data).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -156,7 +156,7 @@ const AdminVideoReviews = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("video_reviews").delete().eq("id", id);
+      const { error } = await apiClient.from("video_reviews").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -168,7 +168,7 @@ const AdminVideoReviews = () => {
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await supabase.from("video_reviews").delete().in("id", ids);
+      const { error } = await apiClient.from("video_reviews").delete().in("id", ids);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -181,7 +181,7 @@ const AdminVideoReviews = () => {
 
   const bulkUpdateMutation = useMutation({
     mutationFn: async ({ ids, updates }: { ids: string[]; updates: Partial<VideoReview> }) => {
-      const { error } = await supabase.from("video_reviews").update(updates).in("id", ids);
+      const { error } = await apiClient.from("video_reviews").update(updates).in("id", ids);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -285,9 +285,9 @@ const AdminVideoReviews = () => {
     for (const row of rows) {
       const { id, ...data } = row as VideoReview;
       if (id) {
-        await supabase.from("video_reviews").update(data).eq("id", id);
+        await apiClient.from("video_reviews").update(data).eq("id", id);
       } else {
-        await supabase.from("video_reviews").insert([data]);
+        await apiClient.from("video_reviews").insert([data]);
       }
     }
     queryClient.invalidateQueries({ queryKey: ["admin-video-reviews"] });

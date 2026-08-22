@@ -4,7 +4,7 @@ import { Search, Wine, Clock, ChefHat, X, ChevronRight, Sparkles, Share2, Heart,
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import MobileLayout from "@/components/layout/MobileLayout";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,7 @@ const Cocktails = () => {
   const { data: cocktails = [], isLoading } = useQuery({
     queryKey: ["cocktails"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("cocktails")
         .select("*")
         .order("is_featured", { ascending: false })

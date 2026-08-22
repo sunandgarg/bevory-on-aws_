@@ -5,7 +5,7 @@ import { Star, Heart, Share2, MapPin, ChevronDown, ArrowLeftRight, Check, Info }
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import MobileLayout from "@/components/layout/MobileLayout";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useLocation } from "@/hooks/useLocation";
 import { useProducts } from "@/hooks/useProducts";
 import { useCompare } from "@/components/home/CompareProducts";
@@ -130,7 +130,7 @@ const ProductDetail = () => {
       // Try to fetch by slug first, then by id for backwards compatibility
       let productData = null;
 
-      const { data: dataBySlug } = await supabase
+      const { data: dataBySlug } = await apiClient
         .from("products")
         .select(
           `
@@ -147,7 +147,7 @@ const ProductDetail = () => {
         productData = dataBySlug;
       } else {
         // Fallback: try by ID for old links
-        const { data: dataById } = await supabase
+        const { data: dataById } = await apiClient
           .from("products")
           .select(
             `
@@ -177,7 +177,7 @@ const ProductDetail = () => {
 
       // Fetch all volume prices for selected city
       if (selectedCity) {
-        const { data: priceData } = await supabase
+        const { data: priceData } = await apiClient
           .from("product_prices")
           .select("*")
           .eq("product_id", productData.id)

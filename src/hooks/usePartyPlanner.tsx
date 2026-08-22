@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useLocation } from "./useLocation";
 import { generatePartyPlan, calculateBudgetUtilization, type PartyRecommendation, type Product, type Category } from "@/engine/partyPlannerEngine";
 
@@ -21,7 +21,7 @@ export const usePartyPlanner = () => {
         // Fetch categories - try by ID first, then by slug
         let categories: Category[] = [];
         
-        const { data: categoriesById } = await supabase
+        const { data: categoriesById } = await apiClient
           .from("categories")
           .select("id, name, slug, emoji")
           .in("id", categorySlugsOrIds);
@@ -29,7 +29,7 @@ export const usePartyPlanner = () => {
         if (categoriesById && categoriesById.length > 0) {
           categories = categoriesById;
         } else {
-          const { data: categoriesBySlug } = await supabase
+          const { data: categoriesBySlug } = await apiClient
             .from("categories")
             .select("id, name, slug, emoji")
             .in("slug", categorySlugsOrIds);
@@ -46,7 +46,7 @@ export const usePartyPlanner = () => {
         const categoryIds = categories.map(c => c.id);
 
         // Fetch all products for selected categories
-        const { data: productsRaw, error: productsError } = await supabase
+        const { data: productsRaw, error: productsError } = await apiClient
           .from("products")
           .select(`
             id, name, brand, rating, volume, image_emoji, image_url, category_id,
@@ -71,7 +71,7 @@ export const usePartyPlanner = () => {
 
         if (selectedCity) {
           // Get city-specific prices first
-          const { data: cityPrices } = await supabase
+          const { data: cityPrices } = await apiClient
             .from("product_prices")
             .select("product_id, price, mrp")
             .eq("city_id", selectedCity.id)
@@ -86,7 +86,7 @@ export const usePartyPlanner = () => {
 
         // If no city prices, get any available prices
         if (priceMap.size === 0) {
-          const { data: anyPrices } = await supabase
+          const { data: anyPrices } = await apiClient
             .from("product_prices")
             .select("product_id, price, mrp")
             .gt("price", 0)

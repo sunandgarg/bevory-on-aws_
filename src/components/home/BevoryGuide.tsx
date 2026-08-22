@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { BookOpen, Calendar, User } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -26,7 +26,7 @@ const BevoryGuide = () => {
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ["bevory-guide-posts"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("blog_posts")
         .select("id, title, slug, excerpt, cover_image_url, cover_emoji, author, category, published_at, is_featured")
         .eq("is_published", true)

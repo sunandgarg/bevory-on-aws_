@@ -7,7 +7,7 @@ import MobileLayout from "@/components/layout/MobileLayout";
 import { usePartyPlanner } from "@/hooks/usePartyPlanner";
 import { useLocation } from "@/hooks/useLocation";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface AIRecommendation {
@@ -48,7 +48,7 @@ const PartyPlanner = () => {
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const { data } = await supabase
+      const { data } = await apiClient
         .from("categories")
         .select("id, name, slug, emoji")
         .order("name");
@@ -82,7 +82,7 @@ const PartyPlanner = () => {
         .filter(c => selectedCategories.includes(c.id))
         .map(c => c.name);
 
-      const { data, error } = await supabase.functions.invoke("party-planner-ai", {
+      const { data, error } = await apiClient.functions.invoke("party-planner-ai", {
         body: {
           guests: guests[0],
           budget: budget[0],

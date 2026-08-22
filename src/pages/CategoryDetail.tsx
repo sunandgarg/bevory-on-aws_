@@ -11,7 +11,7 @@ import FavoriteButton from "@/components/FavoriteButton";
 import SEOHead from "@/components/SEOHead";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface SubCategory {
@@ -37,7 +37,7 @@ const CategoryDetail = () => {
   useEffect(() => {
     const fetchSubCategories = async () => {
       if (!category?.id) return;
-      const { data } = await supabase
+      const { data } = await apiClient
         .from("sub_categories")
         .select("id, name, slug, emoji, image_url")
         .eq("category_id", category.id)

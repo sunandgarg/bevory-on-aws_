@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
@@ -40,7 +40,7 @@ const SubCategoryDisplaySettingsComponent = () => {
   }, []);
 
   const fetchSettings = async () => {
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("app_settings")
       .select("value")
       .eq("key", "sub_category_display")
@@ -56,7 +56,7 @@ const SubCategoryDisplaySettingsComponent = () => {
     setSaving(true);
     
     // Check if settings exist first
-    const { data: existing } = await supabase
+    const { data: existing } = await apiClient
       .from("app_settings")
       .select("id")
       .eq("key", "sub_category_display")
@@ -66,13 +66,13 @@ const SubCategoryDisplaySettingsComponent = () => {
     
     let error;
     if (existing) {
-      const result = await supabase
+      const result = await apiClient
         .from("app_settings")
         .update({ value: settingsJson })
         .eq("key", "sub_category_display");
       error = result.error;
     } else {
-      const result = await supabase
+      const result = await apiClient
         .from("app_settings")
         .insert([{
           key: "sub_category_display",

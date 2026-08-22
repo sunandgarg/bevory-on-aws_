@@ -4,7 +4,7 @@ import { Heart, Star } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FavoriteButton from "@/components/FavoriteButton";
@@ -47,13 +47,13 @@ const Favorites = () => {
 
       const [productsRes, cocktailsRes] = await Promise.all([
         productIds.length > 0
-          ? supabase
+          ? apiClient
               .from("products")
               .select("id, name, brand, slug, image_url, image_emoji, rating, volume")
               .in("id", productIds)
           : Promise.resolve({ data: [] }),
         cocktailIds.length > 0
-          ? supabase
+          ? apiClient
               .from("cocktails")
               .select("id, name, slug, image_url, image_emoji, difficulty, prep_time")
               .in("id", cocktailIds)

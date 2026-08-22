@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Search, ArrowLeft, Globe } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import MobileLayout from "@/components/layout/MobileLayout";
@@ -27,7 +27,7 @@ const Brands = () => {
 
   useEffect(() => {
     const fetchBrands = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("brand_spotlights")
         .select("id, brand_name, slug, logo_emoji, logo_url, description, country, show_in_spotlight, is_active")
         .eq("is_active", true)

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { FileText, RefreshCw, Download, ExternalLink, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -46,12 +46,12 @@ const AdminSitemap = () => {
 
   const fetchStats = async () => {
     const [products, categories, cocktails, brands, blog, magazine] = await Promise.all([
-      supabase.from("products").select("id", { count: "exact", head: true }),
-      supabase.from("categories").select("id", { count: "exact", head: true }),
-      supabase.from("cocktails").select("id", { count: "exact", head: true }),
-      supabase.from("brand_spotlights").select("id", { count: "exact", head: true }).eq("is_active", true),
-      supabase.from("blog_posts").select("id", { count: "exact", head: true }).eq("is_published", true),
-      supabase.from("spiritz_magazine").select("id", { count: "exact", head: true }).eq("is_published", true),
+      apiClient.from("products").select("id", { count: "exact", head: true }),
+      apiClient.from("categories").select("id", { count: "exact", head: true }),
+      apiClient.from("cocktails").select("id", { count: "exact", head: true }),
+      apiClient.from("brand_spotlights").select("id", { count: "exact", head: true }).eq("is_active", true),
+      apiClient.from("blog_posts").select("id", { count: "exact", head: true }).eq("is_published", true),
+      apiClient.from("spiritz_magazine").select("id", { count: "exact", head: true }).eq("is_published", true),
     ]);
 
     setStats({
@@ -80,7 +80,7 @@ const AdminSitemap = () => {
 
       // Fetch all content
       if (config.includeCategories) {
-        const { data: categories } = await supabase.from("categories").select("slug, created_at");
+        const { data: categories } = await apiClient.from("categories").select("slug, created_at");
         categories?.forEach(c => {
           urls.push({ loc: `${baseUrl}/category/${c.slug}`, changefreq: "weekly", priority: "0.8" });
         });
@@ -90,7 +90,7 @@ const AdminSitemap = () => {
         let allProducts: any[] = [];
         let pFrom = 0;
         while (true) {
-          const { data: batch } = await supabase.from("products").select("slug, updated_at").range(pFrom, pFrom + 999);
+          const { data: batch } = await apiClient.from("products").select("slug, updated_at").range(pFrom, pFrom + 999);
           if (!batch || batch.length === 0) break;
           allProducts = allProducts.concat(batch);
           if (batch.length < 1000) break;
@@ -107,7 +107,7 @@ const AdminSitemap = () => {
       }
 
       if (config.includeCocktails) {
-        const { data: cocktails } = await supabase.from("cocktails").select("slug, updated_at");
+        const { data: cocktails } = await apiClient.from("cocktails").select("slug, updated_at");
         cocktails?.forEach(c => {
           if (c.slug) {
             urls.push({ 
@@ -121,7 +121,7 @@ const AdminSitemap = () => {
       }
 
       if (config.includeBrands) {
-        const { data: brands } = await supabase.from("brand_spotlights").select("slug, updated_at").eq("is_active", true);
+        const { data: brands } = await apiClient.from("brand_spotlights").select("slug, updated_at").eq("is_active", true);
         brands?.forEach(b => {
           if (b.slug) {
             urls.push({ 
@@ -140,7 +140,7 @@ const AdminSitemap = () => {
         let from = 0;
         const batchSize = 1000;
         while (true) {
-          const { data: batch } = await supabase.from("blog_posts").select("slug, updated_at").eq("is_published", true).range(from, from + batchSize - 1);
+          const { data: batch } = await apiClient.from("blog_posts").select("slug, updated_at").eq("is_published", true).range(from, from + batchSize - 1);
           if (!batch || batch.length === 0) break;
           allPosts = allPosts.concat(batch);
           if (batch.length < batchSize) break;
@@ -157,7 +157,7 @@ const AdminSitemap = () => {
       }
 
       if (config.includeMagazine) {
-        const { data: articles } = await supabase.from("spiritz_magazine").select("slug, updated_at").eq("is_published", true);
+        const { data: articles } = await apiClient.from("spiritz_magazine").select("slug, updated_at").eq("is_published", true);
         articles?.forEach(a => {
           if (a.slug) {
             urls.push({ 

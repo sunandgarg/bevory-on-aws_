@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 export interface SubCategoryDisplaySettings {
   enabled: boolean;
@@ -39,7 +39,7 @@ export const SubCategorySettingsProvider = ({ children }: { children: React.Reac
 
   useEffect(() => {
     const fetchSettings = async () => {
-      const { data } = await supabase
+      const { data } = await apiClient
         .from("app_settings")
         .select("value")
         .eq("key", "sub_category_display")

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, memo, useCallback } from "react";
 import { Star, TrendingUp, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useProducts } from "@/hooks/useProducts";
 import { useLocation } from "@/hooks/useLocation";
 import { useProductUrl } from "@/hooks/useProductUrl";
@@ -24,7 +24,7 @@ const TrendingProducts = memo(({ defaultCategory = "whisky" }: TrendingProductsP
 
   useEffect(() => {
     const fetchSettings = async () => {
-      const { data } = await supabase
+      const { data } = await apiClient
         .from("app_settings")
         .select("value")
         .eq("key", "trending_default_category")

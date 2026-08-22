@@ -11,7 +11,7 @@ import {
   Phone
 } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 interface HelpItem {
   id: string;
@@ -38,7 +38,7 @@ const HelpSupport = () => {
 
   useEffect(() => {
     const fetchItems = async () => {
-      const { data } = await supabase
+      const { data } = await apiClient
         .from("help_support_items")
         .select("*")
         .eq("is_active", true)

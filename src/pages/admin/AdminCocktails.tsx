@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Plus, Pencil, Trash2, Star, Flame, Search } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -56,7 +56,7 @@ const AdminCocktails = () => {
   const { errors, validate, clearErrors, clearError } = useFormValidation(validationSchema);
 
   const fetchData = async () => {
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("cocktails")
       .select("*")
       .order("created_at", { ascending: false });
@@ -89,8 +89,8 @@ const AdminCocktails = () => {
     const dataToSave = { ...dataWithoutId, slug, ingredients: ingredientsArray };
 
     const { error } = id
-      ? await supabase.from("cocktails").update({ ...dataToSave, id }).eq("id", id)
-      : await supabase.from("cocktails").insert(dataToSave);
+      ? await apiClient.from("cocktails").update({ ...dataToSave, id }).eq("id", id)
+      : await apiClient.from("cocktails").insert(dataToSave);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -104,7 +104,7 @@ const AdminCocktails = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this cocktail?")) return;
-    await supabase.from("cocktails").delete().eq("id", id);
+    await apiClient.from("cocktails").delete().eq("id", id);
     fetchData();
   };
 
@@ -152,9 +152,9 @@ const AdminCocktails = () => {
     for (const row of rows) {
       const { id, ...data } = row as Cocktail;
       if (id) {
-        await supabase.from("cocktails").update(data).eq("id", id);
+        await apiClient.from("cocktails").update(data).eq("id", id);
       } else {
-        await supabase.from("cocktails").insert(data);
+        await apiClient.from("cocktails").insert(data);
       }
     }
     fetchData();

@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useLocation } from "./useLocation";
 import { useQuery } from "@tanstack/react-query";
 
@@ -50,7 +50,7 @@ export interface Category {
 /* ===================== FETCHERS ===================== */
 
 const fetchCategories = async (): Promise<Category[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await apiClient
     .from("categories")
     .select("id, name, slug, emoji, image_url, description")
     .order("order_index");
@@ -59,7 +59,7 @@ const fetchCategories = async (): Promise<Category[]> => {
 };
 
 const fetchProducts = async (cityId?: string): Promise<Product[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await apiClient
     .from("products")
     .select(`
       *,
@@ -70,7 +70,7 @@ const fetchProducts = async (cityId?: string): Promise<Product[]> => {
 
   if (!cityId) return data as Product[];
 
-  const { data: prices } = await supabase
+  const { data: prices } = await apiClient
     .from("product_prices")
     .select("product_id, price, mrp")
     .eq("city_id", cityId);

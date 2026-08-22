@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLocation } from "@/hooks/useLocation";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation as useRouterLocation } from "react-router-dom";
 
@@ -75,7 +75,7 @@ const LocationSelectorNew = ({ variant = "default", className, onCitySelect }: L
   // Fetch all cities with state names
   useEffect(() => {
     const fetchAllCities = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("cities")
         .select(`
           id,

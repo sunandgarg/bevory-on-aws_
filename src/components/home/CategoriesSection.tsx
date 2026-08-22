@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 
@@ -39,7 +39,7 @@ const CategoriesSection = memo(() => {
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ["home-categories"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("categories")
         .select("id, name, slug, emoji, description, image_url, is_trending, order_index")
         .order("order_index")

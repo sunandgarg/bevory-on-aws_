@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Play, Star, ChevronRight, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 
@@ -48,7 +48,7 @@ const VideoReviews = () => {
 
   useEffect(() => {
     const fetchReviews = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("video_reviews")
         .select("*")
         .eq("is_active", true)

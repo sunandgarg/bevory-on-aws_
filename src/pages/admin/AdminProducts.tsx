@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -148,7 +148,7 @@ const AdminProducts = () => {
   const [filterCategory, setFilterCategory] = useState<string>("all");
   
   const fetchProducts = async () => {
-    const { data } = await supabase.from("products").select("*").order("created_at", { ascending: false });
+    const { data } = await apiClient.from("products").select("*").order("created_at", { ascending: false });
     if (data) {
       // Parse faqs from JSON
       const parsed = data.map(p => ({
@@ -161,22 +161,22 @@ const AdminProducts = () => {
   };
 
   const fetchCategories = async () => {
-    const { data } = await supabase.from("categories").select("id, name, emoji").order("name");
+    const { data } = await apiClient.from("categories").select("id, name, emoji").order("name");
     if (data) setCategories(data);
   };
 
   const fetchSubCategories = async () => {
-    const { data } = await supabase.from("sub_categories").select("id, name, category_id").order("name");
+    const { data } = await apiClient.from("sub_categories").select("id, name, category_id").order("name");
     if (data) setSubCategories(data);
   };
 
   const fetchBrands = async () => {
-    const { data } = await supabase.from("brand_spotlights").select("id, brand_name").order("brand_name");
+    const { data } = await apiClient.from("brand_spotlights").select("id, brand_name").order("brand_name");
     if (data) setBrands(data);
   };
 
   const fetchCities = async () => {
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("cities")
       .select("id, name, state:states(name)")
       .eq("is_visible", true)
@@ -187,7 +187,7 @@ const AdminProducts = () => {
   const draftKey = (id: string) => `bevory:price-draft:${id}`;
 
   const fetchProductPrices = async (productId: string) => {
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("product_prices")
       .select("*")
       .eq("product_id", productId);
@@ -245,7 +245,7 @@ const AdminProducts = () => {
   };
 
   const fetchProductReviews = async (productId: string) => {
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("product_reviews")
       .select("*")
       .eq("product_id", productId)
@@ -345,7 +345,7 @@ const AdminProducts = () => {
     };
 
     if (editProduct.id) {
-      const { error } = await supabase.from("products").update(productData).eq("id", editProduct.id);
+      const { error } = await apiClient.from("products").update(productData).eq("id", editProduct.id);
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Success", description: "Product saved!" });
       setShowDialog(false);
@@ -353,7 +353,7 @@ const AdminProducts = () => {
       clearErrors();
       fetchProducts();
     } else {
-      const { data, error } = await supabase.from("products").insert([productData]).select("id").single();
+      const { data, error } = await apiClient.from("products").insert([productData]).select("id").single();
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Success", description: "Product created — opening pricing…" });
       // Keep the product dialog open with the new id, AND auto-open variants dialog right away
@@ -368,7 +368,7 @@ const AdminProducts = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this product?")) return;
-    const { error } = await supabase.from("products").delete().eq("id", id);
+    const { error } = await apiClient.from("products").delete().eq("id", id);
     if (!error) {
       toast({ title: "Deleted" });
       fetchProducts();
@@ -481,7 +481,7 @@ const AdminProducts = () => {
           in_stock,
         };
         if (existingPrice) {
-          updates.push(supabase.from("product_prices").update(priceData).eq("id", existingPrice.id));
+          updates.push(apiClient.from("product_prices").update(priceData).eq("id", existingPrice.id));
         } else {
           inserts.push(priceData);
         }
@@ -494,7 +494,7 @@ const AdminProducts = () => {
     }
 
     const tasks: any[] = [...updates];
-    if (inserts.length) tasks.push(supabase.from("product_prices").insert(inserts));
+    if (inserts.length) tasks.push(apiClient.from("product_prices").insert(inserts));
     const results = await Promise.all(tasks);
     const errs = results.map(r => (r as any)?.error).filter(Boolean);
     if (errs.length) {
@@ -548,8 +548,8 @@ const AdminProducts = () => {
     };
 
     const { error } = editReview.id
-      ? await supabase.from("product_reviews").update(reviewData).eq("id", editReview.id)
-      : await supabase.from("product_reviews").insert([reviewData]);
+      ? await apiClient.from("product_reviews").update(reviewData).eq("id", editReview.id)
+      : await apiClient.from("product_reviews").insert([reviewData]);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -563,7 +563,7 @@ const AdminProducts = () => {
 
   const deleteReview = async (id: string) => {
     if (!confirm("Delete this review?")) return;
-    await supabase.from("product_reviews").delete().eq("id", id);
+    await apiClient.from("product_reviews").delete().eq("id", id);
     if (selectedProductId) fetchProductReviews(selectedProductId);
   };
 
@@ -769,7 +769,7 @@ const AdminProducts = () => {
         };
         
         if (id && id.trim()) {
-          const { error } = await supabase.from("products").update(data).eq("id", id);
+          const { error } = await apiClient.from("products").update(data).eq("id", id);
           if (error) {
             errors.push(`Row ${i + 1}: ${error.message}`);
             errorCount++;
@@ -777,7 +777,7 @@ const AdminProducts = () => {
             successCount++;
           }
         } else {
-          const { error } = await supabase.from("products").insert([data as { name: string; brand: string; [key: string]: unknown }]);
+          const { error } = await apiClient.from("products").insert([data as { name: string; brand: string; [key: string]: unknown }]);
           if (error) {
             errors.push(`Row ${i + 1}: ${error.message}`);
             errorCount++;
@@ -1633,7 +1633,7 @@ const AdminProducts = () => {
                         for (const cityId of selectedBulkCities) {
                           const existingPrice = productPrices.find((p) => p.city_id === cityId && p.volume === volume);
                           if (existingPrice) {
-                            await supabase.from("product_prices").delete().eq("id", existingPrice.id);
+                            await apiClient.from("product_prices").delete().eq("id", existingPrice.id);
                           }
                         }
                         
@@ -1729,9 +1729,9 @@ const AdminProducts = () => {
                       };
 
                       if (existingPrice) {
-                        await supabase.from("product_prices").update(priceData).eq("id", existingPrice.id);
+                        await apiClient.from("product_prices").update(priceData).eq("id", existingPrice.id);
                       } else {
-                        await supabase.from("product_prices").insert(priceData);
+                        await apiClient.from("product_prices").insert(priceData);
                       }
                       count++;
                     }
@@ -1818,7 +1818,7 @@ const AdminProducts = () => {
                         // Delete from database if exists
                         const existingPrice = productPrices.find((p) => p.city_id === selectedPriceCity && p.volume === volume);
                         if (existingPrice) {
-                          await supabase.from("product_prices").delete().eq("id", existingPrice.id);
+                          await apiClient.from("product_prices").delete().eq("id", existingPrice.id);
                           setProductPrices(prev => prev.filter(p => p.id !== existingPrice.id));
                         }
                         // Remove from local state

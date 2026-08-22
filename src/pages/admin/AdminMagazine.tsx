@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Plus, Pencil, Trash2, Star, Eye, EyeOff } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,7 +40,7 @@ const AdminMagazine = () => {
   const { toast } = useToast();
 
   const fetchData = async () => {
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("spiritz_magazine")
       .select("*")
       .order("is_featured", { ascending: false })
@@ -69,8 +69,8 @@ const AdminMagazine = () => {
     const { id, ...dataWithoutId } = dataToSave;
 
     const { error } = id
-      ? await supabase.from("spiritz_magazine").update(dataToSave).eq("id", id)
-      : await supabase.from("spiritz_magazine").insert(dataWithoutId);
+      ? await apiClient.from("spiritz_magazine").update(dataToSave).eq("id", id)
+      : await apiClient.from("spiritz_magazine").insert(dataWithoutId);
 
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else {
@@ -82,12 +82,12 @@ const AdminMagazine = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this article?")) return;
-    await supabase.from("spiritz_magazine").delete().eq("id", id);
+    await apiClient.from("spiritz_magazine").delete().eq("id", id);
     fetchData();
   };
 
   const togglePublish = async (id: string, isPublished: boolean) => {
-    await supabase
+    await apiClient
       .from("spiritz_magazine")
       .update({
         is_published: isPublished,

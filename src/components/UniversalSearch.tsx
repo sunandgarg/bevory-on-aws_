@@ -3,7 +3,7 @@ import { Search, X, ArrowRight, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { fuzzyFilter } from "@/lib/fuzzySearch";
 
 interface Brand {
@@ -61,8 +61,8 @@ const UniversalSearch = memo(({
   useEffect(() => {
     const fetchStatic = async () => {
       const [catRes, brandRes] = await Promise.all([
-        supabase.from("categories").select("id, name, slug, emoji").order("order_index"),
-        supabase.from("brand_spotlights").select("id, brand_name, slug, logo_emoji, logo_url").eq("is_active", true),
+        apiClient.from("categories").select("id, name, slug, emoji").order("order_index"),
+        apiClient.from("brand_spotlights").select("id, brand_name, slug, logo_emoji, logo_url").eq("is_active", true),
       ]);
       if (catRes.data) setCategories(catRes.data);
       if (brandRes.data) setBrands(brandRes.data);
@@ -91,7 +91,7 @@ const UniversalSearch = memo(({
     setIsSearching(true);
     debounceRef.current = setTimeout(async () => {
       try {
-        const { data } = await supabase
+        const { data } = await apiClient
           .from("products")
           .select("id, name, brand, rating, image_emoji, slug, category:categories(name, slug, emoji)")
           .or(`name.ilike.%${searchQuery}%,brand.ilike.%${searchQuery}%`)

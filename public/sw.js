@@ -1,5 +1,5 @@
-// Bevory Service Worker v1 — 2026
-const CACHE_VERSION = 'bevory-v1';
+// Bevory Service Worker v2 — 2026
+const CACHE_VERSION = 'bevory-v2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
@@ -60,7 +60,7 @@ self.addEventListener('fetch', (event) => {
   if (
     url.hostname.includes('wsrv.nl') ||
     (url.origin === self.location.origin && (
-      url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/migrated-assets/')
+      url.pathname.startsWith('/uploads/')
     ))
   ) {
     event.respondWith(cacheFirstWithNetwork(request, IMAGE_CACHE));

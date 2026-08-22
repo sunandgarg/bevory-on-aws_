@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Star, ChevronLeft, ChevronRight, Flag } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,7 +34,7 @@ const UserReviewsSection = ({ productId, refreshTrigger }: UserReviewsSectionPro
   useEffect(() => {
     const fetchReviews = async () => {
       // Fetch user reviews (approved ones and user's own)
-      const { data } = await supabase
+      const { data } = await apiClient
         .from("product_reviews")
         .select("*")
         .eq("product_id", productId)
@@ -67,7 +67,7 @@ const UserReviewsSection = ({ productId, refreshTrigger }: UserReviewsSectionPro
   const submitReport = async () => {
     if (!reportingReviewId) return;
 
-    const { error } = await supabase
+    const { error } = await apiClient
       .from("product_reviews")
       .update({
         is_reported: true,

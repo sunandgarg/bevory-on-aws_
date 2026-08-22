@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Json } from '@/types/json';
 
@@ -52,8 +52,8 @@ export const useGoogleAnalytics = () => {
   const fetchSettings = async () => {
     try {
       const [{ data, error }, status] = await Promise.all([
-        supabase.from('app_settings').select('value').eq('key', 'google_analytics').single(),
-        supabase.functions.invoke('google-analytics', { body: { action: 'status' } }),
+        apiClient.from('app_settings').select('value').eq('key', 'google_analytics').single(),
+        apiClient.functions.invoke('google-analytics', { body: { action: 'status' } }),
       ]);
 
       const stored = data && !error ? data.value as unknown as GASettings : DEFAULT_GA_SETTINGS;
@@ -69,7 +69,7 @@ export const useGoogleAnalytics = () => {
     setSaving(true);
     try {
       // First check if the setting exists
-      const { data: existing } = await supabase
+      const { data: existing } = await apiClient
         .from('app_settings')
         .select('id')
         .eq('key', 'google_analytics')
@@ -80,7 +80,7 @@ export const useGoogleAnalytics = () => {
 
       if (existing) {
         // Update existing
-        const { error } = await supabase
+        const { error } = await apiClient
           .from('app_settings')
           .update({
             value: valueAsJson,
@@ -91,7 +91,7 @@ export const useGoogleAnalytics = () => {
         if (error) throw error;
       } else {
         // Insert new
-        const { error } = await supabase
+        const { error } = await apiClient
           .from('app_settings')
           .insert([{
             key: 'google_analytics',
@@ -119,7 +119,7 @@ export const useGoogleAnalytics = () => {
 
     try {
       // SECURITY: Service account is now stored server-side only, not sent from client
-      const { data, error } = await supabase.functions.invoke('google-analytics', {
+      const { data, error } = await apiClient.functions.invoke('google-analytics', {
         body: {
           propertyId: settings.propertyId,
           startDate,

@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { useQuery } from "@tanstack/react-query";
@@ -20,7 +20,7 @@ interface BrandSpotlightItem {
 }
 
 const fetchBrands = async (): Promise<BrandSpotlightItem[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await apiClient
     .from("brand_spotlights")
     .select("id, brand_name, slug, logo_emoji, logo_url, description, featured_product_id, link_url, is_active, show_in_spotlight")
     .eq("is_active", true)

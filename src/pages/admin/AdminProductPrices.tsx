@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
@@ -72,9 +72,9 @@ const AdminProductPrices = () => {
   const fetchData = async () => {
     setLoading(true);
     const [pricesRes, productsRes, citiesRes] = await Promise.all([
-      supabase.from("product_prices").select("*"),
-      supabase.from("products").select("id, name, brand").order("brand, name"),
-      supabase.from("cities").select("id, name").eq("is_visible", true).order("name"),
+      apiClient.from("product_prices").select("*"),
+      apiClient.from("products").select("id, name, brand").order("brand, name"),
+      apiClient.from("cities").select("id, name").eq("is_visible", true).order("name"),
     ]);
     if (pricesRes.data) setPrices(pricesRes.data);
     if (productsRes.data) setProducts(productsRes.data);
@@ -218,10 +218,10 @@ const AdminProductPrices = () => {
         const existingRow = priceRows.find(r => r.product_id === productId && r.volume === volume);
         const existingPrice = existingRow?.prices[cityId];
         if (existingPrice?.id) {
-          const { error } = await supabase.from("product_prices").update({ price: newPrice }).eq("id", existingPrice.id);
+          const { error } = await apiClient.from("product_prices").update({ price: newPrice }).eq("id", existingPrice.id);
           if (error) throw error;
         } else if (newPrice > 0) {
-          const { error } = await supabase.from("product_prices").insert({
+          const { error } = await apiClient.from("product_prices").insert({
             product_id: productId, city_id: cityId, volume, price: newPrice, in_stock: true,
           });
           if (error) throw error;
@@ -355,12 +355,12 @@ const AdminProductPrices = () => {
             const cityId = cityNameToId[cityColumns[j].toLowerCase()];
             const priceValue = parseFloat(values[3 + j]) || 0;
             if (!cityId || priceValue <= 0) continue;
-            const { data: existing } = await supabase.from("product_prices").select("id")
+            const { data: existing } = await apiClient.from("product_prices").select("id")
               .eq("product_id", product.id).eq("city_id", cityId).eq("volume", volume).maybeSingle();
             if (existing) {
-              await supabase.from("product_prices").update({ price: priceValue }).eq("id", existing.id);
+              await apiClient.from("product_prices").update({ price: priceValue }).eq("id", existing.id);
             } else {
-              await supabase.from("product_prices").insert({
+              await apiClient.from("product_prices").insert({
                 product_id: product.id, city_id: cityId, volume, price: priceValue, in_stock: true,
               });
             }
@@ -409,7 +409,7 @@ const AdminProductPrices = () => {
     for (const city of scrapeCities) {
       setScrapeLog(prev => [...prev, `⏳ Scraping ${city.name}...`]);
       try {
-        const { data, error } = await supabase.functions.invoke('scrape-prices', {
+        const { data, error } = await apiClient.functions.invoke('scrape-prices', {
           body: { city_name: city.name, city_id: city.id },
         });
 
