@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model ContentRecord {
+  key       String   @id @db.VarChar(255)
+  tableName String   @map("table_name") @db.VarChar(80)
+  recordId  String   @map("record_id") @db.VarChar(191)
+  data      Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([tableName, recordId])
+  @@index([tableName])
+  @@map("content_records")
+}
+
+model User {
+  id           String   @id @db.VarChar(191)
+  email        String?  @unique @db.VarChar(191)
+  phone        String?  @unique @db.VarChar(32)
+  passwordHash String?  @map("password_hash") @db.VarChar(255)
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model UploadedFile {
+  id        String   @id @db.VarChar(191)
+  bucket    String   @db.VarChar(80)
+  path      String   @db.VarChar(500)
+  mimeType  String   @map("mime_type") @db.VarChar(120)
+  size      Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([bucket, path])
+  @@map("uploaded_files")
+}

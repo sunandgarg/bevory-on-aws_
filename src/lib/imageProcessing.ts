@@ -36,14 +36,8 @@ export function getOptimizedProductImageUrl(
     background = "ffffff" // White background by default
   } = options;
 
-  // If it's a Supabase storage URL, use Supabase transformations
-  if (imageUrl.includes("supabase.co/storage")) {
-    const url = new URL(imageUrl);
-    url.searchParams.set("width", width.toString());
-    url.searchParams.set("height", height.toString());
-    url.searchParams.set("resize", fit === "contain" ? "contain" : "cover");
-    return url.toString();
-  }
+  // Local migrated assets and uploads are already optimized and served by this app.
+  if (imageUrl.startsWith("/")) return imageUrl;
 
   // For external URLs, use wsrv.nl proxy
   try {

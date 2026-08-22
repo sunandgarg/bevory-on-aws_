@@ -502,7 +502,11 @@ const AdminProducts = () => {
     } else {
       toast({ title: `Saved ${count} price${count > 1 ? "s" : ""} ⚡` });
       // Clear draft only on full success
-      try { localStorage.removeItem(draftKey(selectedProductId)); } catch {}
+      try {
+        localStorage.removeItem(draftKey(selectedProductId));
+      } catch {
+        // A disabled browser storage area does not affect the saved database changes.
+      }
     }
     setShowPriceDialog(false);
   };

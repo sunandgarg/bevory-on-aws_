@@ -71,7 +71,7 @@ const AdminSitemap = () => {
       const baseUrl = config.baseUrl.replace(/\/$/, '');
       const today = new Date().toISOString().split('T')[0];
       
-      let urls: { loc: string; changefreq: string; priority: string; lastmod?: string }[] = [
+      const urls: { loc: string; changefreq: string; priority: string; lastmod?: string }[] = [
         { loc: `${baseUrl}/`, changefreq: "daily", priority: "1.0", lastmod: today },
         { loc: `${baseUrl}/categories`, changefreq: "weekly", priority: "0.9" },
         { loc: `${baseUrl}/cocktails`, changefreq: "weekly", priority: "0.8" },

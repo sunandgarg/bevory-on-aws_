@@ -7,6 +7,10 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      "/api": "http://localhost:3001",
+      "/uploads": "http://localhost:3001",
+    },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
@@ -25,7 +29,6 @@ export default defineConfig(({ mode }) => ({
           "vendor-router": ["react-router-dom"],
           "vendor-query": ["@tanstack/react-query"],
           "vendor-ui": ["framer-motion", "lucide-react"],
-          "vendor-supabase": ["@supabase/supabase-js"],
         },
       },
     },

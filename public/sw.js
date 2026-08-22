@@ -50,16 +50,18 @@ self.addEventListener('fetch', (event) => {
     url.pathname.includes('token')
   ) return;
 
-  // Strategy 1: Supabase REST API — Network first, cache fallback (5 min TTL)
-  if (url.hostname.includes('supabase.co') && url.pathname.includes('/rest/')) {
+  // Strategy 1: Bevory Node API — Network first, cache fallback (5 min TTL)
+  if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) {
     event.respondWith(networkFirstWithCache(request, API_CACHE, 5 * 60 * 1000));
     return;
   }
 
-  // Strategy 2: Images (wsrv.nl proxy, supabase storage) — Cache first
+  // Strategy 2: Images (remote optimization proxy and migrated/local uploads) — Cache first
   if (
     url.hostname.includes('wsrv.nl') ||
-    (url.hostname.includes('supabase.co') && url.pathname.includes('/storage/'))
+    (url.origin === self.location.origin && (
+      url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/migrated-assets/')
+    ))
   ) {
     event.respondWith(cacheFirstWithNetwork(request, IMAGE_CACHE));
     return;

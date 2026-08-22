@@ -1,35 +1,57 @@
-# Bevory.in (Live) 🌟
+# Bevory React
 
-Bevory — Know Before You Drink
+Bevory is a React beverage discovery, comparison, editorial, party-planning, and administration application. The visual frontend and route structure are preserved from the original website; the backend is now a self-hosted Node.js API using Prisma and MySQL.
 
-i wanted to make a website same as like livcheers.com First list down all features what livcheers have Second let me know which technology is best to replicate same things
+## Stack
 
-Do a extensive research on this website livcheers
+- Frontend: React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- Backend: Node.js, Express, TypeScript
+- Database: MySQL through Prisma ORM
+- Authentication: email/password with bcrypt and signed JWT sessions
+- Storage: local `/uploads` API (use a persistent volume or object-storage adapter in production)
 
-And create a same website with improved UI & UX as per latest guideliness And which look fresh and user will retain more
+## Local setup
 
-make design ui more refreshed and type of light or white 
-Use dark touches but it should be white overall
+Requirements: Node.js 20.19 or newer, pnpm 11, and MySQL 8/9.
 
-This project was built with [Lovable](https://lovable.dev).
-
-**Live app**: https://bevoryin.lovable.app
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/fc6df445-c3d1-42b5-8589-cb3e8f3cfba9).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+```bash
+git clone https://github.com/sunandgarg/bevory-react.git
+cd bevory-react
+pnpm install
+cp .env.example .env
 ```
+
+Create the database, then update `DATABASE_URL` in `.env` if your MySQL credentials differ:
+
+```sql
+CREATE DATABASE bevory CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Initialize and seed it:
+
+```bash
+pnpm db:setup
+pnpm dev
+```
+
+- React application: [http://localhost:8080](http://localhost:8080)
+- Node API health: [http://localhost:3001/api/health](http://localhost:3001/api/health)
+
+The seed creates a local administrator only when both `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set. Replace all example secrets before using the app outside a private local environment.
+
+## Production
+
+```bash
+pnpm build
+NODE_ENV=production pnpm start
+```
+
+In production, Express serves the compiled React application and API from the same process. Configure a production `DATABASE_URL`, strong `JWT_SECRET`, persistent uploads storage, HTTPS, and the optional integration credentials described in `.env.example`.
+
+## Data migration
+
+`prisma/seed-data.json` contains the existing anonymously readable Bevory catalog/content exported on 2026-08-22. Private users and per-user data are intentionally excluded. Credential-like fields were removed, and the eight public Supabase Storage assets referenced by the exported content were copied into `public/migrated-assets`.
+
+The compatibility client at `src/integrations/supabase/client.ts` retains the original query-chain interface so the frontend screens and styling did not need to be rewritten. It sends all requests to the Node API; the Supabase SDK and Supabase runtime are not dependencies.
+
+See [docs/MIGRATION_STATUS.md](docs/MIGRATION_STATUS.md) for verified coverage and production blockers.

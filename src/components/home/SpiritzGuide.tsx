@@ -33,17 +33,19 @@ interface Article {
 const getYouTubeEmbedUrl = (url: string) => {
   try {
     const urlObj = new URL(url);
-    if (urlObj.hostname.includes("youtube.com")) {
+    if (urlObj.hostname.includes("youtube.com") && urlObj.pathname.includes("shorts")) {
+      const videoId = urlObj.pathname.split("/shorts/")[1];
+      if (videoId) return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+    } else if (urlObj.hostname.includes("youtube.com")) {
       const videoId = urlObj.searchParams.get("v");
       if (videoId) return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
     } else if (urlObj.hostname.includes("youtu.be")) {
       const videoId = urlObj.pathname.slice(1);
       if (videoId) return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-    } else if (urlObj.hostname.includes("youtube.com") && urlObj.pathname.includes("shorts")) {
-      const videoId = urlObj.pathname.split("/shorts/")[1];
-      if (videoId) return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
     }
-  } catch {}
+  } catch {
+    return null;
+  }
   return null;
 };
 
