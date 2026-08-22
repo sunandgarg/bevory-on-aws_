@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Users, Wallet, Sparkles, ChevronRight, PartyPopper, Star, Check, Wand2, Loader2, Grid3X3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Checkbox } from "@/components/ui/checkbox";
 import MobileLayout from "@/components/layout/MobileLayout";
 import { usePartyPlanner } from "@/hooks/usePartyPlanner";
 import { useLocation } from "@/hooks/useLocation";
@@ -372,10 +371,12 @@ const PartyPlanner = () => {
                           }`}
                         >
                           <div className="flex items-start gap-3">
-                            <Checkbox 
-                              checked={isSelected} 
-                              className="mt-1"
-                            />
+                            <span
+                              aria-hidden="true"
+                              className={`mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-primary ${isSelected ? "bg-primary text-primary-foreground" : "bg-background"}`}
+                            >
+                              {isSelected && <Check className="h-3 w-3" />}
+                            </span>
                             <div>
                               <span className="text-2xl block mb-1">{category.emoji || "🍷"}</span>
                               <p className="font-medium text-sm">{category.name}</p>
