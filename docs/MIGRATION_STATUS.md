@@ -25,20 +25,30 @@ The database starts clean. `pnpm db:setup` creates the schema, nine neutral star
 | GA4 live reporting | ⚠️ Implemented; live verification requires credentials | Server-side adapter is implemented |
 | Price-provider ingestion | ⚠️ Implemented; live verification requires provider access | Admin adapter and validation are implemented |
 | Image uploads | 🧪 Local completed; production storage needs verification | Local persistence passes; S3-compatible adapter is implemented |
-| DigitalOcean deployment | ❌ Not completed | Account access is available, but creating paid infrastructure requires final plan/cost confirmation |
+| GitHub `main` publication | ❌ Awaiting explicit deletion confirmation | Verified local commit `fa5d333` is ready; remote push was not permitted because it permanently removes legacy import data/tooling from `main` |
+| DigitalOcean deployment | ❌ Not completed | GitHub is not connected to App Platform, the Droplet limit is reached, and paid infrastructure needs confirmation |
 
 ## Remaining Work / Blockers
 
 ### 1. DigitalOcean production infrastructure
 
 - **What is left:** Create the production compute service and MySQL database, configure secrets, deploy the GitHub `main` branch, and run production smoke tests.
-- **Why it is not complete:** Creating DigitalOcean compute/database resources starts billable services and requires confirmation of the selected plan at the final creation step.
-- **Exactly required:** Approval of the displayed DigitalOcean plan/pricing, a production domain if desired, and final production values for `APP_URL`, `JWT_SECRET`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD`.
+- **Why it is not complete:** DigitalOcean App Platform reports that the account has no GitHub access; Droplet creation reports that the account Droplet limit is reached; creating a managed MySQL cluster is billable.
+- **Exactly required:** Connect/authorize the GitHub account for DigitalOcean App Platform (or increase the Droplet limit), approve the application plan plus the displayed MySQL 8.4 starter price of $15.15/month, choose the target DigitalOcean project/region, and provide final production values for `APP_URL`, `JWT_SECRET`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD`.
 - **Affected files/features/services:** Public production availability, production database, persistent uploads, HTTPS/domain routing.
 - **Safe without it:** Yes locally; there is no production deployment until this is completed.
-- **Recommended next action:** Deploy from the GitHub repository after the `main` push, using a new empty MySQL database and strong secrets.
+- **Recommended next action:** Authorize the verified deletions for the GitHub push, connect GitHub to App Platform, then review the combined application/database monthly total before either resource is created.
 
-### 2. Optional third-party integrations
+### 2. GitHub `main` push
+
+- **What is left:** Publish local commit `fa5d333` and this status update to `origin/main`.
+- **Why it is not complete:** The push would permanently publish deletion of the old exported seed, migrated assets, and import/export tooling. The execution approval layer requires an explicit confirmation acknowledging those deletions.
+- **Exactly required:** Explicit approval to push the commit that removes those obsolete tracked files from remote `main`.
+- **Affected files/features/services:** Remote GitHub source and any deployment that builds from `origin/main`; the verified local application is unaffected.
+- **Safe without it:** Yes locally, but DigitalOcean cannot deploy the verified source from GitHub.
+- **Recommended next action:** Confirm the deletion-aware push, then run `git push origin main`.
+
+### 3. Optional third-party integrations
 
 - **What is left:** Live Google OAuth, Twilio SMS, GA4, price provider, and S3-compatible object-storage verification.
 - **Why it is not complete:** Their account credentials and provider-specific configuration are not present.
@@ -49,13 +59,14 @@ The database starts clean. `pnpm db:setup` creates the schema, nine neutral star
 
 ## Exact completion order
 
-1. Finish verification and push the standalone source to GitHub `main`.
-2. Confirm the DigitalOcean architecture and displayed monthly cost.
-3. Create an empty production MySQL database and application service.
-4. Configure strong production secrets and persistent uploads/object storage.
-5. Run schema setup and the clean starter seed.
-6. Verify health, signup/signin, administration, CRUD, uploads, and deep-link routing on the production URL.
-7. Add a domain/DNS and optional third-party integrations.
+1. Explicitly approve publication of the legacy-file deletions, then push the verified commits to GitHub `main`.
+2. Connect GitHub to DigitalOcean App Platform and select `sunandgarg/bevory-react` `main`.
+3. Confirm the application plan plus the $15.15/month MySQL 8.4 starter cluster and target project/region.
+4. Create the empty production MySQL database and application service.
+5. Configure strong production secrets and persistent uploads/object storage.
+6. Run schema setup and the clean starter seed.
+7. Verify health, signup/signin, administration, CRUD, uploads, and deep-link routing on the production URL.
+8. Add a domain/DNS and optional third-party integrations.
 
 ## Verification record
 
