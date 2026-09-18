@@ -53,7 +53,14 @@ The following production checks passed on 2026-09-19:
 - Administrator sign-in, session validation, and an admin-only status endpoint
   work through the production domain.
 - Public catalog reads and the party-planner endpoint work.
-- The production catalogue contains all 30 supported cities.
+- The production catalogue contains all 30 supported cities, 18 active
+  categories, 121 subcategories, 1,283 brands, 2,936 products, and 4,760
+  city-specific size prices.
+- City availability is strict: a product size is returned only where that city
+  has a price for it.
+- 2,920 products have verified source image URLs and 341 brands have verified
+  logo URLs. These remote links are requested at a 720 px display target; image
+  reuse rights still require review before copying the assets to S3.
 - Google OAuth completes end to end with the verified Bevory consent screen;
   only the current production client secret remains enabled.
 - The restricted S3 identity can put, inspect, and delete an object; the test
@@ -61,8 +68,8 @@ The following production checks passed on 2026-09-19:
 - The live `/gurgaon` page renders without browser console errors.
 - The adaptive Bevory favicon and logo render correctly in light and dark mode,
   and the production source contains no legacy third-party branding.
-- Search Console accepts `sitemap.xml` with 47 discovered URLs; the apex and
-  Gurgaon URLs were submitted to the priority crawl queue.
+- `sitemap.xml` contains 4,251 current catalogue URLs. Search Console previously
+  accepted the sitemap; Google must recrawl it to discover the expanded set.
 
 ## CloudFront status
 
