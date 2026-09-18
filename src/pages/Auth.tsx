@@ -74,7 +74,7 @@ const Auth = () => {
         if (error) {
           toast({ title: error.message.includes("already registered") ? "Account exists" : "Sign up failed", description: error.message, variant: "destructive" });
         } else {
-          toast({ title: "Account created!", description: "Welcome to BevOry." });
+          toast({ title: "Account created!", description: "Welcome to Bevory." });
           navigate("/");
         }
       }
@@ -135,7 +135,7 @@ const Auth = () => {
               {authMode === "otp" ? "Enter Verification Code" : isLogin ? "Welcome Back" : "Create Account"}
             </h1>
             <p className="text-muted-foreground mt-2 text-sm">
-              {authMode === "otp" ? `We sent a code to ${phone}` : isLogin ? "Sign in to continue exploring" : "Join BevOry to discover drinks"}
+              {authMode === "otp" ? `We sent a code to ${phone}` : isLogin ? "Sign in to continue exploring" : "Join Bevory to discover drinks"}
             </p>
           </div>
 
@@ -246,7 +246,7 @@ const Auth = () => {
 
       <div className="p-4 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-destructive/10">
-          <span className="text-xs font-bold text-destructive">21+</span>
+          <span className="text-xs font-bold text-destructive">25+</span>
           <span className="text-xs text-muted-foreground">Adults only. Drink responsibly.</span>
         </div>
       </div>

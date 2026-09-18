@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { apiClient } from "@/integrations/api/client";
+export { CITIES_BY_STATE, POPULAR_CITIES } from "@/lib/locations";
 
 interface Country {
   id: string;
@@ -43,31 +44,10 @@ interface LocationContextType {
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
 
 const LOCATION_CACHE_KEY = "bevory_location";
-const AGE_VERIFIED_KEY = "bevory-age-verified";
-
-// Popular cities list (shown first)
-export const POPULAR_CITIES = [
-  "Goa", "Jaipur", "Lucknow", "Delhi", "Gurgaon", 
-  "Kolkata", "Bangalore", "Hyderabad", "Mumbai"
-];
-
-// Cities grouped by state (sorted alphabetically by state)
-export const CITIES_BY_STATE: Record<string, string[]> = {
-  "Delhi": ["Delhi"],
-  "Goa": ["Goa"],
-  "Haryana": ["Faridabad", "Gurgaon"],
-  "Karnataka": ["Bangalore", "Hubli-Dharwad", "Mangalore", "Mysore"],
-  "Madhya Pradesh": ["Bhopal", "Gwalior", "Indore", "Jabalpur"],
-  "Maharashtra": ["Mumbai"],
-  "Rajasthan": ["Jaipur", "Jodhpur", "Kota", "Udaipur"],
-  "Telangana": ["Hyderabad", "Warangal"],
-  "Uttar Pradesh": ["Agra", "Ghaziabad", "Kanpur", "Lucknow", "Noida"],
-  "West Bengal": ["Asansol", "Kolkata"],
-};
 
 // Default city if no match found
 export const DEFAULT_CITY = "Gurgaon";
-export const DEFAULT_CITY_ID = "00000000-0000-0000-0002-000000000012";
+export const DEFAULT_CITY_ID = "starter-city-gurgaon";
 
 export const LocationProvider = ({ children }: { children: ReactNode }) => {
   const [countries, setCountries] = useState<Country[]>([]);

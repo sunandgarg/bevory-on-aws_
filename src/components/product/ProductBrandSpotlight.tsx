@@ -44,7 +44,7 @@ const ProductBrandSpotlight = ({ brandName }: ProductBrandSpotlightProps) => {
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
               {brand.logo_url ? (
-                <img src={brand.logo_url} alt={brand.brand_name} className="w-full h-full object-cover" />
+                <img src={brand.logo_url} alt={brand.brand_name} className="w-full h-full object-contain p-1" />
               ) : (
                 <span className="text-3xl">{brand.logo_emoji || "🏷️"}</span>
               )}

@@ -12,7 +12,7 @@ export const usePartyPlanner = () => {
   const [budgetInfo, setBudgetInfo] = useState<{ used: number; percentage: number; message: string } | null>(null);
 
   const getRecommendations = useCallback(
-    async (guests: number, budget: number, categorySlugsOrIds: string[] = ["whisky", "beer", "wine"]) => {
+    async (guests: number, budget: number, categorySlugsOrIds: string[] = ["blended-scotch", "beers", "red-wine"]) => {
       setLoading(true);
       setRecommendations([]);
       setBudgetInfo(null);
@@ -24,6 +24,7 @@ export const usePartyPlanner = () => {
         const { data: categoriesById } = await apiClient
           .from("categories")
           .select("id, name, slug, emoji")
+          .eq("is_active", true)
           .in("id", categorySlugsOrIds);
 
         if (categoriesById && categoriesById.length > 0) {
@@ -32,6 +33,7 @@ export const usePartyPlanner = () => {
           const { data: categoriesBySlug } = await apiClient
             .from("categories")
             .select("id, name, slug, emoji")
+            .eq("is_active", true)
             .in("slug", categorySlugsOrIds);
           categories = categoriesBySlug || [];
         }
@@ -52,6 +54,7 @@ export const usePartyPlanner = () => {
             id, name, brand, rating, volume, image_emoji, image_url, category_id,
             category:categories(name, slug, emoji)
           `)
+          .eq("is_active", true)
           .in("category_id", categoryIds);
 
         if (productsError) {
@@ -67,37 +70,23 @@ export const usePartyPlanner = () => {
         }
 
         // Fetch prices - prioritize city-specific prices
-        const priceMap = new Map<string, { price: number; mrp: number | null }>();
+        const priceMap = new Map<string, { price: number; mrp: number | null; volume_ml: number | null }>();
 
         if (selectedCity) {
-          // Get city-specific prices first
           const { data: cityPrices } = await apiClient
             .from("product_prices")
-            .select("product_id, price, mrp")
+            .select("product_id, price, mrp, volume_ml")
             .eq("city_id", selectedCity.id)
+            .eq("price_available", true)
             .gt("price", 0);
 
           if (cityPrices && cityPrices.length > 0) {
             for (const p of cityPrices) {
-              priceMap.set(p.product_id, { price: p.price, mrp: p.mrp });
-            }
-          }
-        }
-
-        // If no city prices, get any available prices
-        if (priceMap.size === 0) {
-          const { data: anyPrices } = await apiClient
-            .from("product_prices")
-            .select("product_id, price, mrp")
-            .gt("price", 0)
-            .limit(5000);
-
-          if (anyPrices) {
-            for (const p of anyPrices) {
-              // Only set if not already set (keep first occurrence)
-              if (!priceMap.has(p.product_id)) {
-                priceMap.set(p.product_id, { price: p.price, mrp: p.mrp });
-              }
+              const candidate = { price: Number(p.price), mrp: p.mrp == null ? null : Number(p.mrp), volume_ml: p.volume_ml ?? null };
+              const current = priceMap.get(p.product_id);
+              const candidateRank = candidate.volume_ml === 750 ? Number.MAX_SAFE_INTEGER : candidate.volume_ml ?? 0;
+              const currentRank = current?.volume_ml === 750 ? Number.MAX_SAFE_INTEGER : current?.volume_ml ?? 0;
+              if (!current || candidateRank > currentRank) priceMap.set(p.product_id, candidate);
             }
           }
         }

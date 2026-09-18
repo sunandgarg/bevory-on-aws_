@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FavoriteButton from "@/components/FavoriteButton";
 import CompareButton from "@/components/product/CompareButton";
+import { useLocation } from "@/hooks/useLocation";
 
 interface Product {
   id: string;
@@ -34,6 +35,7 @@ interface Cocktail {
 const Favorites = () => {
   const { user, loading: authLoading } = useAuth();
   const { getFavoriteProducts, getFavoriteCocktails, loading: favLoading } = useFavorites();
+  const { selectedCity } = useLocation();
   const [products, setProducts] = useState<Product[]>([]);
   const [cocktails, setCocktails] = useState<Cocktail[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,12 +47,14 @@ const Favorites = () => {
       const productIds = getFavoriteProducts();
       const cocktailIds = getFavoriteCocktails();
 
-      const [productsRes, cocktailsRes] = await Promise.all([
-        productIds.length > 0
+      const [pricesRes, cocktailsRes] = await Promise.all([
+        productIds.length > 0 && selectedCity?.id
           ? apiClient
-              .from("products")
-              .select("id, name, brand, slug, image_url, image_emoji, rating, volume")
-              .in("id", productIds)
+              .from("product_prices")
+              .select("product_id")
+              .eq("city_id", selectedCity.id)
+              .eq("price_available", true)
+              .in("product_id", productIds)
           : Promise.resolve({ data: [] }),
         cocktailIds.length > 0
           ? apiClient
@@ -60,13 +64,23 @@ const Favorites = () => {
           : Promise.resolve({ data: [] }),
       ]);
 
-      setProducts(productsRes.data || []);
+      const locallyPricedIds = [...new Set((pricesRes.data || []).map((price) => price.product_id))];
+      if (locallyPricedIds.length > 0) {
+        const { data: availableProducts } = await apiClient
+          .from("products")
+          .select("id, name, brand, slug, image_url, image_emoji, rating, volume")
+          .eq("is_active", true)
+          .in("id", locallyPricedIds);
+        setProducts(availableProducts || []);
+      } else {
+        setProducts([]);
+      }
       setCocktails(cocktailsRes.data || []);
       setLoading(false);
     };
 
     fetchFavoriteItems();
-  }, [user, favLoading, getFavoriteProducts, getFavoriteCocktails]);
+  }, [user, favLoading, getFavoriteProducts, getFavoriteCocktails, selectedCity?.id]);
 
   if (authLoading) {
     return (
@@ -142,7 +156,7 @@ const Favorites = () => {
                       <img
                         src={product.image_url}
                         alt={product.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain p-1"
                       />
                     ) : (
                       <span className="text-2xl">{product.image_emoji || "🥃"}</span>

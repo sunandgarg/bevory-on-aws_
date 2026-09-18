@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { CompareProvider, CompareFloatingBar, CompareSheet } from "@/components/home/CompareProducts";
 import { lazy, Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CITY_SLUGS } from "@/lib/locations";
 
 // Critical pages — loaded eagerly
 import CityHome from "./pages/CityHome";
@@ -82,15 +83,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-// City slugs
-const CITY_SLUGS = [
-  "goa", "jaipur", "lucknow", "delhi", "gurgaon", "kolkata", "bangalore", "hyderabad", "mumbai",
-  "faridabad", "hubli-dharwad", "mangalore", "mysore",
-  "bhopal", "gwalior", "indore", "jabalpur",
-  "jodhpur", "kota", "udaipur", "warangal",
-  "agra", "ghaziabad", "kanpur", "noida", "asansol",
-];
 
 const PageFallback = () => (
   <div className="min-h-screen bg-background flex items-center justify-center">

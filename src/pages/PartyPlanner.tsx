@@ -119,13 +119,13 @@ const PartyPlanner = () => {
 
   const handleSharePlan = async () => {
     const planText = step === "ai-results" && aiRecommendations
-      ? `🎉 My Party Plan\n\n👥 ${guests[0]} Guests | 💰 ₹${budget[0].toLocaleString()} Budget\n📍 ${selectedCity?.name || "India"}\n\n${aiRecommendations.recommendations.map(r => `${r.category}: ${r.quantity} items - ₹${r.estimatedCost.toLocaleString()}`).join("\n")}\n\n💰 Total: ₹${aiRecommendations.totalEstimatedCost.toLocaleString()}\n\nPlanned with BevOry 🥂`
-      : `🎉 My Party Plan\n\n👥 ${guests[0]} Guests | 💰 ₹${budget[0].toLocaleString()} Budget\n📍 ${selectedCity?.name || "India"}\n\n${recommendations.map(r => `${r.category.emoji || "🍷"} ${r.category.name}: ${r.quantity} items - ₹${r.totalCost.toLocaleString()}`).join("\n")}\n\n💰 Total: ₹${totalCost.toLocaleString()}\n\nPlanned with BevOry 🥂`;
+      ? `🎉 My Party Plan\n\n👥 ${guests[0]} Guests | 💰 ₹${budget[0].toLocaleString()} Budget\n📍 ${selectedCity?.name || "India"}\n\n${aiRecommendations.recommendations.map(r => `${r.category}: ${r.quantity} items - ₹${r.estimatedCost.toLocaleString()}`).join("\n")}\n\n💰 Total: ₹${aiRecommendations.totalEstimatedCost.toLocaleString()}\n\nPlanned with Bevory 🥂`
+      : `🎉 My Party Plan\n\n👥 ${guests[0]} Guests | 💰 ₹${budget[0].toLocaleString()} Budget\n📍 ${selectedCity?.name || "India"}\n\n${recommendations.map(r => `${r.category.emoji || "🍷"} ${r.category.name}: ${r.quantity} items - ₹${r.totalCost.toLocaleString()}`).join("\n")}\n\n💰 Total: ₹${totalCost.toLocaleString()}\n\nPlanned with Bevory 🥂`;
 
     try {
       if (navigator.share) {
         await navigator.share({
-          title: "My Party Plan - BevOry",
+          title: "My Party Plan - Bevory",
           text: planText,
           url: window.location.href,
         });

@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.server.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": [
+    "prisma/seed.ts",
+    "scripts/**/*.ts"
+  ],
+  "exclude": [
+    "scripts/**/*.test.ts"
+  ]
+}

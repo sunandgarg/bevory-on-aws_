@@ -34,7 +34,7 @@ const PrivacyPolicy = () => (
       <p>You may access, update, or delete your personal data at any time through your account settings. To request data deletion, email us at <a href="mailto:bevory.main@gmail.com" className="text-primary">bevory.main@gmail.com</a>.</p>
 
       <h2>7. Children's Privacy</h2>
-      <p>Bevory is intended for adults of legal drinking age (21+). We do not knowingly collect data from minors.</p>
+      <p>Bevory is intended for adults aged 25 or older who meet their local legal drinking-age requirements. We do not knowingly collect data from minors.</p>
 
       <h2>8. Changes to This Policy</h2>
       <p>We may update this policy from time to time. We will notify you of significant changes via email or in-app notification.</p>

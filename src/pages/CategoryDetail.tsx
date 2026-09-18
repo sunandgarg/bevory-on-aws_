@@ -119,7 +119,7 @@ const CategoryDetail = () => {
   return (
     <>
       <SEOHead
-        title={(category as any).meta_title || `${category.name} Prices & Reviews | BevOry`}
+        title={(category as any).meta_title || `${category.name} Prices & Reviews | Bevory`}
         description={(category as any).meta_description || category.description || `Browse our collection of ${category.name}. Compare prices, read reviews, and find the best ${category.name.toLowerCase()} in ${selectedCity?.name || 'India'}.`}
         keywords={`${category.name}, ${category.name.toLowerCase()} price guide, ${category.name.toLowerCase()} reviews, ${category.name.toLowerCase()} India`}
         canonical={`/category/${category.slug}`}

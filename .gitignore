@@ -18,6 +18,7 @@ dist-ssr
 uploads/*
 !uploads/.gitkeep
 coverage
+reports/
 
 # Editor directories and files
 .vscode/*

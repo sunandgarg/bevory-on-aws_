@@ -22,6 +22,7 @@ const ExploreCategories = ({ currentCategoryId }: ExploreCategoriesProps) => {
       const { data } = await apiClient
         .from("categories")
         .select("id, name, slug, emoji")
+        .eq("is_active", true)
         .order("name");
 
       if (data) {

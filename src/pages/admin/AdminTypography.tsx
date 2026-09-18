@@ -81,7 +81,7 @@ const AdminTypography = () => {
           <div className="space-y-1">
             <span className="text-xs text-muted-foreground font-mono">text-xs (12px) — Captions, labels</span>
             <p className="text-xs text-muted-foreground">
-              Prices may vary by location. Always drink responsibly. Must be 21+ to purchase alcohol.
+              Prices may vary by location. Always drink responsibly. Must be 25+ to purchase alcohol.
             </p>
           </div>
         </CardContent>

@@ -5,6 +5,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { apiClient } from "@/integrations/api/client";
 import { fuzzyFilter } from "@/lib/fuzzySearch";
+import { useProducts } from "@/hooks/useProducts";
+import { useLocation } from "@/hooks/useLocation";
 
 interface Brand {
   id: string;
@@ -56,12 +58,14 @@ const UniversalSearch = memo(({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const { products } = useProducts();
+  const { selectedCity } = useLocation();
 
   // Fetch lightweight static data once (categories + brands only)
   useEffect(() => {
     const fetchStatic = async () => {
       const [catRes, brandRes] = await Promise.all([
-        apiClient.from("categories").select("id, name, slug, emoji").order("order_index"),
+        apiClient.from("categories").select("id, name, slug, emoji").eq("is_active", true).order("order_index"),
         apiClient.from("brand_spotlights").select("id, brand_name, slug, logo_emoji, logo_url").eq("is_active", true),
       ]);
       if (catRes.data) setCategories(catRes.data);
@@ -81,7 +85,8 @@ const UniversalSearch = memo(({
     }
 
     // Check cache first
-    const cached = searchCache.get(searchQuery.toLowerCase());
+    const cacheKey = `${selectedCity?.id || "none"}:${searchQuery.toLowerCase()}`;
+    const cached = searchCache.get(cacheKey);
     if (cached) {
       setSearchResults(cached);
       setIsSearching(false);
@@ -89,30 +94,23 @@ const UniversalSearch = memo(({
     }
 
     setIsSearching(true);
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const { data } = await apiClient
-          .from("products")
-          .select("id, name, brand, rating, image_emoji, slug, category:categories(name, slug, emoji)")
-          .or(`name.ilike.%${searchQuery}%,brand.ilike.%${searchQuery}%`)
-          .limit(8);
+    debounceRef.current = setTimeout(() => {
+      const results = fuzzyFilter(
+        products as SearchProduct[],
+        searchQuery,
+        (product) => [product.name, product.brand, product.category?.name || ""],
+        0.25,
+      ).slice(0, 8);
 
-        const results = (data || []) as SearchProduct[];
-        
-        // Cache the result
-        if (searchCache.size >= CACHE_MAX) {
-          const firstKey = searchCache.keys().next().value;
-          if (firstKey) searchCache.delete(firstKey);
-        }
-        searchCache.set(searchQuery.toLowerCase(), results);
-        
-        setSearchResults(results);
-      } catch {
-        setSearchResults([]);
+      if (searchCache.size >= CACHE_MAX) {
+        const firstKey = searchCache.keys().next().value;
+        if (firstKey) searchCache.delete(firstKey);
       }
+      searchCache.set(cacheKey, results);
+      setSearchResults(results);
       setIsSearching(false);
     }, 250); // 250ms debounce
-  }, []);
+  }, [products, selectedCity?.id]);
 
   // Trigger search on query change
   useEffect(() => {

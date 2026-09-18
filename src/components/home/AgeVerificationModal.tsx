@@ -6,9 +6,9 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLocation, POPULAR_CITIES, CITIES_BY_STATE } from "@/hooks/useLocation";
 import { useAppSettings } from "@/hooks/useAppSettings";
-import logo from "@/assets/logo.png";
+import BrandingDisplay from "@/components/layout/BrandingDisplay";
 
-const AGE_VERIFIED_KEY = "bevory-age-verified";
+const AGE_VERIFIED_KEY = "bevory-age-verified-v25";
 
 const AgeVerificationModal = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -100,12 +100,7 @@ const AgeVerificationModal = () => {
             {!showCitySelector ? (
               <div className="p-8">
                 <div className="flex justify-center mb-6">
-                  <img 
-                    src={logo} 
-                    alt="BevOry" 
-                    className="h-12 w-auto object-contain"
-                    data-no-dim
-                  />
+                  <BrandingDisplay variant="auth" />
                 </div>
 
                 <h2 className="text-2xl font-serif font-bold text-foreground mb-2">

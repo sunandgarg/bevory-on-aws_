@@ -74,7 +74,7 @@ const AdminSettings = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-accent" />
-            21+ Age Verification Popup
+            25+ Age Verification Popup
           </CardTitle>
           <CardDescription>
             Control the age verification popup that appears when users first visit the site.
@@ -86,7 +86,7 @@ const AdminSettings = () => {
             <div>
               <Label className="text-base font-medium">Enable Age Verification</Label>
               <p className="text-sm text-muted-foreground">
-                Show the 21+ popup when users first visit the website
+                Show the 25+ popup when users first visit the website
               </p>
             </div>
             <Switch
@@ -149,7 +149,7 @@ const AdminSettings = () => {
               <Input
                 value={formData.confirmButtonText}
                 onChange={(e) => setFormData({ ...formData, confirmButtonText: e.target.value })}
-                placeholder="Yes, I am 21+"
+                placeholder="Yes, I am 25+"
               />
             </div>
             <div className="space-y-2">

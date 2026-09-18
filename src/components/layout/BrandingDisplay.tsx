@@ -1,35 +1,42 @@
 import { Link } from "react-router-dom";
-import logo from "@/assets/logo.png";
+import { cn } from "@/lib/utils";
 
 interface BrandingDisplayProps {
   variant?: "header" | "footer" | "auth" | "loading";
   className?: string;
 }
 
-const sizeMap = {
-  header: "h-8",
-  footer: "h-5",
-  auth: "h-12",
-  loading: "h-16 animate-pulse-glow",
+const sizeMap: Record<NonNullable<BrandingDisplayProps["variant"]>, {
+  mark: string;
+  word: string;
+  animation?: string;
+}> = {
+  header: { mark: "h-7 w-7", word: "text-xl" },
+  footer: { mark: "h-5 w-5", word: "text-sm" },
+  auth: { mark: "h-11 w-11", word: "text-3xl" },
+  loading: { mark: "h-14 w-14", word: "text-4xl", animation: "animate-pulse-glow" },
 };
 
-/**
- * Hardcoded BevOry logo display - NO database override
- * Uses only src/assets/logo.png
- */
 const BrandingDisplay = ({ variant = "header", className = "" }: BrandingDisplayProps) => {
-  const heightClass = sizeMap[variant];
+  const size = sizeMap[variant];
 
   return (
-    <Link to="/" className={`flex items-center gap-2 ${className}`}>
-      <img
-        src={logo}
-        alt="BevOry — Know Before You Drink"
-        className={`${heightClass} w-auto object-contain`}
-        data-no-dim
-        loading={variant === "header" ? "eager" : "lazy"}
-        decoding="async"
+    <Link
+      to="/"
+      aria-label="Bevory home"
+      className={cn("inline-flex items-center gap-2 text-foreground", size.animation, className)}
+    >
+      <span
+        aria-hidden="true"
+        className={`${size.mark} shrink-0 bg-current`}
+        style={{
+          WebkitMask: "url('/favicon.png?v=5') center / contain no-repeat",
+          mask: "url('/favicon.png?v=5') center / contain no-repeat",
+        }}
       />
+      <span className={`${size.word} font-bold leading-none`} style={{ fontFamily: "'Bricolage Grotesque', 'DM Sans', sans-serif" }}>
+        Bevory
+      </span>
     </Link>
   );
 };

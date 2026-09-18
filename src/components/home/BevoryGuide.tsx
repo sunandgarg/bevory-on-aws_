@@ -62,7 +62,7 @@ const BevoryGuide = () => {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-accent" />
-          <h2 className="font-semibold">BevOry Guide</h2>
+          <h2 className="font-semibold">Bevory Guide</h2>
         </div>
         <Link to="/guide" className="text-sm text-accent">
           See all
@@ -113,7 +113,7 @@ const BevoryGuide = () => {
                 <p className="font-medium text-sm line-clamp-2 leading-tight">{post.title}</p>
                 <div className="flex items-center justify-between mt-1.5">
                   <span className="text-xs text-muted-foreground line-clamp-1">
-                    {post.author || "BevOry"}
+                    {post.author || "Bevory"}
                   </span>
                   {post.published_at && (
                     <span className="text-xs text-muted-foreground">
