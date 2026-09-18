@@ -461,7 +461,7 @@ const AdminCategories = () => {
             <h4 className="font-semibold pt-2">🔍 SEO Settings</h4>
             <FormField label="Meta Title (max 60 chars)" hint={`${editItem?.meta_title?.length || 0}/60 characters`}>
               <Input
-                placeholder="Category Name | BevOry"
+                placeholder="Category Name | Bevory"
                 value={editItem?.meta_title || ""}
                 maxLength={60}
                 onChange={(e) => setEditItem((p) => (p ? { ...p, meta_title: e.target.value || null } : p))}

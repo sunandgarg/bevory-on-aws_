@@ -120,7 +120,7 @@ const SpiritzGuide = () => {
               <div className="flex items-center gap-2 mb-3">
                 <BookOpen className="w-5 h-5 text-accent" />
                 <span className="text-sm font-semibold text-accent uppercase tracking-wider">
-                  BevOry Guide
+                  Bevory Guide
                 </span>
               </div>
               <h2 className="text-3xl md:text-4xl font-serif font-bold text-foreground">

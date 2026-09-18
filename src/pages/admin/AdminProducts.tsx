@@ -1188,7 +1188,7 @@ const AdminProducts = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <FormField label="Meta Title" hint={`${(editProduct?.meta_title || '').length}/60 chars`}>
                     <Input
-                      placeholder="Product name - Brand | BevOry"
+                      placeholder="Product name - Brand | Bevory"
                       value={editProduct?.meta_title || ""}
                       maxLength={60}
                       onChange={(e) =>

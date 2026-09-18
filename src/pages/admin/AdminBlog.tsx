@@ -172,7 +172,7 @@ const AdminBlog = () => {
     content: "",
     cover_image_url: "",
     cover_emoji: "📰",
-    author: "BevOry Team",
+    author: "Bevory Team",
     category: "Guides",
     tags: [],
     is_published: false,
@@ -244,7 +244,7 @@ const AdminBlog = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-xl font-bold">BevOry Guide (Blog)</h2>
+        <h2 className="text-xl font-bold">Bevory Guide (Blog)</h2>
         <div className="flex items-center gap-2">
           <CsvButtons
             onExport={() => csvOps.exportToCsv(posts)}

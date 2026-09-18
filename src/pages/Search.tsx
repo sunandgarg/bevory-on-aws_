@@ -164,7 +164,7 @@ const Search = () => {
   return (
     <>
       <SEOHead
-        title={query ? `Search: ${query} | BevOry` : "Search Products - Find Your Perfect Drink | BevOry"}
+        title={query ? `Search: ${query} | Bevory` : "Search Products - Find Your Perfect Drink | Bevory"}
         description="Search and compare prices for whisky, vodka, rum, gin, and more. Find the best deals on premium spirits near you."
         keywords="search spirits, find whisky, compare prices, buy alcohol online, liquor search"
       />

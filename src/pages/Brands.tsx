@@ -53,7 +53,7 @@ const Brands = () => {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "All Brands | BevOry",
+    name: "All Brands | Bevory",
     description: "Explore our curated collection of premium liquor brands. Find whisky, vodka, rum, gin, and more from top brands worldwide.",
     url: typeof window !== "undefined" ? window.location.href : "",
     mainEntity: {
@@ -73,7 +73,7 @@ const Brands = () => {
   return (
     <MobileLayout showSearch={false} showCheersGuide={false} showHeader={false}>
       <SEOHead
-        title="All Brands | BevOry - Premium Liquor Brands Directory"
+        title="All Brands | Bevory - Premium Liquor Brands Directory"
         description="Discover and explore our comprehensive directory of premium liquor brands. From iconic whisky to craft spirits, find your favorite brands."
         canonical="/brands"
         jsonLd={jsonLd}

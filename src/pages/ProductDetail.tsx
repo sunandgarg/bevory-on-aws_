@@ -207,7 +207,7 @@ const ProductDetail = () => {
   useEffect(() => {
     if (product) {
       // Use meta_title if set, otherwise generate SEO-friendly title
-      const title = product.meta_title || `${product.brand} ${product.name} Price & Reviews | BevOry`;
+      const title = product.meta_title || `${product.brand} ${product.name} Price & Reviews | Bevory`;
 
       // Use meta_description if set, otherwise generate
       const description =
@@ -304,7 +304,7 @@ const ProductDetail = () => {
     }
 
     return () => {
-      document.title = "BevOry - Know Before You Drink";
+      document.title = "Bevory - Know Before You Drink";
       const faqScript = document.querySelector('script[data-type="faq-ld"]');
       if (faqScript) faqScript.remove();
     };

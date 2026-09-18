@@ -300,7 +300,7 @@ const BrandDetail = () => {
   return (
     <>
       <SEOHead
-        title={`${brand.brand_name} - Brand Guide & Products | BevOry`}
+        title={`${brand.brand_name} - Brand Guide & Products | Bevory`}
         description={brand.description || `Explore ${brand.brand_name} products, tasting notes, pairing ideas, and more. Discover the story behind this iconic brand.`}
         keywords={`${brand.brand_name}, ${brand.country || ''} spirits, whisky, premium beverages, tasting notes, food pairing`}
         canonical={`/brand/${brand.slug || slug}`}

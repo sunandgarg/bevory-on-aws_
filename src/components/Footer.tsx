@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Mail, Phone, MapPin } from "lucide-react";
+import BrandingDisplay from "@/components/layout/BrandingDisplay";
 
 const Footer = () => {
   return (
@@ -59,7 +60,7 @@ const Footer = () => {
           <strong className="text-primary-foreground/70">Pricing Notice:</strong> Prices come from publicly available sources and may vary. Please check with local retailers for the most accurate pricing.
         </p>
         <p className="text-xs text-primary-foreground/50">
-          <strong className="text-primary-foreground/70">No Delivery:</strong> BevOry does not offer home delivery services. Be cautious of fraudulent messages claiming otherwise.
+          <strong className="text-primary-foreground/70">No Delivery:</strong> Bevory does not offer home delivery services. Be cautious of fraudulent messages claiming otherwise.
         </p>
         <p className="text-xs text-primary-foreground/50">
           <strong className="text-primary-foreground/70">Drink Responsibly:</strong> Excessive alcohol consumption is harmful. Choose quality over quantity. Never drink and drive.
@@ -68,18 +69,13 @@ const Footer = () => {
 
       {/* Bottom Bar */}
       <div className="flex items-center justify-between pt-4 border-t border-primary-foreground/10">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-gold flex items-center justify-center">
-            <span className="text-sm font-bold text-primary">B</span>
-          </div>
-          <span className="font-serif font-bold">Bevory</span>
-        </div>
+        <BrandingDisplay variant="footer" className="text-primary-foreground" />
         <div className="flex items-center gap-2">
           <div className="px-2 py-0.5 rounded-full bg-destructive/20 text-destructive text-[10px] font-bold">
             21+
           </div>
           <p className="text-primary-foreground/50 text-xs">
-            © 2026 BevOry. All rights reserved.
+            © 2026 Bevory. All rights reserved.
           </p>
         </div>
       </div>

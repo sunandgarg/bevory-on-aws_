@@ -129,11 +129,11 @@ const Cocktails = () => {
           }],
           "author": {
             "@type": "Organization",
-            "name": "BevOry"
+            "name": "Bevory"
           },
           "publisher": {
             "@type": "Organization",
-            "name": "BevOry",
+            "name": "Bevory",
             "logo": {
               "@type": "ImageObject",
               "url": "https://bevory.in/favicon.png"
@@ -160,7 +160,7 @@ const Cocktails = () => {
   return (
     <>
       <SEOHead
-        title="Cocktail Recipes & Library | BevOry"
+        title="Cocktail Recipes & Library | Bevory"
         description="Explore our collection of classic and modern cocktail recipes. Learn how to make whiskey, vodka, rum, gin, and tequila cocktails with step-by-step instructions."
         keywords="cocktail recipes, drink recipes, whiskey cocktails, vodka cocktails, rum cocktails, gin cocktails, mixology"
         jsonLd={generateStructuredData()}

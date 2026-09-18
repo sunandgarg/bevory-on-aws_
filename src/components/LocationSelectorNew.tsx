@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLocation } from "@/hooks/useLocation";
 import { apiClient } from "@/integrations/api/client";
 import { cn } from "@/lib/utils";
+import { POPULAR_CITIES, STATE_ORDER } from "@/lib/locations";
 import { useNavigate, useLocation as useRouterLocation } from "react-router-dom";
 
 interface City {
@@ -26,25 +27,6 @@ interface StateGroup {
   state_name: string;
   cities: City[];
 }
-
-const POPULAR_CITIES = [
-  "Goa", "Jaipur", "Lucknow", "Delhi", "Gurgaon", 
-  "Kolkata", "Bangalore", "Hyderabad", "Mumbai"
-];
-
-// Sorted alphabetically by state name
-const STATE_ORDER = [
-  "Delhi",
-  "Goa",
-  "Haryana",
-  "Karnataka",
-  "Madhya Pradesh",
-  "Maharashtra",
-  "Rajasthan", 
-  "Telangana",
-  "Uttar Pradesh",
-  "West Bengal"
-];
 
 interface LocationSelectorNewProps {
   variant?: "default" | "compact";
@@ -144,9 +126,8 @@ const LocationSelectorNew = ({ variant = "default", className, onCitySelect }: L
     hasInitialized.current = true;
   }, [allCities, states, selectedCity, setSelectedCity, setSelectedState]);
 
-  // Convert city name to slug
   const getCitySlug = useCallback((cityName: string) => {
-    return cityName.toLowerCase().replace(/\s+/g, '-');
+    return cityName.toLowerCase().trim().replace(/\s+/g, "-");
   }, []);
 
   const handleCitySelect = useCallback((city: City) => {

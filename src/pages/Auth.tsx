@@ -74,7 +74,7 @@ const Auth = () => {
         if (error) {
           toast({ title: error.message.includes("already registered") ? "Account exists" : "Sign up failed", description: error.message, variant: "destructive" });
         } else {
-          toast({ title: "Account created!", description: "Welcome to BevOry." });
+          toast({ title: "Account created!", description: "Welcome to Bevory." });
           navigate("/");
         }
       }
@@ -135,7 +135,7 @@ const Auth = () => {
               {authMode === "otp" ? "Enter Verification Code" : isLogin ? "Welcome Back" : "Create Account"}
             </h1>
             <p className="text-muted-foreground mt-2 text-sm">
-              {authMode === "otp" ? `We sent a code to ${phone}` : isLogin ? "Sign in to continue exploring" : "Join BevOry to discover drinks"}
+              {authMode === "otp" ? `We sent a code to ${phone}` : isLogin ? "Sign in to continue exploring" : "Join Bevory to discover drinks"}
             </p>
           </div>
 

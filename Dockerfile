@@ -21,6 +21,7 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/dist-server ./dist-server
 COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/src/lib/locations.ts ./src/lib/locations.ts
 RUN mkdir -p uploads
 EXPOSE 3001
 CMD ["pnpm", "start"]

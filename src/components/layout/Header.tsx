@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Menu, X } from "lucide-react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import LocationSelector from "@/components/LocationSelector";
 import BrandingDisplay from "@/components/layout/BrandingDisplay";
@@ -22,9 +21,7 @@ const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <Link to="/">
-            <BrandingDisplay variant="header" />
-          </Link>
+          <BrandingDisplay variant="header" />
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">

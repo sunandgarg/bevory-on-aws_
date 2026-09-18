@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "@/hooks/useLocation";
 import SEOHead from "@/components/SEOHead";
+import { cityFromSlug } from "@/lib/locations";
 import Home from "./Home";
 
 interface CityHomeProps {
@@ -9,18 +10,17 @@ interface CityHomeProps {
 
 const CityHome = ({ citySlug }: CityHomeProps) => {
   const { setCityByName, selectedCity } = useLocation();
+  const city = cityFromSlug(citySlug);
+  const cityName = city?.name || citySlug.split("-").map((part) => (
+    part.charAt(0).toUpperCase() + part.slice(1)
+  )).join(" ");
 
   useEffect(() => {
-    // Capitalize city name for display
-    const cityName = citySlug.charAt(0).toUpperCase() + citySlug.slice(1);
-    
     // Set city if not already selected or different
-    if (!selectedCity || selectedCity.name.toLowerCase() !== citySlug.toLowerCase()) {
+    if (!selectedCity || selectedCity.name.toLowerCase() !== cityName.toLowerCase()) {
       setCityByName(cityName);
     }
-  }, [citySlug, setCityByName, selectedCity]);
-
-  const cityName = citySlug.charAt(0).toUpperCase() + citySlug.slice(1);
+  }, [cityName, setCityByName, selectedCity]);
 
   return (
     <>

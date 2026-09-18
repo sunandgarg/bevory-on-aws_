@@ -5,7 +5,7 @@ Last verified: 2026-09-19
 ## Public endpoints
 
 - Primary site: `https://bevory.in`
-- Apex domain: `https://bevory.in` (redirects to `www` in the application shell)
+- Secondary domain: `https://www.bevory.in` (permanently redirects to the apex domain)
 - Pages project: `https://bevory.pages.dev`
 - API origin: `https://api.bevory.in`
 
@@ -53,10 +53,16 @@ The following production checks passed on 2026-09-19:
 - Administrator sign-in, session validation, and an admin-only status endpoint
   work through the production domain.
 - Public catalog reads and the party-planner endpoint work.
+- The production catalogue contains all 30 supported cities.
+- Google OAuth completes end to end with the verified Bevory consent screen;
+  only the current production client secret remains enabled.
 - The restricted S3 identity can put, inspect, and delete an object; the test
   object was deleted afterward.
 - The live `/gurgaon` page renders without browser console errors.
-- The Bevory favicon loads and the production HTML contains no Lovable branding.
+- The adaptive Bevory favicon and logo render correctly in light and dark mode,
+  and the production source contains no legacy third-party branding.
+- Search Console accepts `sitemap.xml` with 47 discovered URLs; the apex and
+  Gurgaon URLs were submitted to the priority crawl queue.
 
 ## CloudFront status
 
