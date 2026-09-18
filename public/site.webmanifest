@@ -1,0 +1,21 @@
+{
+  "name": "Bevory - Know Before You Drink",
+  "short_name": "Bevory",
+  "description": "Compare local beverage prices, discover brands, and plan gatherings.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0b1425",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

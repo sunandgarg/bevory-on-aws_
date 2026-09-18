@@ -98,19 +98,20 @@ const PartyPlanner = () => {
         setStep("ai-results");
       } else {
         toast({
-          title: "AI Error",
-          description: "Could not generate recommendations. Using standard recommendations instead.",
+          title: "Personalized plan unavailable",
+          description: "Showing a quick estimate instead.",
           variant: "destructive",
         });
         handleGetRecommendations();
       }
     } catch (error) {
-      console.error("AI Party Planner error:", error);
+      console.error("Personalized Party Planner error:", error);
       toast({
-        title: "Error",
-        description: "Failed to get AI recommendations. Try again later.",
+        title: "Personalized plan unavailable",
+        description: "Showing a quick estimate instead.",
         variant: "destructive",
       });
+      await handleGetRecommendations();
     } finally {
       setAiLoading(false);
     }
@@ -273,7 +274,7 @@ const PartyPlanner = () => {
                     onClick={() => handleProceedToCategories("ai")}
                   >
                     <Wand2 className="w-5 h-5" />
-                    Get AI Recommendations
+                    Build a Smart Plan
                     <Sparkles className="w-4 h-4" />
                   </Button>
                   
@@ -283,7 +284,7 @@ const PartyPlanner = () => {
                     className="w-full h-12 gap-2"
                     onClick={() => handleProceedToCategories("quick")}
                   >
-                    Quick Recommendations
+                    Quick Estimate
                     <ChevronRight className="w-5 h-5" />
                   </Button>
                 </div>
@@ -410,7 +411,7 @@ const PartyPlanner = () => {
                     {recommendationType === "ai" ? (
                       <>
                         <Wand2 className="w-5 h-5" />
-                        Get AI Recommendations
+                        Build My Plan
                       </>
                     ) : (
                       <>
@@ -435,7 +436,7 @@ const PartyPlanner = () => {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <Wand2 className="w-5 h-5 text-purple-500" />
-                    <h1 className="text-xl font-serif font-bold">AI Party Plan</h1>
+                    <h1 className="text-xl font-serif font-bold">Your Smart Party Plan</h1>
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {guests[0]} guests • ₹{budget[0].toLocaleString()} budget
@@ -450,7 +451,7 @@ const PartyPlanner = () => {
               <div className="p-4 rounded-xl bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20">
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <p className="text-sm text-muted-foreground">AI Estimated Cost</p>
+                    <p className="text-sm text-muted-foreground">Estimated Cost</p>
                     <p className="text-2xl font-bold text-purple-600">
                       ₹{aiRecommendations.totalEstimatedCost.toLocaleString()}
                     </p>
@@ -501,7 +502,7 @@ const PartyPlanner = () => {
                 <div className="p-4 rounded-xl bg-secondary/50">
                   <h3 className="font-medium mb-2 flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-purple-500" />
-                    AI Party Tips
+                    Party Tips
                   </h3>
                   <ul className="text-sm text-muted-foreground space-y-1">
                     {aiRecommendations.partyTips.map((tip, i) => (

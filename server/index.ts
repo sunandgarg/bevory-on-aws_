@@ -3,7 +3,7 @@ import cors from "cors";
 import express from "express";
 import multer from "multer";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import {
   createOAuthState,
@@ -34,6 +34,7 @@ const app = express();
 const port = Number(process.env.PORT) || 3001;
 const projectRoot = process.cwd();
 const uploadsRoot = path.join(projectRoot, "uploads");
+const originVerifySecret = process.env.ORIGIN_VERIFY_SECRET?.trim();
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -41,10 +42,26 @@ const upload = multer({
 });
 
 app.disable("x-powered-by");
+app.set("trust proxy", 1);
 app.use(cors({ origin: process.env.APP_URL || "http://localhost:8080", credentials: true }));
 app.use(express.json({ limit: "25mb" }));
 app.use(optionalAuth);
 app.use("/uploads", express.static(uploadsRoot, { immutable: true, maxAge: "1h" }));
+
+app.use("/api", (req, res, next) => {
+  if (process.env.NODE_ENV !== "production") return next();
+  if (!originVerifySecret) {
+    return res.status(503).json({ data: null, error: { message: "Origin verification is not configured" } });
+  }
+
+  const suppliedSecret = req.header("x-bevory-origin-verify") || "";
+  const expected = Buffer.from(originVerifySecret);
+  const supplied = Buffer.from(suppliedSecret);
+  const verified = expected.length === supplied.length && timingSafeEqual(expected, supplied);
+  return verified
+    ? next()
+    : res.status(404).json({ data: null, error: { message: "Not found" } });
+});
 
 app.get("/api/health", async (_req, res) => {
   try {
@@ -196,7 +213,7 @@ app.post("/api/storage/upload", upload.single("file"), async (req: Authenticated
   res.status(201).json({ data: { id, path: safePath, publicUrl: stored.publicUrl, provider: stored.provider }, error: null });
 });
 
-if (process.env.NODE_ENV === "production") {
+if (process.env.NODE_ENV === "production" && process.env.SERVE_FRONTEND !== "false") {
   const clientDist = path.join(projectRoot, "dist");
   app.use(express.static(clientDist));
   app.get("/{*splat}", (_req, res) => res.sendFile(path.join(clientDist, "index.html")));

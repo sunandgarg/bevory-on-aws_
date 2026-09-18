@@ -1,5 +1,5 @@
-// Bevory Service Worker v2 — 2026
-const CACHE_VERSION = 'bevory-v2';
+// Bevory Service Worker v3 - 2026
+const CACHE_VERSION = 'bevory-v3';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
@@ -7,7 +7,12 @@ const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 // Static assets to precache on install
 const PRECACHE_URLS = [
   '/',
+  '/favicon-32x32.png',
   '/favicon.png',
+  '/apple-touch-icon.png',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/site.webmanifest',
   '/og-image.png',
 ];
 

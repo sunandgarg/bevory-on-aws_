@@ -38,6 +38,7 @@ const UserReviewsSection = ({ productId, refreshTrigger }: UserReviewsSectionPro
         .from("product_reviews")
         .select("*")
         .eq("product_id", productId)
+        .eq("is_approved", true)
         .eq("is_reported", false)
         .order("created_at", { ascending: false })
         .limit(20);
@@ -93,19 +94,12 @@ const UserReviewsSection = ({ productId, refreshTrigger }: UserReviewsSectionPro
     }
   };
 
-  // Return null only if no reviews AND no average - still show section header
-  const displayRating = averageRating || (4 + Math.random()).toFixed(1);
-  
   if (reviews.length === 0) {
     return (
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold">User Reviews</h3>
-          <div className="flex items-center gap-1 text-sm">
-            <Star className="w-4 h-4 fill-accent text-accent" />
-            <span className="font-medium">{displayRating}</span>
-            <span className="text-muted-foreground">(0 reviews)</span>
-          </div>
+          <span className="text-sm text-muted-foreground">No ratings yet</span>
         </div>
         <p className="text-sm text-muted-foreground text-center py-4">
           No reviews yet. Be the first to review!
@@ -142,7 +136,18 @@ const UserReviewsSection = ({ productId, refreshTrigger }: UserReviewsSectionPro
     <div>
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold">User Reviews</h3>
-        <span className="text-sm text-muted-foreground">{reviews.length} reviews</span>
+        <div className="flex items-center gap-1 text-sm">
+          {averageRating && (
+            <>
+              <Star className="w-4 h-4 fill-accent text-accent" />
+              <span className="font-medium">{averageRating}</span>
+              <span className="text-muted-foreground">·</span>
+            </>
+          )}
+          <span className="text-muted-foreground">
+            {reviews.length} {reviews.length === 1 ? "review" : "reviews"}
+          </span>
+        </div>
       </div>
 
       <div className="relative">
@@ -151,12 +156,14 @@ const UserReviewsSection = ({ productId, refreshTrigger }: UserReviewsSectionPro
           <>
             <button
               onClick={prevReview}
+              aria-label="Previous review"
               className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center shadow-sm hover:bg-secondary transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={nextReview}
+              aria-label="Next review"
               className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center shadow-sm hover:bg-secondary transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
@@ -187,6 +194,7 @@ const UserReviewsSection = ({ productId, refreshTrigger }: UserReviewsSectionPro
                       </div>
                       <button
                         onClick={() => handleReport(review.id)}
+                        aria-label={`Report review by ${review.reviewer_name || "Anonymous"}`}
                         className="p-1 rounded hover:bg-secondary transition-colors text-muted-foreground hover:text-red-500"
                         title="Report this review"
                       >
@@ -235,6 +243,8 @@ const UserReviewsSection = ({ productId, refreshTrigger }: UserReviewsSectionPro
               <button
                 key={index}
                 onClick={() => setCurrentIndex(index)}
+                aria-label={`Show review ${index + 1}`}
+                aria-current={index === currentIndex ? "true" : undefined}
                 className={`w-2 h-2 rounded-full transition-colors ${
                   index === currentIndex ? "bg-accent" : "bg-muted"
                 }`}

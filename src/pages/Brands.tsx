@@ -5,6 +5,7 @@ import { Search, ArrowLeft, Globe } from "lucide-react";
 import { apiClient } from "@/integrations/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import MobileLayout from "@/components/layout/MobileLayout";
 import SEOHead from "@/components/SEOHead";
 
@@ -149,10 +150,19 @@ const Brands = () => {
               {filteredBrands.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <span className="text-5xl mb-4">🔍</span>
-                  <h3 className="font-medium text-lg mb-1">No brands found</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Try adjusting your search query
+                  <h3 className="font-medium text-lg mb-1">
+                    {brands.length === 0 ? "Brand directory is being updated" : "No matching brands"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {brands.length === 0
+                      ? "Brands will appear here as the catalog is published."
+                      : "Try another name or clear your search."}
                   </p>
+                  {searchQuery && (
+                    <Button variant="outline" size="sm" onClick={() => setSearchQuery("")}>
+                      Clear search
+                    </Button>
+                  )}
                 </div>
               )}
             </>

@@ -22,7 +22,7 @@ interface AISettings {
 }
 
 const DEFAULT_SETTINGS: AISettings = {
-  default_provider: 'lovable',
+  default_provider: 'bevory-local',
   openai_api_key: '',
   openai_model: 'gpt-4o-mini',
   claude_api_key: '',
@@ -32,7 +32,7 @@ const DEFAULT_SETTINGS: AISettings = {
 };
 
 const PROVIDERS = [
-  { value: 'lovable', label: 'Lovable AI (Free)', description: 'Built-in, no API key needed', badge: 'Free' },
+  { value: 'bevory-local', label: 'Bevory Catalog Rules', description: 'Built-in, no API key needed', badge: 'Built in' },
   { value: 'openai', label: 'OpenAI (GPT)', description: 'GPT-4o-mini is cheapest' },
   { value: 'claude', label: 'Anthropic (Claude)', description: 'Claude Haiku is cheapest' },
   { value: 'perplexity', label: 'Perplexity', description: 'Search-augmented AI' },
@@ -138,7 +138,7 @@ const AdminAISettings = () => {
           AI Recommendation Settings
         </h1>
         <p className="text-muted-foreground">
-          Configure AI providers for product recommendations. Lovable AI is free and works out of the box.
+          Configure recommendation providers. Bevory Catalog Rules works locally without an API key.
         </p>
       </div>
 

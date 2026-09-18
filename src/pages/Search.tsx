@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Search as SearchIcon, SlidersHorizontal, X, Star, TrendingUp, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import MobileLayout from "@/components/layout/MobileLayout";
 import { useProducts } from "@/hooks/useProducts";
 import { useLocation } from "@/hooks/useLocation";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import CompareButton from "@/components/product/CompareButton";
 import FavoriteButton from "@/components/FavoriteButton";
 import SEOHead from "@/components/SEOHead";
@@ -22,19 +22,65 @@ import {
 } from "@/components/ui/sheet";
 
 const Search = () => {
-  const [query, setQuery] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [query, setQuery] = useState(() => searchParams.get("q")?.trim() || "");
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(() => searchParams.get("category"));
   const [priceRange, setPriceRange] = useState([0, 50000]);
   const [minRating, setMinRating] = useState(0);
-  const [sortBy, setSortBy] = useState<"rating" | "price_asc" | "price_desc" | "name">("rating");
+  const [sortBy, setSortBy] = useState<"rating" | "price_asc" | "price_desc" | "name">(() => {
+    const requestedSort = searchParams.get("sort");
+    return requestedSort === "price_asc" || requestedSort === "price_desc" || requestedSort === "name"
+      ? requestedSort
+      : "rating";
+  });
 
   const { products, categories, loading } = useProducts();
   const { selectedCity } = useLocation();
   const { getProductUrlSafe } = useProductUrl();
+  const trendingOnly = searchParams.get("sort") === "trending" || searchParams.get("trending") === "true";
+
+  useEffect(() => {
+    setQuery(searchParams.get("q")?.trim() || "");
+    setSelectedCategory(searchParams.get("category"));
+
+    const requestedSort = searchParams.get("sort");
+    if (requestedSort === "price_asc" || requestedSort === "price_desc" || requestedSort === "name") {
+      setSortBy(requestedSort);
+    } else {
+      setSortBy("rating");
+    }
+  }, [searchParams]);
+
+  const updateSearchParam = (key: string, value?: string | null) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (value) nextParams.set(key, value);
+    else nextParams.delete(key);
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    updateSearchParam("q", value.trim() || null);
+  };
+
+  const handleCategoryChange = (slug: string) => {
+    const nextCategory = selectedCategory === slug ? null : slug;
+    setSelectedCategory(nextCategory);
+    updateSearchParam("category", nextCategory);
+  };
+
+  const handleSortChange = (value: typeof sortBy) => {
+    setSortBy(value);
+    updateSearchParam("sort", value === "rating" ? null : value);
+  };
 
   const filteredProducts = useMemo(() => {
-    let result = products;
+    let result = [...products];
+
+    if (trendingOnly) {
+      result = result.filter((product) => product.is_trending);
+    }
 
     // Search filter
     if (query) {
@@ -69,10 +115,18 @@ const Search = () => {
         result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
       case "price_asc":
-        result.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+        result.sort((a, b) => {
+          if (!Number(a.price)) return 1;
+          if (!Number(b.price)) return -1;
+          return Number(a.price) - Number(b.price);
+        });
         break;
       case "price_desc":
-        result.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+        result.sort((a, b) => {
+          if (!Number(a.price)) return 1;
+          if (!Number(b.price)) return -1;
+          return Number(b.price) - Number(a.price);
+        });
         break;
       case "name":
         result.sort((a, b) => a.name.localeCompare(b.name));
@@ -80,16 +134,32 @@ const Search = () => {
     }
 
     return result;
-  }, [products, query, selectedCategory, priceRange, minRating, sortBy]);
+  }, [products, query, selectedCategory, priceRange, minRating, sortBy, trendingOnly]);
 
   const clearFilters = () => {
     setSelectedCategory(null);
     setPriceRange([0, 50000]);
     setMinRating(0);
     setSortBy("rating");
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("category");
+    nextParams.delete("sort");
+    nextParams.delete("trending");
+    setSearchParams(nextParams, { replace: true });
   };
 
-  const hasActiveFilters = selectedCategory || minRating > 0 || priceRange[0] > 0 || priceRange[1] < 50000;
+  const clearAll = () => {
+    setQuery("");
+    setSelectedCategory(null);
+    setPriceRange([0, 50000]);
+    setMinRating(0);
+    setSortBy("rating");
+    setSearchParams({}, { replace: true });
+  };
+
+  const hasActiveFilters = Boolean(
+    selectedCategory || trendingOnly || minRating > 0 || priceRange[0] > 0 || priceRange[1] < 50000,
+  );
 
   return (
     <>
@@ -130,7 +200,8 @@ const Search = () => {
                   <Input
                     placeholder="Search drinks, brands..."
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={(e) => handleQueryChange(e.target.value)}
+                    aria-label="Search drinks and brands"
                     className="pl-12 h-12 rounded-xl bg-card/80 backdrop-blur-sm border-border/50 shadow-lg"
                   />
                   <AnimatePresence>
@@ -139,7 +210,8 @@ const Search = () => {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        onClick={() => setQuery("")}
+                        onClick={() => handleQueryChange("")}
+                        aria-label="Clear search"
                         className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-full bg-muted hover:bg-muted/80"
                       >
                         <X className="w-4 h-4 text-muted-foreground" />
@@ -154,6 +226,7 @@ const Search = () => {
                   <Button
                     variant="outline"
                     size="icon"
+                    aria-label="Open filters and sorting"
                     className={`h-12 w-12 rounded-xl shadow-lg ${hasActiveFilters ? "border-accent text-accent bg-accent/10" : ""}`}
                   >
                     <SlidersHorizontal className="w-5 h-5" />
@@ -172,11 +245,8 @@ const Search = () => {
                         {categories.map((cat) => (
                           <button
                             key={cat.id}
-                            onClick={() =>
-                              setSelectedCategory(
-                                selectedCategory === cat.slug ? null : cat.slug
-                              )
-                            }
+                            onClick={() => handleCategoryChange(cat.slug)}
+                            aria-pressed={selectedCategory === cat.slug}
                             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                               selectedCategory === cat.slug
                                 ? "bg-accent text-accent-foreground shadow-lg"
@@ -212,6 +282,7 @@ const Search = () => {
                           <button
                             key={rating}
                             onClick={() => setMinRating(rating)}
+                            aria-pressed={minRating === rating}
                             className={`flex items-center gap-1 px-4 py-2 rounded-full text-sm transition-all ${
                               minRating === rating
                                 ? "bg-accent text-accent-foreground shadow-lg"
@@ -243,7 +314,8 @@ const Search = () => {
                         ].map((option) => (
                           <button
                             key={option.value}
-                            onClick={() => setSortBy(option.value as typeof sortBy)}
+                            onClick={() => handleSortChange(option.value as typeof sortBy)}
+                            aria-pressed={sortBy === option.value}
                             className={`px-4 py-3 rounded-xl text-sm font-medium transition-all text-left ${
                               sortBy === option.value
                                 ? "bg-accent text-accent-foreground shadow-lg"
@@ -275,9 +347,11 @@ const Search = () => {
           <main className="px-4">
             {/* Results Info */}
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">{filteredProducts.length}</span> products
+              <p className="text-sm text-muted-foreground" aria-live="polite">
+                <span className="font-medium text-foreground">{filteredProducts.length}</span>{" "}
+                {filteredProducts.length === 1 ? "product" : "products"}
                 {selectedCity && <span className="text-accent"> in {selectedCity.name}</span>}
+                {trendingOnly && <span className="text-accent"> · Trending</span>}
               </p>
               {hasActiveFilters && (
                 <button
@@ -301,17 +375,28 @@ const Search = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="text-center py-16"
+                aria-live="polite"
               >
                 <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-secondary flex items-center justify-center">
                   <SearchIcon className="w-10 h-10 text-muted-foreground" />
                 </div>
-                <h3 className="font-semibold text-foreground mb-2">No products found</h3>
+                <h3 className="font-semibold text-foreground mb-2">
+                  {products.length === 0 ? "Catalog is being updated" : "No matches found"}
+                </h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Try adjusting your search or filters
+                  {products.length === 0
+                    ? `Products for ${selectedCity?.name || "your city"} will appear as local prices are published.`
+                    : "Try a shorter search or reset your filters."}
                 </p>
-                <Button variant="outline" onClick={clearFilters}>
-                  Clear all filters
-                </Button>
+                {products.length === 0 ? (
+                  <Button variant="outline" asChild>
+                    <Link to="/categories">Browse categories</Link>
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={clearAll}>
+                    Reset search
+                  </Button>
+                )}
               </motion.div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
@@ -371,13 +456,19 @@ const Search = () => {
                             {/* Rating & Price */}
                             <div className="flex items-center justify-between mt-2.5">
                               <div className="flex items-center gap-1">
-                                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                                <span className="text-xs font-medium">
-                                  {product.rating ? Number(product.rating).toFixed(1) : "4.5"}
+                                <Star
+                                  className={`w-3.5 h-3.5 ${
+                                    Number(product.rating) > 0
+                                      ? "fill-amber-400 text-amber-400"
+                                      : "text-muted-foreground/50"
+                                  }`}
+                                />
+                                <span className={`text-xs font-medium ${Number(product.rating) > 0 ? "" : "text-muted-foreground"}`}>
+                                  {Number(product.rating) > 0 ? Number(product.rating).toFixed(1) : "New"}
                                 </span>
                               </div>
-                              <p className="font-bold text-sm text-accent">
-                                {product.price ? `₹${Number(product.price).toLocaleString('en-IN')}` : "—"}
+                              <p className={`font-bold ${product.price ? "text-sm text-accent" : "text-[10px] text-muted-foreground"}`}>
+                                {product.price ? `₹${Number(product.price).toLocaleString('en-IN')}` : "Price pending"}
                               </p>
                             </div>
                           </div>

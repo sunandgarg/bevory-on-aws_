@@ -77,18 +77,6 @@ interface VolumePrice {
   in_stock: boolean;
 }
 
-// Generate consistent random rating between 4.0 and 4.8 based on product id
-const generateConsistentRating = (productId: string) => {
-  // Use product id to generate consistent "random" value
-  let hash = 0;
-  for (let i = 0; i < productId.length; i++) {
-    hash = (hash << 5) - hash + productId.charCodeAt(i);
-    hash |= 0;
-  }
-  const normalized = Math.abs(hash % 80) / 100; // 0.00 to 0.79
-  return Number((4.0 + normalized).toFixed(1)); // 4.0 to 4.8
-};
-
 // Volume options are now fetched from the database - no fixed options
 
 const ProductDetail = () => {
@@ -210,23 +198,21 @@ const ProductDetail = () => {
     fetchProduct();
   }, [effectiveSlug, selectedCity]);
 
-  // Get display rating from actual reviews or fallback to 4.0-4.8
-  const displayRating =
-    product?.rating && product.rating > 0
-      ? Number(product.rating).toFixed(1)
-      : generateConsistentRating(product?.id || "default");
+  const displayRating = product?.rating && product.rating > 0
+    ? Number(product.rating).toFixed(1)
+    : null;
   const displayReviewCount = product?.review_count || 0;
 
   // Update document title and meta for SEO
   useEffect(() => {
     if (product) {
       // Use meta_title if set, otherwise generate SEO-friendly title
-      const title = product.meta_title || `${product.brand} ${product.name} Price in India - Buy Online | BevOry`;
+      const title = product.meta_title || `${product.brand} ${product.name} Price & Reviews | BevOry`;
 
       // Use meta_description if set, otherwise generate
       const description =
         product.meta_description ||
-        `${product.brand} ${product.name} ${selectedVolume || product.volume || ""} price ₹${price || "Check"} in ${selectedCity?.name || "India"}. Buy ${product.brand} ${product.name} online. Check reviews, ratings & compare prices.`;
+        `${product.brand} ${product.name} ${selectedVolume || product.volume || ""} price guide for ${selectedCity?.name || "India"}. Compare sizes, tasting notes, reviews and local prices.`;
 
       document.title = title;
 
@@ -256,9 +242,6 @@ const ProductDetail = () => {
         document.head.appendChild(jsonLd);
       }
 
-      // Calculate price valid until (30 days from now)
-      const priceValidUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-
       // Use valid image URL or default OG image
       const productImage =
         product.image_url &&
@@ -284,102 +267,13 @@ const ProductDetail = () => {
         url: `https://www.bevory.in/product/${product.slug || product.id}`,
       };
 
-      // Always add aggregate rating (use generated rating if no reviews)
-      productSchema.aggregateRating = {
-        "@type": "AggregateRating",
-        ratingValue: displayRating,
-        reviewCount: Math.max(displayReviewCount, 1),
-        bestRating: "5",
-        worstRating: "1",
-      };
-
-      // Add a sample review for SEO compliance
-      productSchema.review = {
-        "@type": "Review",
-        reviewRating: {
-          "@type": "Rating",
+      if (displayRating && displayReviewCount > 0) {
+        productSchema.aggregateRating = {
+          "@type": "AggregateRating",
           ratingValue: displayRating,
+          reviewCount: displayReviewCount,
           bestRating: "5",
           worstRating: "1",
-        },
-        author: {
-          "@type": "Person",
-          name: "BevOry User",
-        },
-        reviewBody: product.description || `Great ${product.category?.name || "beverage"} from ${product.brand}.`,
-      };
-
-      // Merchant return policy
-      const returnPolicy = {
-        "@type": "MerchantReturnPolicy",
-        applicableCountry: "IN",
-        returnPolicyCategory: "https://schema.org/MerchantReturnNotPermitted",
-        merchantReturnDays: 0,
-      };
-
-      // Shipping details
-      const shippingDetails = {
-        "@type": "OfferShippingDetails",
-        shippingRate: {
-          "@type": "MonetaryAmount",
-          value: "0",
-          currency: "INR",
-        },
-        shippingDestination: {
-          "@type": "DefinedRegion",
-          addressCountry: "IN",
-        },
-        deliveryTime: {
-          "@type": "ShippingDeliveryTime",
-          handlingTime: {
-            "@type": "QuantitativeValue",
-            minValue: 0,
-            maxValue: 1,
-            unitCode: "DAY",
-          },
-          transitTime: {
-            "@type": "QuantitativeValue",
-            minValue: 1,
-            maxValue: 5,
-            unitCode: "DAY",
-          },
-        },
-      };
-
-      // Add offers for each volume with all required fields
-      if (volumePrices.length > 0) {
-        productSchema.offers = volumePrices.map((vp) => ({
-          "@type": "Offer",
-          name: `${product.brand} ${product.name} ${vp.volume}`,
-          price: vp.price,
-          priceCurrency: "INR",
-          availability: vp.in_stock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-          priceValidUntil: priceValidUntil,
-          itemCondition: "https://schema.org/NewCondition",
-          url: `https://www.bevory.in/product/${product.slug || product.id}`,
-          seller: {
-            "@type": "Organization",
-            name: "BevOry",
-          },
-          hasMerchantReturnPolicy: returnPolicy,
-          shippingDetails: shippingDetails,
-        }));
-      } else {
-        // Default offer when no prices available
-        productSchema.offers = {
-          "@type": "Offer",
-          price: price || "0",
-          priceCurrency: "INR",
-          availability: "https://schema.org/InStock",
-          priceValidUntil: priceValidUntil,
-          itemCondition: "https://schema.org/NewCondition",
-          url: `https://www.bevory.in/product/${product.slug || product.id}`,
-          seller: {
-            "@type": "Organization",
-            name: "BevOry",
-          },
-          hasMerchantReturnPolicy: returnPolicy,
-          shippingDetails: shippingDetails,
         };
       }
 
@@ -563,11 +457,17 @@ const ProductDetail = () => {
                   {product.sub_category.emoji} {product.sub_category.name}
                 </span>
               )}
-              <div className="flex items-center gap-1 text-sm">
-                <Star className="w-4 h-4 fill-accent text-accent" />
-                <span className="font-medium">{displayRating}</span>
-                <span className="text-muted-foreground">({displayReviewCount} reviews)</span>
-              </div>
+              {displayRating ? (
+                <div className="flex items-center gap-1 text-sm">
+                  <Star className="w-4 h-4 fill-accent text-accent" />
+                  <span className="font-medium">{displayRating}</span>
+                  <span className="text-muted-foreground">
+                    ({displayReviewCount} {displayReviewCount === 1 ? "review" : "reviews"})
+                  </span>
+                </div>
+              ) : (
+                <span className="text-sm text-muted-foreground">Not rated yet</span>
+              )}
             </div>
 
             <p className="text-muted-foreground">{product.brand}</p>
@@ -610,8 +510,10 @@ const ProductDetail = () => {
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold">{price ? `₹${price.toLocaleString()}` : "—"}</span>
-                  {mrp && Number(mrp) > Number(price) && (
+                  <span className={price ? "text-3xl font-bold" : "text-lg font-semibold text-muted-foreground"}>
+                    {price ? `₹${price.toLocaleString("en-IN")}` : "Price unavailable"}
+                  </span>
+                  {price && mrp && Number(mrp) > Number(price) && (
                     <span className="text-lg text-muted-foreground line-through">₹{mrp.toLocaleString()}</span>
                   )}
                   {selectedVolume && volumePrices.length > 0 && (
@@ -619,12 +521,18 @@ const ProductDetail = () => {
                   )}
                 </div>
               </div>
-              {mrp && Number(mrp) > Number(price) && (
+              {price && mrp && Number(mrp) > Number(price) && (
                 <div className="px-3 py-1 rounded-full bg-green-500/10 text-green-600 text-sm font-medium">
                   {Math.round(((Number(mrp) - Number(price)) / Number(mrp)) * 100)}% off
                 </div>
               )}
             </div>
+            <p className="flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground">
+              <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+              {price
+                ? `Indicative price for ${selectedCity?.name || "your selected city"}. Local retail prices may vary.`
+                : `No local price is listed for ${selectedCity?.name || "your selected city"} yet.`}
+            </p>
           </div>
 
           {/* Quick Info */}

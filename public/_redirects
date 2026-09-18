@@ -1,6 +1,2 @@
-# Redirect non-www to www (for Netlify/Vercel-like hosting)
-https://bevory.in/* https://www.bevory.in/:splat 301!
-http://bevory.in/* https://www.bevory.in/:splat 301!
-
-# Redirect legacy product URLs to new format (if needed)
-# /product/:slug can stay as-is since it's handled by React Router
+# Cloudflare Pages SPA fallback is handled by _worker.js so API proxying and
+# client-side routes share one origin.

@@ -29,7 +29,12 @@ const RateProductSection = ({ productId, onReviewSubmitted }: RateProductSection
     setIsExpanded(true);
   };
 
-  const renderStars = (rating: number, onSelect: (star: number) => void, size: "lg" | "sm" = "lg") => {
+  const renderStars = (
+    rating: number,
+    onSelect: (star: number) => void,
+    label: string,
+    size: "lg" | "sm" = "lg",
+  ) => {
     const sizeClass = size === "lg" ? "w-8 h-8" : "w-5 h-5";
     return (
       <div className="flex gap-1">
@@ -38,6 +43,8 @@ const RateProductSection = ({ productId, onReviewSubmitted }: RateProductSection
             key={star}
             type="button"
             onClick={() => onSelect(star)}
+            aria-label={`${label}: ${star} out of 5`}
+            aria-pressed={star === rating}
             className="transition-transform hover:scale-110"
           >
             <Star
@@ -91,14 +98,12 @@ const RateProductSection = ({ productId, onReviewSubmitted }: RateProductSection
         taste_rating: tasteRating > 0 ? tasteRating : null,
         value_rating: valueRating > 0 ? valueRating : null,
         rebuy_rating: rebuyRating > 0 ? rebuyRating : null,
-        is_approved: true, // Auto-approve reviews for immediate visibility
+        is_approved: false,
         is_featured: false,
         is_reported: false,
       };
 
-      console.log("Submitting review:", reviewData);
-
-      const { data, error } = await apiClient
+      const { error } = await apiClient
         .from("product_reviews")
         .insert(reviewData)
         .select();
@@ -108,11 +113,9 @@ const RateProductSection = ({ productId, onReviewSubmitted }: RateProductSection
         throw error;
       }
 
-      console.log("Review submitted successfully:", data);
-
       toast({
-        title: "Review Submitted!",
-        description: "Thank you for your review. It's now live!",
+        title: "Review received",
+        description: "Thank you. Your review will appear after moderation.",
       });
 
       // Reset form
@@ -153,6 +156,8 @@ const RateProductSection = ({ productId, onReviewSubmitted }: RateProductSection
                 onClick={() => handleStarClick(star)}
                 onMouseEnter={() => setHoverStar(star)}
                 onMouseLeave={() => setHoverStar(0)}
+                aria-label={`Overall rating: ${star} out of 5`}
+                aria-pressed={star === selectedStar}
                 className="transition-transform hover:scale-110"
               >
                 <Star
@@ -183,15 +188,15 @@ const RateProductSection = ({ productId, onReviewSubmitted }: RateProductSection
               <div className="grid grid-cols-1 gap-4 p-4 rounded-lg bg-secondary/50">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Taste</span>
-                  {renderStars(tasteRating, setTasteRating, "sm")}
+                  {renderStars(tasteRating, setTasteRating, "Taste", "sm")}
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Value for Money</span>
-                  {renderStars(valueRating, setValueRating, "sm")}
+                  {renderStars(valueRating, setValueRating, "Value for money", "sm")}
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Likelihood to Buy Again</span>
-                  {renderStars(rebuyRating, setRebuyRating, "sm")}
+                  {renderStars(rebuyRating, setRebuyRating, "Likelihood to buy again", "sm")}
                 </div>
               </div>
 

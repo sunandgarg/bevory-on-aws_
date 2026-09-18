@@ -44,18 +44,35 @@ const QUICK_ACTIONS = [
   { icon: BookOpen, label: "Guide", hint: "Know before you sip", to: "/guide", color: "text-success" },
 ] as const;
 
-const TRUST_STATS = [
-  { value: "30+", label: "Cities" },
-  { value: "5K+", label: "Products" },
-  { value: "4.8★", label: "Rated" },
-] as const;
-
 const serifStyle = { fontFamily: "'Instrument Serif', Georgia, serif" } as const;
 
+const formatCount = (count: number) => {
+  if (count >= 1000) {
+    const compact = count >= 10000 ? Math.floor(count / 1000) : Math.floor(count / 100) / 10;
+    return `${compact}K`;
+  }
+
+  return count.toLocaleString("en-IN");
+};
+
 const Home = () => {
-  const { categories } = useProducts();
-  const { selectedCity } = useLocation();
+  const { categories, products } = useProducts();
+  const { selectedCity, allCities } = useLocation();
   const cityName = selectedCity?.name || "your city";
+  const cityCount = Math.max(allCities.length, selectedCity ? 1 : 0);
+  const ratedProducts = products.filter((product) => Number(product.rating) > 0);
+  const averageRating = ratedProducts.length
+    ? ratedProducts.reduce((total, product) => total + Number(product.rating), 0) / ratedProducts.length
+    : null;
+  const trustStats = [
+    { value: formatCount(cityCount), label: cityCount === 1 ? "City" : "Cities" },
+    products.length > 0
+      ? { value: formatCount(products.length), label: products.length === 1 ? "Product" : "Products" }
+      : { value: formatCount(categories.length), label: categories.length === 1 ? "Category" : "Categories" },
+    averageRating
+      ? { value: `${averageRating.toFixed(1)}★`, label: "Community" }
+      : { value: "Local", label: "Price guide" },
+  ];
 
   return (
     <MobileLayout showSearch={true} showCheersGuide={true}>
@@ -69,7 +86,7 @@ const Home = () => {
           <span className="text-foreground font-semibold">{cityName}</span>
           <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-muted-foreground/70">
             <ShieldCheck className="w-3 h-3 text-success" />
-            Verified prices
+            Local price guide
           </span>
         </div>
 
@@ -94,7 +111,7 @@ const Home = () => {
                 priced.
               </h1>
               <p className="text-[13px] leading-relaxed text-background/75 mb-5 max-w-[290px]">
-                Compare across <span className="text-background font-semibold">30 cities</span>, plan smarter, and celebrate every sip — India's #1 beverage guide.
+                Discover drinks in <span className="text-background font-semibold">{cityName}</span>, compare local prices, and plan every gathering with confidence.
               </p>
 
               <div className="flex flex-wrap gap-2">
@@ -116,7 +133,7 @@ const Home = () => {
 
               {/* Social-proof trust strip inside hero */}
               <div className="mt-6 pt-5 border-t border-background/10 grid grid-cols-3 gap-2">
-                {TRUST_STATS.map((s) => (
+                {trustStats.map((s) => (
                   <div key={s.label} className="text-center">
                     <div className="text-base font-bold text-background tracking-tight">{s.value}</div>
                     <div className="text-[10px] text-background/60 uppercase tracking-wider mt-0.5">{s.label}</div>
@@ -220,7 +237,7 @@ const Home = () => {
                   Planning a get-together?
                 </p>
                 <p className="text-[12px] text-muted-foreground">
-                  AI-powered drink picks for your budget
+                  Personalized drink picks for your budget
                 </p>
               </div>
               <div className="w-11 h-11 rounded-2xl bg-accent text-accent-foreground flex items-center justify-center flex-shrink-0 shadow-[var(--shadow-gold)]">

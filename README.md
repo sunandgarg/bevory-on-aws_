@@ -41,12 +41,21 @@ The seed creates a local administrator only when both `ADMIN_EMAIL` and `ADMIN_P
 
 ## Production
 
+The current production deployment uses Cloudflare Pages for the React frontend
+and a private-header proxy to a Node API on AWS Lightsail. MySQL runs on
+Lightsail Managed Databases and uploads use a private S3 bucket. See
+[docs/PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md) for the deployed
+topology, resource names, operational checks, and remaining CloudFront account
+verification item.
+
 ```bash
 pnpm build
 NODE_ENV=production pnpm start
 ```
 
-In production, Express serves the compiled React application and API from the same process. Configure a production `DATABASE_URL`, strong `JWT_SECRET`, persistent uploads storage, HTTPS, and the optional integration credentials described in `.env.example`.
+Express can serve the compiled application and API from the same process. In the
+deployed split architecture, set `SERVE_FRONTEND=false`; Cloudflare Pages serves
+the frontend and proxies `/api/*` to the API origin.
 
 For a containerized local/production-like stack:
 
@@ -62,4 +71,4 @@ This repository is standalone and has no dependency on the earlier backend or it
 
 The frontend uses the first-party client at `src/integrations/api/client.ts`, which talks only to the Node API configured by `VITE_API_URL`. Google OAuth, Twilio OTP, GA4 reporting, an approved price provider, and S3-compatible uploads activate only when their server-side environment variables are supplied.
 
-See [docs/MIGRATION_STATUS.md](docs/MIGRATION_STATUS.md) for verified coverage and production blockers.
+See [docs/MIGRATION_STATUS.md](docs/MIGRATION_STATUS.md) for the backend migration record.

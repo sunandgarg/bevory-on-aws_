@@ -51,7 +51,7 @@ const partyPlanner = async (body: Record<string, unknown>) => {
       "Serve responsibly and arrange safe transport for guests.",
     ],
     budgetAnalysis: `The plan uses approximately ₹${totalEstimatedCost.toLocaleString("en-IN")} of the ₹${budget.toLocaleString("en-IN")} budget.`,
-    mode: process.env.AI_API_KEY ? "local-fallback-ai-key-present" : "deterministic-local",
+    mode: "catalog-rules",
   };
 };
 

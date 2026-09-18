@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, memo, useCallback } from "react";
-import { Star, TrendingUp, ChevronRight } from "lucide-react";
+import { Star, TrendingUp, ChevronRight, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiClient } from "@/integrations/api/client";
@@ -61,6 +61,15 @@ const TrendingProducts = memo(({ defaultCategory = "whisky" }: TrendingProductsP
     [productsByTab, selectedTab]
   );
 
+  useEffect(() => {
+    if ((productsByTab.get(selectedTab) ?? []).length > 0) return;
+
+    const firstAvailableTab = CATEGORY_TABS.find(
+      (tab) => (productsByTab.get(tab) ?? []).length > 0,
+    );
+    if (firstAvailableTab) setSelectedTab(firstAvailableTab);
+  }, [productsByTab, selectedTab]);
+
   const handleTabClick = useCallback((tab: string) => setSelectedTab(tab), []);
 
   if (loading) {
@@ -77,6 +86,8 @@ const TrendingProducts = memo(({ defaultCategory = "whisky" }: TrendingProductsP
     );
   }
 
+  if (products.length === 0) return null;
+
   return (
     <div className="px-4">
       <div className="flex items-center justify-between mb-2.5">
@@ -84,7 +95,7 @@ const TrendingProducts = memo(({ defaultCategory = "whisky" }: TrendingProductsP
           <TrendingUp className="w-4 h-4 text-accent" />
           <h2 className="text-base font-semibold">Trending</h2>
         </div>
-        <Link to="/search" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 transition-colors">
+        <Link to="/search?sort=trending" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 transition-colors">
           See all <ChevronRight className="w-3 h-3" />
         </Link>
       </div>
@@ -94,6 +105,7 @@ const TrendingProducts = memo(({ defaultCategory = "whisky" }: TrendingProductsP
           <button
             key={tab}
             onClick={() => handleTabClick(tab)}
+            aria-pressed={selectedTab === tab}
             className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize whitespace-nowrap transition-all duration-150 ${
               selectedTab === tab
                 ? "bg-foreground text-background"
@@ -149,11 +161,19 @@ const TrendingProducts = memo(({ defaultCategory = "whisky" }: TrendingProductsP
                     <p className="text-[10px] text-muted-foreground mt-0.5">{product.volume}</p>
                     <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-border/50">
                       <div className="flex items-center gap-0.5">
-                        <Star className="w-3 h-3 fill-accent text-accent" />
-                        <span className="text-[10px] font-medium">{product.rating || "—"}</span>
+                        <Star
+                          className={`w-3 h-3 ${
+                            Number(product.rating) > 0
+                              ? "fill-accent text-accent"
+                              : "text-muted-foreground/50"
+                          }`}
+                        />
+                        <span className="text-[10px] font-medium">
+                          {Number(product.rating) > 0 ? Number(product.rating).toFixed(1) : "New"}
+                        </span>
                       </div>
-                      <p className="font-semibold text-xs">
-                        {product.price ? `₹${Number(product.price).toLocaleString()}` : "—"}
+                      <p className={`font-semibold ${product.price ? "text-xs" : "text-[10px] text-muted-foreground"}`}>
+                        {product.price ? `₹${Number(product.price).toLocaleString("en-IN")}` : "Price pending"}
                       </p>
                     </div>
                   </div>
@@ -165,8 +185,8 @@ const TrendingProducts = memo(({ defaultCategory = "whisky" }: TrendingProductsP
       </div>
 
       {selectedCity && (
-        <p className="text-[10px] text-muted-foreground mt-2">
-          📍 Prices in {selectedCity.name}
+        <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">
+          <MapPin className="w-3 h-3" /> Prices in {selectedCity.name}
         </p>
       )}
     </div>
