@@ -101,7 +101,7 @@ const Cocktails = () => {
     "@type": "CollectionPage",
     "name": "Cocktail Recipes & Library",
     "description": "Discover classic and modern cocktail recipes. Learn how to make your favorite drinks with step-by-step instructions.",
-    "url": "https://www.bevory.in/cocktails",
+    "url": "https://bevory.in/cocktails",
     "numberOfItems": cocktails.length,
     "mainEntity": {
       "@type": "ItemList",
@@ -112,7 +112,7 @@ const Cocktails = () => {
           "@type": "Recipe",
           "name": c.name,
           "description": c.description || `Delicious ${c.name} cocktail recipe with ${c.base_spirit || 'spirits'}.`,
-          "image": c.image_url || "https://www.bevory.in/og-image.png",
+          "image": c.image_url || "https://bevory.in/og-image.png",
           "recipeCategory": "Cocktail",
           "recipeCuisine": "International",
           "prepTime": formatPrepTimeISO(c.prep_time),
@@ -136,7 +136,7 @@ const Cocktails = () => {
             "name": "BevOry",
             "logo": {
               "@type": "ImageObject",
-              "url": "https://www.bevory.in/favicon.png"
+              "url": "https://bevory.in/favicon.png"
             }
           },
           "keywords": `${c.name}, ${c.base_spirit || ''} cocktail, cocktail recipe, drink recipe, mixology`,
@@ -151,7 +151,7 @@ const Cocktails = () => {
             "@type": "NutritionInformation",
             "calories": "150 kcal"
           },
-          "url": `https://www.bevory.in/cocktails?slug=${c.slug || c.id}`
+          "url": `https://bevory.in/cocktails?slug=${c.slug || c.id}`
         }
       }))
     }

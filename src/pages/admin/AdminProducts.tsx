@@ -1181,7 +1181,7 @@ const AdminProducts = () => {
                   </div>
                   {editProduct?.slug && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Canonical: <code className="bg-secondary px-1 rounded">https://www.bevory.in/product/{editProduct.slug}</code>
+                      Canonical: <code className="bg-secondary px-1 rounded">https://bevory.in/product/{editProduct.slug}</code>
                     </p>
                   )}
                 </FormField>

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 
 // Primary domain for canonical URLs
-const PRIMARY_DOMAIN = "https://www.bevory.in";
+const PRIMARY_DOMAIN = "https://bevory.in";
 
 interface SEOHeadProps {
   title: string;
@@ -138,7 +138,7 @@ const SEOHead = ({
     updateMeta("apple-mobile-web-app-capable", "yes");
     updateMeta("apple-mobile-web-app-status-bar-style", "default");
 
-    // Canonical URL (critical for SEO) - always use www.bevory.in
+    // Canonical URL (critical for SEO) - always use the apex domain
     const canonicalUrl = canonical 
       ? (canonical.startsWith('http') ? canonical : `${PRIMARY_DOMAIN}${canonical.startsWith('/') ? canonical : '/' + canonical}`)
       : `${PRIMARY_DOMAIN}${window.location.pathname}`;

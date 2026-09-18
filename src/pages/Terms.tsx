@@ -11,7 +11,7 @@ const Terms = () => (
       <p className="text-muted-foreground text-xs mb-4">Last updated: April 2026</p>
 
       <h2>1. Acceptance of Terms</h2>
-      <p>By accessing and using Bevory (www.bevory.in), you agree to be bound by these Terms & Conditions. If you do not agree, please do not use the platform.</p>
+      <p>By accessing and using Bevory (bevory.in), you agree to be bound by these Terms & Conditions. If you do not agree, please do not use the platform.</p>
 
       <h2>2. Eligibility</h2>
       <p>You must be of legal drinking age in your jurisdiction (minimum 21 years in India) to access this website. By using Bevory, you confirm that you meet this requirement.</p>

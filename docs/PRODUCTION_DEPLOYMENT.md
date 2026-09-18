@@ -4,7 +4,7 @@ Last verified: 2026-09-19
 
 ## Public endpoints
 
-- Primary site: `https://www.bevory.in`
+- Primary site: `https://bevory.in`
 - Apex domain: `https://bevory.in` (redirects to `www` in the application shell)
 - Pages project: `https://bevory.pages.dev`
 - API origin: `https://api.bevory.in`

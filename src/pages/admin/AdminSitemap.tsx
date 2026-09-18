@@ -30,7 +30,7 @@ const AdminSitemap = () => {
     magazine: 0,
   });
   const [config, setConfig] = useState<SitemapConfig>({
-    baseUrl: "https://www.bevory.in",
+    baseUrl: "https://bevory.in",
     includeProducts: true,
     includeCategories: true,
     includeCocktails: true,

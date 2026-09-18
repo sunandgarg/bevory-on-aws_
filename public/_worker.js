@@ -30,6 +30,12 @@ const proxyApiRequest = async (request, env) => {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (url.hostname === "www.bevory.in") {
+      url.hostname = "bevory.in";
+      return Response.redirect(url.toString(), 308);
+    }
+
     if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
       return proxyApiRequest(request, env);
     }

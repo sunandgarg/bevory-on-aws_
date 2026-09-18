@@ -34,7 +34,7 @@ Disallow: /recent
 Disallow: /locations
 
 # Primary domain
-Host: https://www.bevory.in
+Host: bevory.in
 
 # Sitemaps
-Sitemap: https://www.bevory.in/sitemap.xml
+Sitemap: https://bevory.in/sitemap.xml

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "@/hooks/useLocation";
+import SEOHead from "@/components/SEOHead";
 import Home from "./Home";
 
 interface CityHomeProps {
@@ -19,22 +20,19 @@ const CityHome = ({ citySlug }: CityHomeProps) => {
     }
   }, [citySlug, setCityByName, selectedCity]);
 
-  // Update document title for SEO
-  useEffect(() => {
-    const cityName = citySlug.charAt(0).toUpperCase() + citySlug.slice(1);
-    document.title = `Alcohol Prices in ${cityName} | BevOry - Compare Liquor Prices`;
-    
-    // Update meta description
-    const metaDescription = document.querySelector('meta[name="description"]');
-    if (metaDescription) {
-      metaDescription.setAttribute(
-        "content",
-        `Compare alcohol prices in ${cityName}. Find the best deals on whiskey, beer, wine, rum and more. Check today's liquor prices at BevOry.`
-      );
-    }
-  }, [citySlug]);
+  const cityName = citySlug.charAt(0).toUpperCase() + citySlug.slice(1);
 
-  return <Home />;
+  return (
+    <>
+      <SEOHead
+        title={`Alcohol Prices in ${cityName} | Bevory`}
+        description={`Compare alcohol prices in ${cityName}. Explore whisky, beer, wine, rum and more with Bevory's local price guide.`}
+        canonical={`/${citySlug}`}
+        geoPlacename={cityName}
+      />
+      <Home />
+    </>
+  );
 };
 
 export default CityHome;

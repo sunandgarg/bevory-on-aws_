@@ -249,7 +249,7 @@ const ProductDetail = () => {
           product.image_url.startsWith("https://") ||
           product.image_url.startsWith("/"))
           ? product.image_url
-          : "https://www.bevory.in/og-image.png";
+          : "https://bevory.in/og-image.png";
 
       // Enhanced schema with all required Google Search Console fields
       const productSchema: any = {
@@ -264,7 +264,7 @@ const ProductDetail = () => {
         sku: product.slug || product.id,
         mpn: product.slug || product.id,
         category: product.category?.name || "Alcoholic Beverages",
-        url: `https://www.bevory.in/product/${product.slug || product.id}`,
+        url: `https://bevory.in/product/${product.slug || product.id}`,
       };
 
       if (displayRating && displayReviewCount > 0) {

@@ -1,9 +1,9 @@
 /**
  * Domain configuration for SEO
- * Primary domain is www.bevory.in
+ * Primary domain is bevory.in
  */
 
-export const PRIMARY_DOMAIN = "https://www.bevory.in";
+export const PRIMARY_DOMAIN = "https://bevory.in";
 
 /**
  * Generate a full canonical URL from a path
@@ -29,21 +29,20 @@ export function getOgImageUrl(path?: string): string {
  */
 export function isOnPrimaryDomain(): boolean {
   if (typeof window === 'undefined') return true;
-  return window.location.hostname === 'www.bevory.in';
+  return window.location.hostname === 'bevory.in';
 }
 
 /**
- * Redirect to primary domain if on non-www
+ * Redirect to the apex primary domain when served from www
  */
 export function redirectToPrimaryDomain(): void {
   if (typeof window === 'undefined') return;
   
   const hostname = window.location.hostname;
   
-  // Redirect bevory.in to www.bevory.in
-  if (hostname === 'bevory.in') {
+  if (hostname === 'www.bevory.in') {
     window.location.replace(
-      `https://www.bevory.in${window.location.pathname}${window.location.search}`
+      `https://bevory.in${window.location.pathname}${window.location.search}`
     );
   }
 }

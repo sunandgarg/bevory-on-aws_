@@ -1,5 +1,5 @@
-// Bevory Service Worker v3 - 2026
-const CACHE_VERSION = 'bevory-v3';
+// Bevory Service Worker v4 - 2026
+const CACHE_VERSION = 'bevory-v4';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;

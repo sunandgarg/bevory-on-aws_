@@ -131,7 +131,7 @@ const GuideArticle = () => {
   // Use valid image URL or default OG image
   const articleImage = isValidImageUrl 
     ? post.cover_image_url 
-    : "https://www.bevory.in/og-image.png";
+    : "https://bevory.in/og-image.png";
 
   // Generate structured data for SEO with all required fields
   const structuredData = {
@@ -143,21 +143,21 @@ const GuideArticle = () => {
     "author": {
       "@type": "Person",
       "name": post.author || "BevOry Team",
-      "url": "https://www.bevory.in/guide"
+      "url": "https://bevory.in/guide"
     },
     "publisher": {
       "@type": "Organization",
       "name": "BevOry",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://www.bevory.in/favicon.png"
+        "url": "https://bevory.in/favicon.png"
       }
     },
     "datePublished": post.published_at || new Date().toISOString(),
     "dateModified": post.published_at || new Date().toISOString(),
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": `https://www.bevory.in/guide/${post.slug}`
+      "@id": `https://bevory.in/guide/${post.slug}`
     },
     "articleSection": post.category || "Guide",
     "keywords": post.tags?.join(", ") || post.category || "bevory, guide, drinks"
