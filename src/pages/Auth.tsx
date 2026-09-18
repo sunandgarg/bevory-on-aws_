@@ -246,7 +246,7 @@ const Auth = () => {
 
       <div className="p-4 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-destructive/10">
-          <span className="text-xs font-bold text-destructive">21+</span>
+          <span className="text-xs font-bold text-destructive">25+</span>
           <span className="text-xs text-muted-foreground">Adults only. Drink responsibly.</span>
         </div>
       </div>

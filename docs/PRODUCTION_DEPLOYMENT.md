@@ -89,5 +89,19 @@ sudo docker compose -f deploy/docker-compose.production.yml run --rm api pnpm db
 sudo docker compose -f deploy/docker-compose.production.yml up -d
 ```
 
+Import a reviewed Livcheers catalogue bundle after copying the three CSVs to a
+temporary host directory. The importer is idempotent and writes a complete JSON
+exception report; remove the temporary CSVs after verification.
+
+```bash
+sudo docker compose -f deploy/docker-compose.production.yml run --rm \
+  -v /opt/bevory/catalog-import:/catalog:ro api \
+  pnpm catalog:import -- \
+  --delhi /catalog/delhi.csv \
+  --goa /catalog/goa.csv \
+  --gurgaon /catalog/gurgaon.csv \
+  --report /tmp/livcheers-import-report.json
+```
+
 Never commit `.env.production`, AWS access keys, database credentials, JWT
 secrets, or the Pages origin-verification secret.

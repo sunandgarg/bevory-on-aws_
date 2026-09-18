@@ -14,7 +14,7 @@ const Terms = () => (
       <p>By accessing and using Bevory (bevory.in), you agree to be bound by these Terms & Conditions. If you do not agree, please do not use the platform.</p>
 
       <h2>2. Eligibility</h2>
-      <p>You must be of legal drinking age in your jurisdiction (minimum 21 years in India) to access this website. By using Bevory, you confirm that you meet this requirement.</p>
+      <p>You must be at least 25 years old and meet the legal drinking-age requirements in your jurisdiction to access this website. By using Bevory, you confirm that you meet both requirements.</p>
 
       <h2>3. Nature of Service</h2>
       <p>Bevory is a beverage discovery and price comparison platform. We do <strong>not</strong> sell, distribute, or deliver any alcoholic beverages. All prices displayed are sourced from publicly available information and may vary by retailer.</p>

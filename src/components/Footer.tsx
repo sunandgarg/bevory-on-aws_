@@ -72,7 +72,7 @@ const Footer = () => {
         <BrandingDisplay variant="footer" className="text-primary-foreground" />
         <div className="flex items-center gap-2">
           <div className="px-2 py-0.5 rounded-full bg-destructive/20 text-destructive text-[10px] font-bold">
-            21+
+            25+
           </div>
           <p className="text-primary-foreground/50 text-xs">
             © 2026 Bevory. All rights reserved.

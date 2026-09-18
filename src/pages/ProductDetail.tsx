@@ -96,6 +96,7 @@ const ProductDetail = () => {
   const [volumePrices, setVolumePrices] = useState<VolumePrice[]>([]);
   const [selectedVolume, setSelectedVolume] = useState<string>("750ml");
   const [loading, setLoading] = useState(true);
+  const [unavailableInCity, setUnavailableInCity] = useState(false);
   const [liked, setLiked] = useState(false);
   const [showCitySelector, setShowCitySelector] = useState(false);
   const [reviewRefresh, setReviewRefresh] = useState(0);
@@ -114,6 +115,7 @@ const ProductDetail = () => {
       if (!effectiveSlug) return;
 
       setLoading(true);
+      setUnavailableInCity(false);
 
       // Try to fetch by slug first, then by id for backwards compatibility
       let productData = null;
@@ -169,7 +171,8 @@ const ProductDetail = () => {
           .from("product_prices")
           .select("*")
           .eq("product_id", productData.id)
-          .eq("city_id", selectedCity.id);
+          .eq("city_id", selectedCity.id)
+          .eq("price_available", true);
 
         if (priceData && priceData.length > 0) {
           const prices: VolumePrice[] = priceData.map((p) => ({
@@ -189,7 +192,11 @@ const ProductDetail = () => {
           if (defaultVol) setSelectedVolume(defaultVol.volume);
         } else {
           setVolumePrices([]);
+          setUnavailableInCity(true);
         }
+      } else {
+        setVolumePrices([]);
+        setUnavailableInCity(true);
       }
 
       setLoading(false);
@@ -380,6 +387,23 @@ const ProductDetail = () => {
     );
   }
 
+  if (unavailableInCity) {
+    return (
+      <MobileLayout showBack showLocation>
+        <div className="px-5 py-16 text-center">
+          <MapPin className="w-10 h-10 mx-auto mb-4 text-muted-foreground" />
+          <h1 className="text-xl font-serif font-bold mb-2">Not listed in {selectedCity?.name || "this city"}</h1>
+          <p className="text-sm text-muted-foreground mb-6">
+            This product is hidden because no verified local price is available for the selected city.
+          </p>
+          <Link to="/search">
+            <Button variant="outline">Browse locally priced products</Button>
+          </Link>
+        </div>
+      </MobileLayout>
+    );
+  }
+
   return (
     <MobileLayout showBack showLocation={false} showBottomNav={false}>
       <div className="pb-24">
@@ -394,10 +418,10 @@ const ProductDetail = () => {
               <OptimizedImage
                 src={product.image_url}
                 alt={product.name}
-                width={600}
-                height={600}
+                width={720}
+                height={720}
                 className="w-full h-full"
-                objectFit="cover"
+                objectFit="contain"
                 priority
               />
             </motion.div>

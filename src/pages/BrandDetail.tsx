@@ -127,35 +127,46 @@ const BrandDetail = () => {
             category:categories(name, slug, emoji),
             sub_category:sub_categories(name, slug)
           `)
-          .ilike("brand", `%${brandData.brand_name}%`)
-          .order("is_trending", { ascending: false })
-          .limit(20);
+          .eq("brand_id", brandData.id)
+          .eq("is_active", true)
+          .order("is_trending", { ascending: false });
 
-        if (productsData) {
+        if (productsData && selectedCity?.id) {
           const productIds = productsData.map(p => p.id);
-          let pricesMap: Record<string, number> = {};
+          const pricesMap = new Map<string, Array<{ price: number; volume_ml: number | null }>>();
 
-          if (selectedCity?.id && productIds.length > 0) {
+          if (productIds.length > 0) {
             const { data: pricesData } = await apiClient
               .from("product_prices")
-              .select("product_id, price")
+              .select("product_id, price, volume_ml")
               .eq("city_id", selectedCity.id)
+              .eq("price_available", true)
               .in("product_id", productIds);
 
             if (pricesData) {
-              pricesMap = pricesData.reduce((acc, p) => {
-                acc[p.product_id] = p.price;
-                return acc;
-              }, {} as Record<string, number>);
+              pricesData.forEach((price) => {
+                const variants = pricesMap.get(price.product_id) ?? [];
+                variants.push({ price: Number(price.price), volume_ml: price.volume_ml ?? null });
+                pricesMap.set(price.product_id, variants);
+              });
             }
           }
 
           setProducts(
-            productsData.map(p => ({
-              ...p,
-              price: pricesMap[p.id] || null,
-            }))
+            productsData
+              .filter((product) => pricesMap.has(product.id))
+              .map((product) => {
+                const prices = (pricesMap.get(product.id) ?? []).sort((left, right) => {
+                  const leftPreferred = left.volume_ml === 750 ? 1 : 0;
+                  const rightPreferred = right.volume_ml === 750 ? 1 : 0;
+                  return rightPreferred - leftPreferred || (right.volume_ml ?? 0) - (left.volume_ml ?? 0);
+                });
+                return { ...product, price: prices[0]?.price ?? null };
+              })
+              .slice(0, 20)
           );
+        } else {
+          setProducts([]);
         }
       }
 
@@ -348,7 +359,7 @@ const BrandDetail = () => {
                         width={80}
                         height={80}
                         className="w-full h-full"
-                        objectFit="cover"
+                        objectFit="contain"
                       />
                     ) : (
                       <span>{brand.logo_emoji || "🏷️"}</span>

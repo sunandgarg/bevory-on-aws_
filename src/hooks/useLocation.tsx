@@ -44,7 +44,6 @@ interface LocationContextType {
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
 
 const LOCATION_CACHE_KEY = "bevory_location";
-const AGE_VERIFIED_KEY = "bevory-age-verified";
 
 // Default city if no match found
 export const DEFAULT_CITY = "Gurgaon";

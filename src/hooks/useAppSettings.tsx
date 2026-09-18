@@ -15,9 +15,9 @@ export interface AgeVerificationSettings {
 const DEFAULT_AGE_SETTINGS: AgeVerificationSettings = {
   enabled: true,
   defaultCity: "Gurgaon",
-  title: "Are you of legal drinking age?",
-  description: "You must be of legal drinking age in your region to access this website.",
-  confirmButtonText: "Yes, I am 21+",
+  title: "Are you 25 or older?",
+  description: "You must be 25 or older to access Bevory.",
+  confirmButtonText: "Yes, I am 25+",
   declineButtonText: "No, I am not",
   termsText: "By entering this website, you agree to our Terms of Service and Privacy Policy.",
 };

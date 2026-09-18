@@ -8,7 +8,7 @@ import { useLocation, POPULAR_CITIES, CITIES_BY_STATE } from "@/hooks/useLocatio
 import { useAppSettings } from "@/hooks/useAppSettings";
 import BrandingDisplay from "@/components/layout/BrandingDisplay";
 
-const AGE_VERIFIED_KEY = "bevory-age-verified";
+const AGE_VERIFIED_KEY = "bevory-age-verified-v25";
 
 const AgeVerificationModal = () => {
   const [isOpen, setIsOpen] = useState(false);

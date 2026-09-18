@@ -42,6 +42,7 @@ const CategoriesSection = memo(() => {
       const { data, error } = await apiClient
         .from("categories")
         .select("id, name, slug, emoji, description, image_url, is_trending, order_index")
+        .eq("is_active", true)
         .order("order_index")
         .order("name");
       

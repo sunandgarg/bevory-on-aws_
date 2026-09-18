@@ -62,6 +62,7 @@ export const CompareProvider = ({ children }: { children: ReactNode }) => {
   const addToCompare = async (productId: string) => {
     if (compareProducts.length >= 4) return;
     if (compareProducts.find((p) => p.id === productId)) return;
+    if (!selectedCity?.id) return;
 
     const { data: product } = await apiClient
       .from("products")
@@ -73,26 +74,37 @@ export const CompareProvider = ({ children }: { children: ReactNode }) => {
       .eq("id", productId)
       .maybeSingle();
 
-    if (product && selectedCity) {
+    if (product) {
       const { data: priceData } = await apiClient
         .from("product_prices")
-        .select("*")
+        .select("price, mrp, volume, volume_ml")
         .eq("product_id", productId)
         .eq("city_id", selectedCity.id)
-        .maybeSingle();
+        .eq("price_available", true);
+
+      const preferredPrice = (priceData || []).sort((left, right) => {
+        const leftPreferred = left.volume_ml === 750 ? 1 : 0;
+        const rightPreferred = right.volume_ml === 750 ? 1 : 0;
+        return rightPreferred - leftPreferred || (right.volume_ml ?? 0) - (left.volume_ml ?? 0);
+      })[0];
+
+      if (!preferredPrice) return;
 
       setCompareProducts((prev) => [
         ...prev,
         {
           ...product,
-          price: priceData?.price || null,
-          mrp: priceData?.mrp || null,
+          price: Number(preferredPrice.price),
+          mrp: preferredPrice.mrp == null ? null : Number(preferredPrice.mrp),
+          volume: preferredPrice.volume || product.volume,
         },
       ]);
-    } else if (product) {
-      setCompareProducts((prev) => [...prev, product]);
     }
   };
+
+  useEffect(() => {
+    setCompareProducts([]);
+  }, [selectedCity?.id]);
 
   const removeFromCompare = (productId: string) => {
     setCompareProducts((prev) => prev.filter((p) => p.id !== productId));

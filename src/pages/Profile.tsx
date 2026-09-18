@@ -165,7 +165,7 @@ const Profile = () => {
           </div>
           <p className="text-xs text-muted-foreground">Version 1.0.0</p>
           <p className="text-xs text-muted-foreground mt-2">
-            Know Before You Drink • 21+ Only
+            Know Before You Drink • 25+ Only
           </p>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "node:crypto";
 import { BEVORY_CITIES } from "../src/lib/locations.js";
+import { LEGACY_CATALOG_CATEGORY_SLUGS, LIVCHEERS_CATEGORY_DEFINITIONS } from "../src/lib/catalogTaxonomy.js";
 
 const prisma = new PrismaClient();
 
@@ -88,16 +89,7 @@ for (const city of BEVORY_CITIES) {
 }
 
 const existingCategories = await prisma.contentRecord.findMany({ where: { tableName: "categories" } });
-const categoryDefinitions = [
-  ["beer", "Beer", "🍺"],
-  ["whisky", "Whisky", "🥃"],
-  ["wine", "Wine", "🍷"],
-  ["vodka", "Vodka", "🍸"],
-  ["gin", "Gin", "🌿"],
-  ["rum", "Rum", "🏴‍☠️"],
-] as const;
-
-for (const [orderIndex, [slug, name, emoji]] of categoryDefinitions.entries()) {
+for (const [orderIndex, [slug, name, emoji, description]] of LIVCHEERS_CATEGORY_DEFINITIONS.entries()) {
   const existing = existingCategories.find(({ data }) => recordData(data).slug === slug);
   const recordId = existing?.recordId ?? `starter-category-${slug}`;
   const previous = recordData(existing?.data ?? {});
@@ -107,6 +99,7 @@ for (const [orderIndex, [slug, name, emoji]] of categoryDefinitions.entries()) {
     name,
     slug,
     emoji,
+    description: previous.description ?? description,
     order_index: previous.order_index ?? orderIndex,
     is_active: previous.is_active ?? true,
     is_trending: previous.is_trending ?? false,
@@ -115,7 +108,44 @@ for (const [orderIndex, [slug, name, emoji]] of categoryDefinitions.entries()) {
   });
 }
 
-console.log(`Seeded India, ${stateDefinitions.length} states, ${BEVORY_CITIES.length} cities, and ${categoryDefinitions.length} categories`);
+for (const existing of existingCategories) {
+  const previous = recordData(existing.data);
+  if (!LEGACY_CATALOG_CATEGORY_SLUGS.has(String(previous.slug))) continue;
+  await upsertContentRecord("categories", existing.recordId, {
+    ...previous,
+    id: existing.recordId,
+    is_active: false,
+    replaced_by_imported_taxonomy: true,
+    updated_at: createdAt,
+  });
+}
+
+const existingSettings = await prisma.contentRecord.findMany({ where: { tableName: "app_settings" } });
+const existingAgeSetting = existingSettings.find(({ data }) => recordData(data).key === "age_verification");
+const ageSettingId = existingAgeSetting?.recordId ?? "age-verification";
+const existingAgeData = recordData(existingAgeSetting?.data ?? {});
+const existingAgeValue = recordData((existingAgeData.value ?? {}) as Prisma.JsonValue);
+await upsertContentRecord("app_settings", ageSettingId, {
+  ...existingAgeData,
+  id: ageSettingId,
+  key: "age_verification",
+  description: "Age verification popup settings",
+  value: {
+    ...existingAgeValue,
+    enabled: existingAgeValue.enabled ?? true,
+    defaultCity: existingAgeValue.defaultCity ?? "Gurgaon",
+    title: "Are you 25 or older?",
+    description: "You must be 25 or older to access Bevory.",
+    confirmButtonText: "Yes, I am 25+",
+    declineButtonText: existingAgeValue.declineButtonText ?? "No, I am not",
+    termsText: existingAgeValue.termsText ?? "By entering this website, you agree to our Terms of Service and Privacy Policy.",
+    minimumAge: 25,
+  },
+  created_at: existingAgeData.created_at ?? createdAt,
+  updated_at: createdAt,
+});
+
+console.log(`Seeded India, ${stateDefinitions.length} states, ${BEVORY_CITIES.length} cities, and ${LIVCHEERS_CATEGORY_DEFINITIONS.length} categories`);
 
 const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
 const adminPassword = process.env.ADMIN_PASSWORD;
