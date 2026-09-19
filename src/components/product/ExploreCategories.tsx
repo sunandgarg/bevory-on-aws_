@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { apiClient } from "@/integrations/api/client";
+import { useLocation } from "@/hooks/useLocation";
+import { citySlugFromName } from "@/lib/locations";
 
 interface Category {
   id: string;
@@ -16,6 +18,8 @@ interface ExploreCategoriesProps {
 const ExploreCategories = ({ currentCategoryId }: ExploreCategoriesProps) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const { selectedCity } = useLocation();
+  const citySlug = citySlugFromName(selectedCity?.name) || "gurgaon";
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -44,7 +48,7 @@ const ExploreCategories = ({ currentCategoryId }: ExploreCategoriesProps) => {
           <h3 className="font-semibold mb-3">Explore Other Categories</h3>
           <div className="grid grid-cols-2 gap-3">
             {categories.map((cat) => (
-              <Link key={cat.id} to={`/category/${cat.slug}`}>
+              <Link key={cat.id} to={`/${citySlug}/category/${cat.slug}`}>
                 <div className="p-4 rounded-xl bg-card border border-border hover:border-accent/50 transition-colors text-center">
                   <span className="text-3xl block mb-2">{cat.emoji || "🍷"}</span>
                   <p className="font-medium text-sm">{cat.name}</p>
@@ -60,7 +64,7 @@ const ExploreCategories = ({ currentCategoryId }: ExploreCategoriesProps) => {
         <h3 className="font-semibold mb-3">All Categories</h3>
         <div className="flex gap-2 flex-wrap">
           {allCategories.map((cat) => (
-            <Link key={cat.id} to={`/category/${cat.slug}`}>
+            <Link key={cat.id} to={`/${citySlug}/category/${cat.slug}`}>
               <div className={`px-3 py-2 rounded-full border transition-colors text-sm flex items-center gap-1 ${
                 cat.id === currentCategoryId 
                   ? "bg-accent/10 border-accent text-accent" 

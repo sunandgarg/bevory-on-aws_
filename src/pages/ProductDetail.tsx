@@ -1,12 +1,12 @@
 import { useState, useEffect, memo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Star, Heart, Share2, MapPin, ChevronDown, ArrowLeftRight, Check, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import MobileLayout from "@/components/layout/MobileLayout";
 import { apiClient } from "@/integrations/api/client";
-import { useLocation } from "@/hooks/useLocation";
+import { useRouteCity } from "@/hooks/useRouteCity";
 import { useProducts } from "@/hooks/useProducts";
 import { useCompare } from "@/components/home/CompareProducts";
 import { useToast } from "@/hooks/use-toast";
@@ -22,7 +22,7 @@ import RelatedArticles from "@/components/product/RelatedArticles";
 import OtherProductsSection from "@/components/product/OtherProductsSection";
 import ExploreCategories from "@/components/product/ExploreCategories";
 import OptimizedImage from "@/components/ui/OptimizedImage";
-import { generateProductUrl } from "@/lib/productSlug";
+import { generateProductUrl, generateProductUrlWithVolume } from "@/lib/productSlug";
 
 interface FAQ {
   question: string;
@@ -54,6 +54,7 @@ interface Product {
   faqs: FAQ[] | null;
   meta_title: string | null;
   meta_description: string | null;
+  available_volumes_ml?: number[] | null;
   category?: {
     name: string;
     slug: string;
@@ -80,11 +81,12 @@ interface VolumePrice {
 // Volume options are now fetched from the database - no fixed options
 
 const ProductDetail = () => {
-  // Support both new format (/bevory/:state/:category/:subcategory/:productSlug) and legacy (/product/:slug)
-  const { slug, productSlug, state } = useParams<{
+  const { slug, productSlug, state, citySlug, volume } = useParams<{
     slug?: string;
     productSlug?: string;
     state?: string;
+    citySlug?: string;
+    volume?: string;
     category?: string;
     subcategory?: string;
   }>();
@@ -97,14 +99,31 @@ const ProductDetail = () => {
   const [selectedVolume, setSelectedVolume] = useState<string>("750ml");
   const [loading, setLoading] = useState(true);
   const [unavailableInCity, setUnavailableInCity] = useState(false);
+  const [unavailableVariant, setUnavailableVariant] = useState(false);
   const [liked, setLiked] = useState(false);
   const [showCitySelector, setShowCitySelector] = useState(false);
   const [reviewRefresh, setReviewRefresh] = useState(0);
 
-  const { selectedCity, allCities, setSelectedCity } = useLocation();
+  const legacyCityByState: Record<string, string> = {
+    delhi: "delhi",
+    goa: "goa",
+    haryana: "gurgaon",
+    india: "gurgaon",
+    karnataka: "bangalore",
+  };
+  const canonicalCitySlug = citySlug || legacyCityByState[state || ""] || "gurgaon";
+  const {
+    selectedCity,
+    allCities,
+    setSelectedCity,
+    routeCity,
+    routeCityReady,
+  } = useRouteCity(canonicalCitySlug);
   const { products } = useProducts();
   const { addToCompare, isInCompare, setShowCompareSheet } = useCompare();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const requestedVolume = volume?.toLowerCase().replace(/\s+/g, "") || null;
 
   const currentPrice = volumePrices.find((vp) => vp.volume === selectedVolume);
   const price = currentPrice?.price ?? null;
@@ -116,6 +135,9 @@ const ProductDetail = () => {
 
       setLoading(true);
       setUnavailableInCity(false);
+      setUnavailableVariant(false);
+
+      if (!routeCityReady) return;
 
       // Try to fetch by slug first, then by id for backwards compatibility
       let productData = null;
@@ -172,7 +194,8 @@ const ProductDetail = () => {
           .select("*")
           .eq("product_id", productData.id)
           .eq("city_id", selectedCity.id)
-          .eq("price_available", true);
+          .eq("price_available", true)
+          .neq("requires_review", true);
 
         if (priceData && priceData.length > 0) {
           const prices: VolumePrice[] = priceData.map((p) => ({
@@ -187,8 +210,11 @@ const ProductDetail = () => {
             return getSize(b.volume) - getSize(a.volume);
           });
           setVolumePrices(prices);
-          // Set default selected volume to 750ml if available, otherwise first available
-          const defaultVol = prices.find((p) => p.volume === "750ml") || prices[0];
+          const routeVolume = requestedVolume
+            ? prices.find((candidate) => candidate.volume.toLowerCase().replace(/\s+/g, "") === requestedVolume)
+            : null;
+          if (requestedVolume && !routeVolume) setUnavailableVariant(true);
+          const defaultVol = routeVolume || prices.find((p) => p.volume === "750ml") || prices[0];
           if (defaultVol) setSelectedVolume(defaultVol.volume);
         } else {
           setVolumePrices([]);
@@ -203,23 +229,33 @@ const ProductDetail = () => {
     };
 
     fetchProduct();
-  }, [effectiveSlug, selectedCity]);
+  }, [effectiveSlug, requestedVolume, routeCityReady, selectedCity]);
+
+  const productPath = product ? generateProductUrl({
+    citySlug: canonicalCitySlug,
+    productSlug: product.slug || product.id,
+  }) : null;
+  const canonicalPath = productPath && requestedVolume
+    ? generateProductUrlWithVolume({
+      citySlug: canonicalCitySlug,
+      productSlug: product?.slug || product?.id,
+    }, requestedVolume)
+    : productPath;
 
   const displayRating = product?.rating && product.rating > 0
     ? Number(product.rating).toFixed(1)
     : null;
   const displayReviewCount = product?.review_count || 0;
 
-  // Update document title and meta for SEO
+  // Keep client-rendered metadata aligned with the initial Cloudflare SEO shell.
   useEffect(() => {
-    if (product) {
-      // Use meta_title if set, otherwise generate SEO-friendly title
-      const title = product.meta_title || `${product.brand} ${product.name} Price & Reviews | Bevory`;
-
-      // Use meta_description if set, otherwise generate
-      const description =
-        product.meta_description ||
-        `${product.brand} ${product.name} ${selectedVolume || product.volume || ""} price guide for ${selectedCity?.name || "India"}. Compare sizes, tasting notes, reviews and local prices.`;
+    if (product && canonicalPath) {
+      const productLabel = `${product.brand} ${product.name}`.trim();
+      const cityName = routeCity?.name || selectedCity?.name || "Gurgaon";
+      const variantLabel = requestedVolume ? ` ${selectedVolume}` : "";
+      const title = `${productLabel}${variantLabel} Price in ${cityName} | Bevory`;
+      const description = `${productLabel}${variantLabel} price in ${cityName}${price ? ` is ₹${price.toLocaleString("en-IN")}` : ""}. Compare locally listed bottle sizes, product details and reviews.`;
+      const canonicalUrl = `https://bevory.in${canonicalPath}`;
 
       document.title = title;
 
@@ -239,13 +275,27 @@ const ProductDetail = () => {
         canonical.setAttribute("rel", "canonical");
         document.head.appendChild(canonical);
       }
-      canonical.setAttribute("href", `${window.location.origin}/product/${product.slug || product.id}`);
+      canonical.setAttribute("href", canonicalUrl);
+
+      let robots = document.querySelector('meta[name="robots"]');
+      if (!robots) {
+        robots = document.createElement("meta");
+        robots.setAttribute("name", "robots");
+        document.head.appendChild(robots);
+      }
+      robots.setAttribute(
+        "content",
+        unavailableInCity || unavailableVariant
+          ? "noindex, follow, max-image-preview:large"
+          : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
+      );
 
       // Add structured data for SEO (JSON-LD)
-      let jsonLd = document.querySelector('script[type="application/ld+json"]');
+      let jsonLd = document.querySelector('script[data-bevory-seo="product"]');
       if (!jsonLd) {
         jsonLd = document.createElement("script");
         jsonLd.setAttribute("type", "application/ld+json");
+        jsonLd.setAttribute("data-bevory-seo", "product");
         document.head.appendChild(jsonLd);
       }
 
@@ -258,21 +308,58 @@ const ProductDetail = () => {
           ? product.image_url
           : "https://bevory.in/og-image.png";
 
-      // Enhanced schema with all required Google Search Console fields
-      const productSchema: any = {
-        "@context": "https://schema.org",
+      const productGroupId = product.slug || product.id;
+      const variantSchema = (variant: VolumePrice) => ({
         "@type": "Product",
-        name: `${product.brand} ${product.name}`,
-        description:
-          product.description ||
-          `${product.brand} ${product.name} - Premium alcoholic beverage available in India. Check prices, reviews and ratings.`,
+        name: `${productLabel} ${variant.volume}`,
+        description: `${productLabel} ${variant.volume} with an indicative local price for ${cityName}.`,
         brand: { "@type": "Brand", name: product.brand },
-        image: [productImage],
-        sku: product.slug || product.id,
-        mpn: product.slug || product.id,
+        image: productImage,
+        sku: `${productGroupId}-${variant.volume.toLowerCase().replace(/\s+/g, "")}-${canonicalCitySlug}`,
+        size: variant.volume,
         category: product.category?.name || "Alcoholic Beverages",
-        url: `https://bevory.in/product/${product.slug || product.id}`,
-      };
+        url: `https://bevory.in${generateProductUrlWithVolume({
+          citySlug: canonicalCitySlug,
+          productSlug: productGroupId,
+        }, variant.volume)}`,
+        inProductGroupWithID: productGroupId,
+        offers: {
+          "@type": "Offer",
+          url: `https://bevory.in${generateProductUrlWithVolume({
+            citySlug: canonicalCitySlug,
+            productSlug: productGroupId,
+          }, variant.volume)}`,
+          price: variant.price,
+          priceCurrency: "INR",
+          availability: variant.in_stock
+            ? "https://schema.org/InStock"
+            : "https://schema.org/OutOfStock",
+          itemCondition: "https://schema.org/NewCondition",
+          areaServed: { "@type": "City", name: cityName },
+        },
+      });
+
+      const selectedVariant = volumePrices.find((variant) => variant.volume === selectedVolume);
+      const productSchema: Record<string, unknown> = requestedVolume && selectedVariant
+        ? {
+          ...variantSchema(selectedVariant),
+          isVariantOf: {
+            "@type": "ProductGroup",
+            name: productLabel,
+            productGroupID: productGroupId,
+          },
+        }
+        : {
+          "@type": "ProductGroup",
+          name: productLabel,
+          description: product.description || `${productLabel} local price guide for ${cityName}.`,
+          brand: { "@type": "Brand", name: product.brand },
+          image: productImage,
+          productGroupID: productGroupId,
+          variesBy: ["https://schema.org/size"],
+          url: canonicalUrl,
+          hasVariant: volumePrices.map(variantSchema),
+        };
 
       if (displayRating && displayReviewCount > 0) {
         productSchema.aggregateRating = {
@@ -284,42 +371,67 @@ const ProductDetail = () => {
         };
       }
 
-      jsonLd.textContent = JSON.stringify(productSchema);
+      jsonLd.textContent = JSON.stringify({
+        "@context": "https://schema.org",
+        "@graph": [
+          productSchema,
+          {
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Home", item: "https://bevory.in/" },
+              {
+                "@type": "ListItem",
+                position: 2,
+                name: cityName,
+                item: `https://bevory.in/${canonicalCitySlug}`,
+              },
+              ...(product.category?.slug ? [{
+                "@type": "ListItem",
+                position: 3,
+                name: product.category.name,
+                item: `https://bevory.in/${canonicalCitySlug}/category/${product.category.slug}`,
+              }] : []),
+              {
+                "@type": "ListItem",
+                position: product.category?.slug ? 4 : 3,
+                name: `${productLabel}${variantLabel}`,
+                item: canonicalUrl,
+              },
+            ],
+          },
+        ],
+      });
 
-      // FAQ structured data for rich snippets
-      if (product.faqs && product.faqs.length > 0) {
-        let faqLd = document.querySelector('script[data-type="faq-ld"]');
-        if (!faqLd) {
-          faqLd = document.createElement("script");
-          faqLd.setAttribute("type", "application/ld+json");
-          faqLd.setAttribute("data-type", "faq-ld");
-          document.head.appendChild(faqLd);
-        }
-        faqLd.textContent = JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: product.faqs.map((faq) => ({
-            "@type": "Question",
-            name: faq.question,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: faq.answer,
-            },
-          })),
-        });
-      }
     }
 
     return () => {
       document.title = "Bevory - Know Before You Drink";
-      const faqScript = document.querySelector('script[data-type="faq-ld"]');
-      if (faqScript) faqScript.remove();
+      document.querySelector('script[data-bevory-seo="product"]')?.remove();
     };
-  }, [product, price, selectedCity, selectedVolume, volumePrices, displayRating, displayReviewCount]);
+  }, [
+    canonicalCitySlug,
+    canonicalPath,
+    displayRating,
+    displayReviewCount,
+    price,
+    product,
+    requestedVolume,
+    routeCity?.name,
+    selectedCity?.name,
+    selectedVolume,
+    unavailableInCity,
+    unavailableVariant,
+    volumePrices,
+  ]);
 
   const relatedProducts = products
     .filter((p) => p.category_id === product?.category_id && p.id !== product?.id)
     .slice(0, 6);
+  const locallyPricedVolumes = new Set(volumePrices.map((variant) => (
+    Number.parseInt(variant.volume.replace(/[^0-9]/g, ""))
+  )));
+  const knownUnavailableVolumes = (product?.available_volumes_ml ?? [])
+    .filter((volumeMl) => !locallyPricedVolumes.has(volumeMl));
 
   const handleShare = async () => {
     try {
@@ -355,6 +467,12 @@ const ProductDetail = () => {
   const handleCitySelect = (city: any) => {
     setSelectedCity(city);
     setShowCitySelector(false);
+    if (product) {
+      navigate(generateProductUrl({
+        cityName: city.name,
+        productSlug: product.slug || product.id,
+      }));
+    }
     toast({
       title: `City changed to ${city.name}`,
       description: "Prices updated for your location",
@@ -404,6 +522,25 @@ const ProductDetail = () => {
     );
   }
 
+  if (unavailableVariant) {
+    return (
+      <MobileLayout showBack showLocation>
+        <div className="px-5 py-16 text-center">
+          <Info className="w-10 h-10 mx-auto mb-4 text-muted-foreground" />
+          <h1 className="text-xl font-serif font-bold mb-2">
+            {requestedVolume} is not listed in {selectedCity?.name || "this city"}
+          </h1>
+          <p className="text-sm text-muted-foreground mb-6">
+            We only publish a size page after a positive local price passes catalogue review.
+          </p>
+          <Button asChild variant="outline">
+            <Link to={productPath || `/${canonicalCitySlug}`}>View available sizes</Link>
+          </Button>
+        </div>
+      </MobileLayout>
+    );
+  }
+
   return (
     <MobileLayout showBack showLocation={false} showBottomNav={false}>
       <div className="pb-24">
@@ -417,7 +554,7 @@ const ProductDetail = () => {
             >
               <OptimizedImage
                 src={product.image_url}
-                alt={product.name}
+                alt={`${product.brand} ${product.name}${selectedVolume ? ` ${selectedVolume}` : ""} bottle`}
                 width={720}
                 height={720}
                 className="w-full h-full"
@@ -471,7 +608,7 @@ const ProductDetail = () => {
           <div>
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <Link
-                to={`/category/${product.category?.slug}`}
+                to={`/${canonicalCitySlug}/category/${product.category?.slug}`}
                 className="px-2 py-0.5 rounded bg-secondary text-xs font-medium"
               >
                 {product.category?.emoji} {product.category?.name}
@@ -514,9 +651,12 @@ const ProductDetail = () => {
             {volumePrices.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {volumePrices.map((vp) => (
-                  <button
+                  <Link
                     key={vp.volume}
-                    onClick={() => setSelectedVolume(vp.volume)}
+                    to={generateProductUrlWithVolume({
+                      citySlug: canonicalCitySlug,
+                      productSlug: product.slug || product.id,
+                    }, vp.volume)}
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                       selectedVolume === vp.volume
                         ? "bg-accent text-accent-foreground"
@@ -525,9 +665,15 @@ const ProductDetail = () => {
                   >
                     <span className="block">{vp.volume}</span>
                     <span className="block text-xs opacity-80">₹{vp.price.toLocaleString()}</span>
-                  </button>
+                  </Link>
                 ))}
               </div>
+            )}
+
+            {knownUnavailableVolumes.length > 0 && (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Other known sizes without a reviewed {selectedCity?.name || "local"} price: {knownUnavailableVolumes.map((size) => `${size}ml`).join(", ")}.
+              </p>
             )}
 
             {/* Price Display */}

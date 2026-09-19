@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LocationProvider } from "@/hooks/useLocation";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompareProvider, CompareFloatingBar, CompareSheet } from "@/components/home/CompareProducts";
+import AgeVerificationModal from "@/components/home/AgeVerificationModal";
 import { lazy, Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CITY_SLUGS } from "@/lib/locations";
@@ -103,6 +104,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <AgeVerificationModal />
               <Suspense fallback={<PageFallback />}>
                 <Routes>
                   <Route path="/" element={<Navigate to="/gurgaon" replace />} />
@@ -114,7 +116,13 @@ const App = () => (
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/search" element={<Search />} />
                   <Route path="/categories" element={<Categories />} />
+                  <Route path="/category/:slug/:subCategorySlug" element={<CategoryDetail />} />
                   <Route path="/category/:slug" element={<CategoryDetail />} />
+                  <Route path="/:citySlug/category/:slug/:subCategorySlug" element={<CategoryDetail />} />
+                  <Route path="/:citySlug/category/:slug" element={<CategoryDetail />} />
+                  <Route path="/:citySlug/product/:slug/:volume" element={<ProductDetail />} />
+                  <Route path="/:citySlug/product/:slug" element={<ProductDetail />} />
+                  <Route path="/:citySlug/brand/:slug" element={<BrandDetail />} />
                   <Route path="/:state/:category/:subcategory/:productSlug" element={<ProductDetail />} />
                   <Route path="/product/:slug" element={<ProductDetail />} />
                   <Route path="/bevory/:state/:category/:subcategory/:productSlug" element={<ProductDetail />} />
@@ -122,6 +130,7 @@ const App = () => (
                   <Route path="/brands" element={<Brands />} />
                   <Route path="/party-planner" element={<PartyPlanner />} />
                   <Route path="/cocktails" element={<Cocktails />} />
+                  <Route path="/cocktail/:slug" element={<Cocktails />} />
                   <Route path="/favorites" element={<Favorites />} />
                   <Route path="/recent" element={<RecentSearches />} />
                   <Route path="/locations" element={<SavedLocations />} />

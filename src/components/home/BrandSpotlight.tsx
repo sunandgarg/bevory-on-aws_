@@ -5,6 +5,8 @@ import { apiClient } from "@/integrations/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "@/hooks/useLocation";
+import { citySlugFromName } from "@/lib/locations";
 
 interface BrandSpotlightItem {
   id: string;
@@ -31,6 +33,8 @@ const fetchBrands = async (): Promise<BrandSpotlightItem[]> => {
 };
 
 const BrandSpotlight = memo(() => {
+  const { selectedCity } = useLocation();
+  const citySlug = citySlugFromName(selectedCity?.name) || "gurgaon";
   const { data: brands = [], isLoading } = useQuery({
     queryKey: ["brand-spotlights"],
     queryFn: fetchBrands,
@@ -66,16 +70,16 @@ const BrandSpotlight = memo(() => {
 
       <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
         {brands.map((brand) => (
-          <Link key={brand.id} to={`/brand/${brand.slug || brand.id}`} className="group block w-[68px] flex-shrink-0">
+          <Link key={brand.id} to={`/${citySlug}/brand/${brand.slug || brand.id}`} className="group block w-[68px] flex-shrink-0">
             <div className="w-[68px] h-[68px] rounded-2xl bg-secondary flex items-center justify-center text-2xl overflow-hidden group-hover:ring-2 group-hover:ring-accent/30 transition-all duration-150">
               {brand.logo_url ? (
                 <OptimizedImage
                   src={brand.logo_url}
-                  alt={brand.brand_name}
+                  alt={`${brand.brand_name} logo`}
                   width={68}
                   height={68}
                   className="w-full h-full"
-                  objectFit="cover"
+                  objectFit="contain"
                   placeholder="blur"
                 />
               ) : (

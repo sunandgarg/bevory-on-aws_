@@ -299,9 +299,20 @@ const functions = {
   },
 };
 
+const catalog = {
+  getCity(cityId: string) {
+    return request<{
+      categories: Array<Record<string, unknown>>;
+      products: Array<Record<string, unknown>>;
+      totalProducts: number;
+    }>(`/catalog/${encodeURIComponent(cityId)}`);
+  },
+};
+
 export const apiClient: any = {
   from: (table: string) => new QueryBuilder(table),
   auth,
   storage,
   functions,
+  catalog,
 };

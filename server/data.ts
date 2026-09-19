@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import type { AuthenticatedRequest } from "./auth.js";
 import { userIsAdmin } from "./auth.js";
 import { prisma, toRecordData } from "./db.js";
+import { invalidateCatalogCache } from "./catalog.js";
 
 const TABLES = new Set([
   "announcements", "app_settings", "blog_posts", "brand_spotlights", "categories",
@@ -19,6 +20,8 @@ const USER_TABLES = new Set([
   "comparisons", "notifications", "preferred_brands", "profiles", "recent_searches",
   "saved_locations", "user_favorites", "user_permissions", "user_preferences", "user_roles",
 ]);
+
+const CATALOG_TABLES = new Set(["categories", "product_prices", "products", "sub_categories"]);
 
 const UNIQUE_COLUMNS: Record<string, string> = {
   app_settings: "key",
@@ -339,6 +342,7 @@ export const queryHandler = async (req: AuthenticatedRequest, res: Response) => 
         });
         result.push(data as Record<string, unknown>);
       }
+      if (CATALOG_TABLES.has(payload.table)) invalidateCatalogCache();
       return res.json({ data: result, error: null, count: result.length });
     }
 
@@ -361,10 +365,12 @@ export const queryHandler = async (req: AuthenticatedRequest, res: Response) => 
         await prisma.contentRecord.update({ where: { key: record.key }, data: { data } });
         updated.push(data as Record<string, unknown>);
       }
+      if (CATALOG_TABLES.has(payload.table)) invalidateCatalogCache();
       return res.json({ data: updated, error: null, count: updated.length });
     }
 
     await prisma.contentRecord.deleteMany({ where: { key: { in: matches.map((record) => record.key) } } });
+    if (CATALOG_TABLES.has(payload.table)) invalidateCatalogCache();
     return res.json({ data: matches.map(({ data }) => toRecordData(data)), error: null, count: matches.length });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Database query failed";

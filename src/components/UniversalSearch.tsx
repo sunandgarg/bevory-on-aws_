@@ -7,6 +7,8 @@ import { apiClient } from "@/integrations/api/client";
 import { fuzzyFilter } from "@/lib/fuzzySearch";
 import { useProducts } from "@/hooks/useProducts";
 import { useLocation } from "@/hooks/useLocation";
+import { citySlugFromName } from "@/lib/locations";
+import { generateProductUrl } from "@/lib/productSlug";
 
 interface Brand {
   id: string;
@@ -60,6 +62,7 @@ const UniversalSearch = memo(({
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const { products } = useProducts();
   const { selectedCity } = useLocation();
+  const citySlug = citySlugFromName(selectedCity?.name) || "gurgaon";
 
   // Fetch lightweight static data once (categories + brands only)
   useEffect(() => {
@@ -202,7 +205,7 @@ const UniversalSearch = memo(({
                 {filteredCategories.map((cat) => (
                   <Link
                     key={cat.id}
-                    to={`/category/${cat.slug}`}
+                    to={`/${citySlug}/category/${cat.slug}`}
                     onClick={handleResultClick}
                     className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-secondary transition-colors"
                   >
@@ -221,7 +224,7 @@ const UniversalSearch = memo(({
                 {filteredBrands.map((brand) => (
                   <Link
                     key={brand.id}
-                    to={`/brand/${brand.slug || brand.id}`}
+                    to={`/${citySlug}/brand/${brand.slug || brand.id}`}
                     onClick={handleResultClick}
                     className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-secondary transition-colors"
                   >
@@ -244,7 +247,10 @@ const UniversalSearch = memo(({
                 {searchResults.map((product) => (
                   <Link
                     key={product.id}
-                    to={`/product/${product.slug || product.id}`}
+                    to={generateProductUrl({
+                      citySlug,
+                      productSlug: product.slug || product.id,
+                    })}
                     onClick={handleResultClick}
                     className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-secondary transition-colors"
                   >

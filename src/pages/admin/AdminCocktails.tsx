@@ -322,7 +322,7 @@ const AdminCocktails = () => {
               </FormField>
             </div>
 
-            <FormField label="URL Slug (SEO)" hint="Auto-generated. Used in URLs like /cocktails?slug=old-fashioned">
+            <FormField label="URL Slug (SEO)" hint="Auto-generated. Used in URLs like /cocktail/old-fashioned">
               <div className="flex gap-2">
                 <Input
                   placeholder="old-fashioned"

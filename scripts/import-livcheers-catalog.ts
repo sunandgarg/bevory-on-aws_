@@ -7,7 +7,14 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { parse } from "csv-parse/sync";
 import { LEGACY_CATALOG_CATEGORY_SLUGS, LIVCHEERS_CATEGORY_DEFINITIONS } from "../src/lib/catalogTaxonomy.js";
 
-type CitySlug = "delhi" | "goa" | "gurgaon";
+type CitySlug =
+  | "bangalore"
+  | "delhi"
+  | "faridabad"
+  | "goa"
+  | "gurgaon"
+  | "hubli-dharwad"
+  | "mangalore";
 
 type SourceSpec = {
   city: string;
@@ -34,6 +41,13 @@ type CsvRow = {
   price_conflict?: string;
   price_anomaly_flag?: string;
   price_anomaly_reason?: string;
+  size_anomaly_flag?: string;
+  size_anomaly_reason?: string;
+  category_anomaly_flag?: string;
+  category_anomaly_reason?: string;
+  category_review_flag?: string;
+  category_review_reason?: string;
+  price_missing?: string;
 };
 
 type ParsedRow = CsvRow & {
@@ -55,6 +69,7 @@ export type ProductEnrichment = {
   volumeMl: number;
   typeName: string | null;
   imageUrl: string | null;
+  price: number | null;
   productUrl: string;
   sourcePage: string;
 };
@@ -108,14 +123,43 @@ const CATEGORY_OVERRIDES = new Map<string, string>([
   ["grover|art collection cab shiraz", "red-wine"],
   ["grover|art collection chenin blanc", "white-wine"],
   ["jim beam|jim beam", "world-whisky"],
+  ["noble|casa noble blanco tequila", "tequila"],
+  ["sierra|tequila repsado", "tequila"],
   ["sula|seco rose", "rose-wine"],
   ["teachers|highland cream", "blended-scotch"],
+  ["embargo|anejo blanco rum", "rum"],
+  ["espolon|blanco tequila", "tequila"],
+  ["le grand|noir syrah wine", "red-wine"],
+  ["nederburg|winemaster reserve shiraz", "red-wine"],
+  ["piccini|pinocchio vino rosso", "red-wine"],
+  ["sensi|sangiovese", "red-wine"],
+  ["volcan de mi tierra|volcan blanco tequila", "tequila"],
+  ["yellow tail|reserve cabernet sauvignon", "red-wine"],
+]);
+
+const RECORD_CATEGORY_OVERRIDES = new Map<string, string>([
+  ["BLR-R-263c8c9f1f835d88", "red-wine"],
+  ["BLR-R-6dd859bf1e40826f", "red-wine"],
+  ["BLR-R-463153f288272cc5", "red-wine"],
+  ["BLR-R-59b866b5e9e53843", "red-wine"],
+  ["BLR-R-dfe294c760ab4dfe", "red-wine"],
+]);
+
+const PRODUCT_IMAGE_OVERRIDES = new Map<string, { imageUrl: string; sourcePage: string }>([
+  ["8pm|whisky", {
+    imageUrl: "https://static.livcheers.com/static/content/images/liquor/LCIN00022.webp",
+    sourcePage: "https://www.livcheers.com/mangalore/liquor/8-pm-whisky-750ml",
+  }],
 ]);
 
 const SOURCE_PRIORITY: Record<CitySlug, number> = {
   delhi: 1,
   goa: 2,
   gurgaon: 3,
+  faridabad: 4,
+  bangalore: 5,
+  "hubli-dharwad": 6,
+  mangalore: 7,
 };
 
 const slugify = (value: string) => value
@@ -133,6 +177,42 @@ export const normalizeIdentity = (value: string) => value
   .replace(/&/g, "and")
   .replace(/[^a-z0-9]+/g, "")
   .trim();
+
+export const parseCategorySlugs = (value: string) => [...new Set(value
+  .split(/[|;]/)
+  .map((category) => category.trim())
+  .filter(Boolean)
+  .map((category) => slugify(category))
+)];
+
+export const resolveSourceCategorySlugs = (
+  brandName: string,
+  productName: string,
+  sourceCategory: string,
+  recordId: string,
+) => {
+  const categorySlugs = parseCategorySlugs(sourceCategory);
+  const overrideKey = `${brandName.trim().toLowerCase()}|${productName.trim().toLowerCase()}`;
+  const override = CATEGORY_OVERRIDES.get(overrideKey) ?? RECORD_CATEGORY_OVERRIDES.get(recordId);
+  if (!categorySlugs.length && override) categorySlugs.push(override);
+  return categorySlugs;
+};
+
+export const mergeUniqueNumbers = (existing: unknown, incoming: number[]) => {
+  const previous = Array.isArray(existing)
+    ? existing.map(Number).filter((value) => Number.isInteger(value) && value > 0)
+    : [];
+  return [...new Set([...previous, ...incoming])].sort((left, right) => right - left);
+};
+
+export const mergeUniqueStrings = (existing: unknown, incoming: Array<string | null | undefined>) => {
+  const previous = Array.isArray(existing)
+    ? existing.filter((value): value is string => typeof value === "string")
+    : [];
+  return [...new Set([...previous, ...incoming]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value)))];
+};
 
 const stableId = (namespace: string, value: string) => {
   const digest = createHash("sha256").update(value).digest("hex").slice(0, 24);
@@ -196,10 +276,11 @@ export const parseCategoryCards = (
     const productName = heading ? textContent(heading) : attribute(imageTag, "alt");
     if (!href || !productName) continue;
 
-    const volumeMatches = [...body.matchAll(/<p\b[^>]*>(\s*[0-9.]+\s*(?:ML|L)\s*)<\/p>/gi)];
-    const volumeText = volumeMatches.at(-1)?.[1] ?? "";
+    const volumeMatches = [...body.matchAll(/<p\b[^>]*>\s*([0-9.]+)\s*(ML|L)\b[^<]*<\/p>/gi)];
+    const volumeMatch = volumeMatches.at(-1);
+    const volumeText = volumeMatch ? `${volumeMatch[1]}${volumeMatch[2]}` : "";
     const volumeNumber = Number.parseFloat(volumeText.replace(/[^0-9.]/g, ""));
-    const volumeMl = /\bL\b/i.test(volumeText) && !/ML/i.test(volumeText)
+    const volumeMl = volumeMatch?.[2].toUpperCase() === "L"
       ? Math.round(volumeNumber * 1000)
       : Math.round(volumeNumber);
     if (!Number.isFinite(volumeMl) || volumeMl <= 0) continue;
@@ -208,6 +289,8 @@ export const parseCategoryCards = (
     const brandName = brandMatch ? textContent(brandMatch[1]) : "";
     const typeMatch = body.match(/<span\b[^>]*bg-\[#F4F5F5\][^>]*>([\s\S]*?)<\/span>/i);
     const typeName = typeMatch ? textContent(typeMatch[1]) : null;
+    const priceMatch = textContent(body).match(/₹\s*([0-9][0-9,]*)/);
+    const price = priceMatch ? Number(priceMatch[1].replace(/,/g, "")) : null;
 
     results.push({
       citySlug,
@@ -217,6 +300,7 @@ export const parseCategoryCards = (
       volumeMl,
       typeName: typeName || null,
       imageUrl: imageUrl?.startsWith("http") ? imageUrl : null,
+      price: price && Number.isFinite(price) ? price : null,
       productUrl: new URL(href, "https://www.livcheers.com").toString(),
       sourcePage,
     });
@@ -231,18 +315,27 @@ const parseArguments = () => {
     const index = args.indexOf(flag);
     return index >= 0 ? args[index + 1] : undefined;
   };
-  const delhi = valueFor("--delhi");
-  const goa = valueFor("--goa");
-  const gurgaon = valueFor("--gurgaon");
-  if (!delhi || !goa || !gurgaon) {
-    throw new Error("Required: --delhi <csv> --goa <csv> --gurgaon <csv>");
+  const definitions: Array<{ flag: string; city: string; citySlug: CitySlug }> = [
+    { flag: "--delhi", city: "Delhi", citySlug: "delhi" },
+    { flag: "--goa", city: "Goa", citySlug: "goa" },
+    { flag: "--gurgaon", city: "Gurgaon", citySlug: "gurgaon" },
+    { flag: "--faridabad", city: "Faridabad", citySlug: "faridabad" },
+    { flag: "--bangalore", city: "Bangalore", citySlug: "bangalore" },
+    { flag: "--hubli-dharwad", city: "Hubli Dharwad", citySlug: "hubli-dharwad" },
+    { flag: "--mangalore", city: "Mangalore", citySlug: "mangalore" },
+  ];
+  const sources = definitions.flatMap((definition) => {
+    const path = valueFor(definition.flag);
+    return path ? [{ city: definition.city, citySlug: definition.citySlug, path: resolve(path) }] : [];
+  });
+  if (!sources.length) {
+    throw new Error(
+      "Provide at least one source: --delhi, --goa, --gurgaon, --faridabad, --bangalore, "
+      + "--hubli-dharwad, or --mangalore <csv>.",
+    );
   }
   return {
-    sources: [
-      { city: "Delhi", citySlug: "delhi", path: resolve(delhi) },
-      { city: "Goa", citySlug: "goa", path: resolve(goa) },
-      { city: "Gurgaon", citySlug: "gurgaon", path: resolve(gurgaon) },
-    ] satisfies SourceSpec[],
+    sources: sources satisfies SourceSpec[],
     dryRun: args.includes("--dry-run"),
     enrich: !args.includes("--skip-enrichment"),
     verifyBrandLogos: !args.includes("--skip-brand-logos"),
@@ -272,10 +365,9 @@ const readSourceRows = async (source: SourceSpec, issues: ImportIssue[]) => {
     const productName = row.product_name?.trim();
     const price = Number(row.price_inr?.replace(/,/g, ""));
     const volumeMl = Number(row.volume_ml);
-    const categorySlugs = (row.source_category ?? "")
-      .split("|")
-      .map((value) => slugify(value))
-      .filter(Boolean);
+    const categorySlugs = brandName && productName
+      ? resolveSourceCategorySlugs(brandName, productName, row.source_category ?? "", recordId)
+      : [];
 
     if (!brandName || !productName) return issue("missing_identity", "Brand or product name is missing.");
     if (normalizeIdentity(row.city) !== normalizeIdentity(source.city)) {
@@ -284,11 +376,27 @@ const readSourceRows = async (source: SourceSpec, issues: ImportIssue[]) => {
     if ((row.currency || "INR").toUpperCase() !== "INR") {
       return issue("unsupported_currency", `Expected INR, found ${row.currency}.`);
     }
-    if (!Number.isFinite(price) || price <= 0) return issue("missing_price", "A positive INR price is required.");
+    if (!Number.isFinite(price) || price <= 0) {
+      if (parseBoolean(row.price_missing)) {
+        return issue(
+          "source_price_missing",
+          "The source explicitly has no numeric city price; the row was not imported or indexed.",
+          "warning",
+        );
+      }
+      return issue("missing_price", "A positive INR price is required.");
+    }
     if (!Number.isInteger(volumeMl) || volumeMl <= 0) return issue("invalid_volume", `Invalid volume_ml: ${row.volume_ml}.`);
     const unknownCategories = categorySlugs.filter((slug) => !CATEGORY_SLUGS.has(slug));
-    if (!categorySlugs.length || unknownCategories.length) {
+    if (row.source_category?.trim() && (!categorySlugs.length || unknownCategories.length)) {
       return issue("unknown_category", `Unsupported category: ${row.source_category || "blank"}.`);
+    }
+    if (!categorySlugs.length) {
+      issue(
+        "category_deferred",
+        "Source category is blank; category resolution is deferred to the existing verified product identity.",
+        "warning",
+      );
     }
     if (categorySlugs.length > 1) {
       issue("multi_category_source", `Source lists multiple categories: ${categorySlugs.join(", ")}.`, "warning");
@@ -300,6 +408,22 @@ const readSourceRows = async (source: SourceSpec, issues: ImportIssue[]) => {
       issue(
         "source_price_anomaly",
         row.price_anomaly_reason || "The source row flags a price anomaly; imported with review metadata.",
+        "warning",
+      );
+    }
+    if (parseBoolean(row.size_anomaly_flag)) {
+      issue(
+        "source_size_anomaly",
+        row.size_anomaly_reason || "The source row flags a size anomaly; imported with review metadata.",
+        "warning",
+      );
+    }
+    if (parseBoolean(row.category_anomaly_flag) || parseBoolean(row.category_review_flag)) {
+      issue(
+        "source_category_review",
+        row.category_anomaly_reason
+          || row.category_review_reason
+          || "The source row requires category review; existing verified product taxonomy will be preferred.",
         "warning",
       );
     }
@@ -421,21 +545,75 @@ const choosePrimaryCategory = (productKey: string, rows: ParsedRow[]) => {
     ?? LIVCHEERS_CATEGORY_DEFINITIONS[0][0];
 };
 
-const pickProductEnrichment = (rows: ParsedRow[], enrichments: ProductEnrichment[]) => {
-  const candidates = rows.flatMap((row) => {
-    const keys = [
-      variantLookupKey(row.source.citySlug, row.site_product_name || `${row.brand_name} ${row.product_name}`, row.volumeMl),
-      variantLookupKey(row.source.citySlug, `${row.brand_name} ${row.product_name}`, row.volumeMl),
-      variantLookupKey(row.source.citySlug, row.product_name, row.volumeMl),
-    ];
-    return enrichments.filter((item) => keys.includes(variantLookupKey(item.citySlug, item.productName, item.volumeMl)));
+const MATCH_STOP_WORDS = new Set([
+  "and", "beer", "brandy", "drink", "liquor", "rtd", "soda", "tequila", "the", "vodka", "whiskey", "whisky", "wine",
+]);
+
+const MATCH_TOKEN_ALIASES: Record<string, string> = {
+  anojo: "anejo",
+  cab: "cabernet",
+  rosato: "rose",
+  sauv: "sauvignon",
+};
+
+const matchTokens = (value: string) => new Set(value
+  .normalize("NFKD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase()
+  .split(/[^a-z0-9]+/)
+  .filter(Boolean)
+  .map((token) => MATCH_TOKEN_ALIASES[token] ?? token)
+  .filter((token) => !MATCH_STOP_WORDS.has(token)));
+
+const tokenSimilarity = (left: string, right: string) => {
+  const leftTokens = matchTokens(left);
+  const rightTokens = matchTokens(right);
+  if (!leftTokens.size || !rightTokens.size) return 0;
+  const intersection = [...leftTokens].filter((token) => rightTokens.has(token)).length;
+  const union = new Set([...leftTokens, ...rightTokens]).size;
+  return intersection / union;
+};
+
+const productPath = (value: string | undefined) => {
+  if (!value) return "";
+  try {
+    return new URL(value).pathname.replace(
+      /^\/(?:bangalore|delhi|faridabad|goa|gurgaon|hubli-dharwad|mangalore)/,
+      "",
+    );
+  } catch {
+    return "";
+  }
+};
+
+const enrichmentMatchScore = (row: ParsedRow, item: ProductEnrichment) => {
+  if (row.source.citySlug !== item.citySlug || row.volumeMl !== item.volumeMl) return 0;
+  const rowNames = [
+    row.site_product_name,
+    `${row.brand_name} ${row.product_name}`,
+    row.product_name,
+  ].filter(Boolean);
+  const itemNames = [item.productName, `${item.brandName} ${item.productName}`];
+  if (rowNames.some((left) => itemNames.some((right) => normalizeIdentity(left) === normalizeIdentity(right)))) return 100;
+  if (productPath(row.known_product_url) && productPath(row.known_product_url) === productPath(item.productUrl)) return 95;
+  const similarity = Math.max(...rowNames.flatMap((left) => itemNames.map((right) => tokenSimilarity(left, right))));
+  return similarity >= 0.72 ? 70 + similarity * 20 : 0;
+};
+
+export const pickProductEnrichment = (rows: ParsedRow[], enrichments: ProductEnrichment[]) => {
+  const candidates = rows.flatMap((row) => enrichments
+    .map((item) => ({ item, matchScore: enrichmentMatchScore(row, item) }))
+    .filter(({ matchScore }) => matchScore > 0));
+  const unique = new Map<string, { item: ProductEnrichment; matchScore: number }>();
+  candidates.forEach((candidate) => {
+    const key = `${candidate.item.productUrl}|${candidate.item.categorySlug}`;
+    if ((unique.get(key)?.matchScore ?? 0) < candidate.matchScore) unique.set(key, candidate);
   });
-  const unique = [...new Map(candidates.map((item) => [`${item.productUrl}|${item.categorySlug}`, item])).values()];
-  return unique.sort((left, right) => {
-    const leftScore = (left.imageUrl ? 100 : 0) + (left.volumeMl === 750 ? 20 : 0) + SOURCE_PRIORITY[left.citySlug];
-    const rightScore = (right.imageUrl ? 100 : 0) + (right.volumeMl === 750 ? 20 : 0) + SOURCE_PRIORITY[right.citySlug];
+  return [...unique.values()].sort((left, right) => {
+    const leftScore = left.matchScore * 100 + (left.item.imageUrl ? 100 : 0) + (left.item.volumeMl === 750 ? 20 : 0) + SOURCE_PRIORITY[left.item.citySlug];
+    const rightScore = right.matchScore * 100 + (right.item.imageUrl ? 100 : 0) + (right.item.volumeMl === 750 ? 20 : 0) + SOURCE_PRIORITY[right.item.citySlug];
     return rightScore - leftScore;
-  });
+  }).map(({ item }) => item);
 };
 
 const buildRecords = async (
@@ -449,6 +627,21 @@ const buildRecords = async (
   const tableNames = ["app_settings", "brand_spotlights", "categories", "cities", "product_prices", "products", "sub_categories"];
   const existingRecords = await prisma.contentRecord.findMany({ where: { tableName: { in: tableNames } } });
   const existingByKey = new Map(existingRecords.map((record) => [record.key, jsonObject(record.data)]));
+  const existingCategorySlugById = new Map(existingRecords
+    .filter((record) => record.tableName === "categories")
+    .map((record) => [record.recordId, String(jsonObject(record.data).slug ?? "")])
+    .filter((entry): entry is [string, string] => CATEGORY_SLUGS.has(entry[1])));
+  const existingProductByIdentity = new Map<string, { recordId: string; data: Prisma.JsonObject }>();
+  existingRecords
+    .filter((record) => record.tableName === "products")
+    .forEach((record) => {
+      const data = jsonObject(record.data);
+      const identity = String(data.catalog_identity ?? "") || productKeyFor(
+        String(data.brand ?? ""),
+        String(data.name ?? ""),
+      );
+      if (identity && identity !== "|") existingProductByIdentity.set(identity, { recordId: record.recordId, data });
+    });
   const records = new Map<string, PlannedRecord>();
   const setRecord = (tableName: string, recordId: string, managedData: Prisma.InputJsonObject) => {
     const key = `${tableName}:${recordId}`;
@@ -475,6 +668,32 @@ const buildRecords = async (
       throw new Error(`City ${source.city} is missing. Run pnpm db:seed before importing the catalogue.`);
     }
   }
+
+  const resolvedRows: ParsedRow[] = [];
+  rows.forEach((row) => {
+    if (row.categorySlugs.length) {
+      resolvedRows.push(row);
+      return;
+    }
+
+    const existingProduct = existingProductByIdentity.get(row.productKey);
+    const existingSlugs = existingProduct
+      ? mergeUniqueStrings(existingProduct.data.category_slugs, [
+        existingCategorySlugById.get(String(existingProduct.data.category_id ?? "")),
+      ]).filter((slug) => CATEGORY_SLUGS.has(slug))
+      : [];
+    if (!existingSlugs.length) {
+      report.issues.push({
+        level: "error",
+        code: "unresolved_blank_category",
+        source: row.source.path,
+        recordId: row.record_id || `${row.source.citySlug}-${row.sourceIndex + 2}`,
+        message: `${row.brand_name} ${row.product_name} has no source category or verified existing category; row skipped.`,
+      });
+      return;
+    }
+    resolvedRows.push({ ...row, categorySlugs: existingSlugs });
+  });
 
   const categoryIds = new Map<string, string>();
   LIVCHEERS_CATEGORY_DEFINITIONS.forEach(([slug, name, imageEmoji, description], orderIndex) => {
@@ -519,7 +738,7 @@ const buildRecords = async (
     });
   });
 
-  const rowsByBrand = groupBy(rows, (row) => row.brandKey);
+  const rowsByBrand = groupBy(resolvedRows, (row) => row.brandKey);
   for (const [brandKey, brandRows] of rowsByBrand) {
     const brandName = brandRows[0].brand_name.trim();
     const slug = slugify(brandName);
@@ -528,17 +747,18 @@ const buildRecords = async (
       || normalizeIdentity(String(jsonObject(record.data).brand_name ?? "")) === brandKey
     ));
     const id = existing?.recordId ?? stableId("brand", brandKey);
+    const existingData = jsonObject(existing?.data);
     const logoUrl = brandLogos.get(brandKey);
     setRecord("brand_spotlights", id, {
-      brand_name: brandName,
-      slug,
-      logo_url: logoUrl ?? jsonObject(existing?.data).logo_url ?? null,
-      logo_source_url: logoUrl ?? null,
-      logo_identity_verified: Boolean(logoUrl),
-      logo_verified_at: logoUrl ? now : null,
-      image_license_status: "unverified",
+      brand_name: existingData.brand_name ?? brandName,
+      slug: existingData.slug ?? slug,
+      logo_url: logoUrl ?? existingData.logo_url ?? null,
+      logo_source_url: logoUrl ?? existingData.logo_source_url ?? null,
+      logo_identity_verified: logoUrl ? true : Boolean(existingData.logo_identity_verified),
+      logo_verified_at: logoUrl ? now : existingData.logo_verified_at ?? null,
+      image_license_status: existingData.image_license_status ?? "unverified",
       is_active: true,
-      show_in_spotlight: Boolean(jsonObject(existing?.data).show_in_spotlight),
+      show_in_spotlight: Boolean(existingData.show_in_spotlight),
       imported_from: "livcheers_csv",
     });
   }
@@ -550,7 +770,7 @@ const buildRecords = async (
     }
   }
 
-  const rowsByProduct = groupBy(rows, (row) => row.productKey);
+  const rowsByProduct = groupBy(resolvedRows, (row) => row.productKey);
   const productIdByKey = new Map<string, string>();
   for (const [productKey, productRows] of rowsByProduct) {
     const brandName = productRows[0].brand_name.trim();
@@ -587,47 +807,68 @@ const buildRecords = async (
     ));
     const productId = existing?.recordId ?? stableId("product", productKey);
     productIdByKey.set(productKey, productId);
-    const volumes = [...new Set(productRows.map((row) => row.volumeMl))].sort((a, b) => b - a);
+    const existingData = jsonObject(existing?.data);
+    const volumes = mergeUniqueNumbers(existingData.available_volumes_ml, productRows.map((row) => row.volumeMl));
     const defaultVolume = volumes.includes(750) ? 750 : volumes[0];
-    const imageUrl = selectedEnrichment?.imageUrl ?? null;
+    const imageOverride = PRODUCT_IMAGE_OVERRIDES.get(productKey);
+    const imageUrl = selectedEnrichment?.imageUrl ?? imageOverride?.imageUrl ?? null;
     if (imageUrl) report.enrichment.productsWithVerifiedImages += 1;
+    const readableOverrideKey = `${brandName.toLowerCase()}|${productName.toLowerCase()}`;
+    const hasCategoryOverride = CATEGORY_OVERRIDES.has(readableOverrideKey);
+    const sourceUrls = mergeUniqueStrings(
+      existingData.source_urls,
+      productRows.map((row) => row.known_product_url || row.source_url),
+    );
+    const sourceAccessedOn = mergeUniqueStrings(
+      existingData.source_accessed_on ? [String(existingData.source_accessed_on)] : [],
+      productRows.map((row) => row.source_accessed_on),
+    ).sort().at(-1) ?? null;
+    const mergedCategorySlugs = mergeUniqueStrings(existingData.category_slugs, [...categorySet, categorySlug]).sort();
 
     setRecord("products", productId, {
       brand_id: brandIdByKey.get(productRows[0].brandKey) ?? null,
-      brand: brandName,
-      name: productName,
-      slug: productSlug,
-      catalog_identity: productKey,
-      category_id: categoryIds.get(categorySlug)!,
-      category_slugs: categorySet,
-      sub_category_id: subcategoryId,
-      type_tag: typeName,
+      brand: existingData.brand ?? brandName,
+      name: existingData.name ?? productName,
+      slug: existingData.slug ?? productSlug,
+      catalog_identity: existingData.catalog_identity ?? productKey,
+      category_id: hasCategoryOverride ? categoryIds.get(categorySlug)! : existingData.category_id ?? categoryIds.get(categorySlug)!,
+      category_slugs: mergedCategorySlugs,
+      sub_category_id: hasCategoryOverride ? subcategoryId : existingData.sub_category_id ?? subcategoryId,
+      type_tag: hasCategoryOverride ? typeName : existingData.type_tag ?? typeName,
       available_volumes_ml: volumes,
-      volume: `${defaultVolume}ml`,
-      image_url: imageUrl ?? jsonObject(existing?.data).image_url ?? null,
-      image_source_url: imageUrl,
-      image_source_page: selectedEnrichment?.productUrl ?? null,
-      image_identity_verified: Boolean(imageUrl),
-      image_verified_at: imageUrl ? now : null,
+      volume: existingData.volume ?? `${defaultVolume}ml`,
+      image_url: imageUrl ?? existingData.image_url ?? null,
+      image_source_url: imageUrl ?? existingData.image_source_url ?? null,
+      image_source_page: imageUrl
+        ? selectedEnrichment?.productUrl ?? imageOverride?.sourcePage ?? null
+        : existingData.image_source_page ?? null,
+      image_identity_verified: imageUrl ? true : Boolean(existingData.image_identity_verified),
+      image_verified_at: imageUrl ? now : existingData.image_verified_at ?? null,
       image_target_width: 720,
-      image_license_status: "unverified",
-      source_name: "Livcheers",
-      source_urls: [...new Set(productRows.map((row) => row.known_product_url || row.source_url).filter(Boolean))],
-      source_accessed_on: productRows.map((row) => row.source_accessed_on).filter(Boolean).sort().at(-1) ?? null,
+      image_license_status: existingData.image_license_status ?? "unverified",
+      source_name: existingData.source_name ?? "Livcheers",
+      source_urls: sourceUrls,
+      source_accessed_on: sourceAccessedOn,
       is_active: true,
-      is_trending: Boolean(jsonObject(existing?.data).is_trending),
-      is_all_time_favourite: Boolean(jsonObject(existing?.data).is_all_time_favourite),
+      is_trending: Boolean(existingData.is_trending),
+      is_all_time_favourite: Boolean(existingData.is_all_time_favourite),
       imported_from: "livcheers_csv",
     });
   }
 
   let matchedVariants = 0;
-  for (const row of rows) {
+  for (const row of resolvedRows) {
     const productId = productIdByKey.get(row.productKey)!;
     const cityId = cityIdByName.get(normalizeIdentity(row.source.city))!;
     const priceId = stableId("price", `${productId}|${cityId}|${row.volumeMl}`);
     const matched = pickProductEnrichment([row], enrichments)[0];
     if (matched) matchedVariants += 1;
+    const categoryOverrideKey = `${row.brand_name.trim().toLowerCase()}|${row.product_name.trim().toLowerCase()}`;
+    const categoryResolution = row.source_category?.trim()
+      ? "source"
+      : CATEGORY_OVERRIDES.has(categoryOverrideKey) || RECORD_CATEGORY_OVERRIDES.has(row.record_id || "")
+        ? "override"
+        : "existing_product";
     setRecord("product_prices", priceId, {
       product_id: productId,
       city_id: cityId,
@@ -650,7 +891,17 @@ const buildRecords = async (
       price_conflict: parseBoolean(row.price_conflict),
       price_anomaly_flag: parseBoolean(row.price_anomaly_flag),
       price_anomaly_reason: row.price_anomaly_reason || null,
-      requires_review: parseBoolean(row.price_conflict) || parseBoolean(row.price_anomaly_flag),
+      size_anomaly_flag: parseBoolean(row.size_anomaly_flag),
+      size_anomaly_reason: row.size_anomaly_reason || null,
+      category_anomaly_flag: parseBoolean(row.category_anomaly_flag) || parseBoolean(row.category_review_flag),
+      category_anomaly_reason: row.category_anomaly_reason || row.category_review_reason || null,
+      resolved_category: row.categorySlugs.join("|"),
+      category_resolution: categoryResolution,
+      requires_review: parseBoolean(row.price_conflict)
+        || parseBoolean(row.price_anomaly_flag)
+        || parseBoolean(row.size_anomaly_flag),
+      source_price_matches_current: matched?.price === row.price,
+      source_price_verified_at: matched?.price === row.price ? now : null,
       imported_from: "livcheers_csv",
     });
   }

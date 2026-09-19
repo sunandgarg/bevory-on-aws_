@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useLocation } from "./useLocation";
-import { generateSlug } from "@/lib/slug";
+import { generateProductUrl, generateProductUrlWithVolume } from "@/lib/productSlug";
 
 interface ProductUrlParams {
   id: string;
@@ -19,31 +19,19 @@ interface ProductUrlParams {
 
 /**
  * Hook to generate SEO-optimized product URLs
- * Format: /{state}/{category}/{subcategory}/{product-slug}
+ * Format: /{city}/product/{product-slug}
  */
 export const useProductUrl = () => {
-  const { selectedCity, selectedState } = useLocation();
+  const { selectedCity } = useLocation();
 
   const getProductUrl = useCallback((product: ProductUrlParams): string => {
-    // Get state slug (default to 'india' if not selected)
-    const stateSlug = selectedState?.name 
-      ? generateSlug(selectedState.name) 
-      : 'india';
-    
-    // Get category slug
-    const categorySlug = product.category?.slug 
-      || (product.category?.name ? generateSlug(product.category.name) : 'liquor');
-    
-    // Get sub-category slug
-    const subCategorySlug = product.sub_category?.slug 
-      || (product.sub_category?.name ? generateSlug(product.sub_category.name) : 'all');
-    
-    // Get product slug
-    const productSlug = product.slug 
-      || generateSlug(`${product.brand || ''} ${product.name || ''}`);
-
-    return `/${stateSlug}/${categorySlug}/${subCategorySlug}/${productSlug}`;
-  }, [selectedState]);
+    return generateProductUrl({
+      cityName: selectedCity?.name,
+      productSlug: product.slug || product.id,
+      productName: product.name,
+      brandName: product.brand,
+    });
+  }, [selectedCity?.name]);
 
   /**
    * Generate product URL with volume
@@ -53,21 +41,19 @@ export const useProductUrl = () => {
     product: ProductUrlParams, 
     volume: string
   ): string => {
-    const baseUrl = getProductUrl(product);
-    const normalizedVolume = volume.toLowerCase().replace(/\s+/g, '');
-    return `${baseUrl}-${normalizedVolume}`;
-  }, [getProductUrl]);
+    return generateProductUrlWithVolume({
+      cityName: selectedCity?.name,
+      productSlug: product.slug || product.id,
+      productName: product.name,
+      brandName: product.brand,
+    }, volume);
+  }, [selectedCity?.name]);
 
   /**
    * Fallback to legacy URL if no category/subcategory info available
    */
   const getProductUrlSafe = useCallback((product: ProductUrlParams): string => {
-    // If we have category info, use new format
-    if (product.category?.slug || product.category?.name) {
-      return getProductUrl(product);
-    }
-    // Fallback to legacy format
-    return `/product/${product.slug || product.id}`;
+    return getProductUrl(product);
   }, [getProductUrl]);
 
   return {
@@ -80,19 +66,16 @@ export const useProductUrl = () => {
 /**
  * Standalone function to generate product URL without hooks
  * Use this when you don't have access to React context
- * Format: /{state}/{category}/{subcategory}/{product-slug}
+ * Format: /{city}/product/{product-slug}
  */
 export function generateProductUrlStatic(
   product: ProductUrlParams,
-  stateName?: string | null
+  cityName?: string | null
 ): string {
-  const stateSlug = stateName ? generateSlug(stateName) : 'india';
-  const categorySlug = product.category?.slug 
-    || (product.category?.name ? generateSlug(product.category.name) : 'liquor');
-  const subCategorySlug = product.sub_category?.slug 
-    || (product.sub_category?.name ? generateSlug(product.sub_category.name) : 'all');
-  const productSlug = product.slug 
-    || generateSlug(`${product.brand || ''} ${product.name || ''}`);
-
-  return `/${stateSlug}/${categorySlug}/${subCategorySlug}/${productSlug}`;
+  return generateProductUrl({
+    cityName,
+    productSlug: product.slug || product.id,
+    productName: product.name,
+    brandName: product.brand,
+  });
 }

@@ -131,11 +131,11 @@ const TrendingProducts = memo(({ defaultCategory = "whisky" }: TrendingProductsP
                     {product.image_url ? (
                       <OptimizedImage
                         src={product.image_url}
-                        alt={product.name}
+                        alt={`${product.brand} ${product.name} bottle`}
                         width={144}
                         height={112}
                         className="w-full h-full"
-                        objectFit="cover"
+                        objectFit="contain"
                         placeholder="blur"
                       />
                     ) : (

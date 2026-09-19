@@ -19,6 +19,7 @@ import {
   type AuthenticatedRequest,
 } from "./auth.js";
 import { queryHandler } from "./data.js";
+import { cityCatalogHandler } from "./catalog.js";
 import { functionsHandler } from "./functions.js";
 import { prisma } from "./db.js";
 import {
@@ -186,6 +187,7 @@ app.get("/api/auth/me", async (req: AuthenticatedRequest, res) => {
 });
 
 app.post("/api/query", queryHandler);
+app.get("/api/catalog/:cityId", cityCatalogHandler);
 app.post("/api/functions/:name", functionsHandler);
 
 app.post("/api/storage/upload", upload.single("file"), async (req: AuthenticatedRequest, res) => {

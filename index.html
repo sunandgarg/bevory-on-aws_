@@ -53,8 +53,9 @@
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
 
-    <title>Bevory  Know Before You Drink | Compare Prices, Discover Brands</title>
-    <meta name="description" content="Bevory is your ultimate guide to the world of beverages. Compare prices, explore brands, plan parties, and make informed choices for every celebration.">
+    <title>Bevory | Compare Local Beverage Prices</title>
+    <meta name="description" content="Compare local beverage prices, bottle sizes and brands with Bevory's city-aware price guide for adults aged 25 and older.">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="author" content="Bevory" />
     <meta name="keywords" content="alcohol prices, liquor comparison, party planner, whisky, gin, rum, wine, beer, cocktails, drink responsibly" />
 
@@ -82,25 +83,58 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "Bevory",
-      "url": "https://bevory.in/",
-      "logo": "https://bevory.in/favicon.png",
-      "sameAs": ["https://bevory.in"]
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://bevory.in/#organization",
+          "name": "Bevory",
+          "url": "https://bevory.in/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://bevory.in/favicon.png"
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://bevory.in/#website",
+          "name": "Bevory",
+          "url": "https://bevory.in/",
+          "publisher": { "@id": "https://bevory.in/#organization" },
+          "inLanguage": "en-IN",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://bevory.in/search?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
     }
     </script>
 
     <!-- Alternate URLs for SEO -->
     <link rel="alternate" href="https://bevory.in/" hreflang="en-in" />
     <link rel="alternate" href="https://bevory.in/" hreflang="x-default" />
-    <meta property="og:title" content="Bevory  Know Before You Drink | Compare Prices, Discover Brands">
-  <meta name="twitter:title" content="Bevory  Know Before You Drink | Compare Prices, Discover Brands">
-  <meta property="og:description" content="Bevory is your ultimate guide to the world of beverages. Compare prices, explore brands, plan parties, and make informed choices for every celebration.">
-  <meta name="twitter:description" content="Bevory is your ultimate guide to the world of beverages. Compare prices, explore brands, plan parties, and make informed choices for every celebration.">
+    <meta property="og:title" content="Bevory | Compare Local Beverage Prices">
+  <meta name="twitter:title" content="Bevory | Compare Local Beverage Prices">
+  <meta property="og:description" content="Compare local beverage prices, bottle sizes and brands with Bevory's city-aware price guide for adults aged 25 and older.">
+  <meta name="twitter:description" content="Compare local beverage prices, bottle sizes and brands with Bevory's city-aware price guide for adults aged 25 and older.">
 </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main aria-label="Bevory page summary" style="max-width:760px;margin:0 auto;padding:24px;font-family:system-ui,sans-serif;line-height:1.55">
+        <h1>Compare local beverage prices with Bevory</h1>
+        <p>Compare bottle sizes, brands and locally available beverage prices before choosing what fits your occasion.</p>
+        <h2>How Bevory's local price guide works</h2>
+        <p>Bevory organizes beverage products by brand, category, subcategory, bottle size and city so people can compare relevant listings without sorting through unavailable variants. A product or bottle size appears for a selected city only when a positive local price record is available and has passed the catalogue review rules. Prices are informational and may change at the retailer, so shoppers should confirm the current amount and legal availability locally. Bevory does not sell alcohol. The catalogue is designed for adults aged 25 or older and supports responsible, informed discovery through clear product relationships, useful guides and consistent canonical pages.</p>
+        <nav aria-label="Explore Bevory">
+          <a href="/categories">Categories</a> |
+          <a href="/brands">Brands</a> |
+          <a href="/guide">Guide</a> |
+          <a href="/party-planner">Party planner</a>
+        </nav>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

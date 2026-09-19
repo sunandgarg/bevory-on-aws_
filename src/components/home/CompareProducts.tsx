@@ -57,7 +57,7 @@ const CompareContext = createContext<CompareContextType | undefined>(undefined);
 export const CompareProvider = ({ children }: { children: ReactNode }) => {
   const [compareProducts, setCompareProducts] = useState<CompareProduct[]>([]);
   const [showCompareSheet, setShowCompareSheet] = useState(false);
-  const { selectedCity, selectedState } = useLocation();
+  const { selectedCity } = useLocation();
 
   const addToCompare = async (productId: string) => {
     if (compareProducts.length >= 4) return;
@@ -80,7 +80,8 @@ export const CompareProvider = ({ children }: { children: ReactNode }) => {
         .select("price, mrp, volume, volume_ml")
         .eq("product_id", productId)
         .eq("city_id", selectedCity.id)
-        .eq("price_available", true);
+        .eq("price_available", true)
+        .neq("requires_review", true);
 
       const preferredPrice = (priceData || []).sort((left, right) => {
         const leftPreferred = left.volume_ml === 750 ? 1 : 0;
@@ -329,7 +330,7 @@ export const CompareSheet = () => {
                     {/* Open Button */}
                     <div className="pt-2">
                       <Link 
-                        to={generateProductUrlStatic(product, undefined)} 
+                        to={generateProductUrlStatic(product, selectedCity?.name)}
                         onClick={() => setShowCompareSheet(false)}
                       >
                         <Button size="sm" className="w-full bg-accent text-accent-foreground gap-1">

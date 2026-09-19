@@ -5,6 +5,9 @@ import MobileLayout from "@/components/layout/MobileLayout";
 import { apiClient } from "@/integrations/api/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "@/hooks/useLocation";
+import { citySlugFromName } from "@/lib/locations";
+import { generateProductUrl } from "@/lib/productSlug";
 
 interface VideoReview {
   id: string;
@@ -57,6 +60,8 @@ const VideoDetail = () => {
   const [loading, setLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const { toast } = useToast();
+  const { selectedCity } = useLocation();
+  const citySlug = citySlugFromName(selectedCity?.name) || "gurgaon";
 
   useEffect(() => {
     const fetchVideo = async () => {
@@ -238,7 +243,10 @@ const VideoDetail = () => {
           {/* Linked Product */}
           {video.product && (
             <Link
-              to={`/product/${video.product.slug || video.product.id}`}
+              to={generateProductUrl({
+                citySlug,
+                productSlug: video.product.slug || video.product.id,
+              })}
               className="block p-3 rounded-xl border border-accent/30 bg-accent/5 hover:bg-accent/10 transition-colors"
             >
               <p className="text-sm text-muted-foreground">Featured Product</p>

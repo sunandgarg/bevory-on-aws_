@@ -54,13 +54,30 @@ The following production checks passed on 2026-09-19:
   work through the production domain.
 - Public catalog reads and the party-planner endpoint work.
 - The production catalogue contains all 30 supported cities, 18 active
-  categories, 121 subcategories, 1,283 brands, 2,936 products, and 4,760
-  city-specific size prices.
+  categories, 121 subcategories, 1,498 brands, 3,494 products, and 11,339
+  approved city-specific size prices.
 - City availability is strict: a product size is returned only where that city
   has a price for it.
-- 2,920 products have verified source image URLs and 341 brands have verified
-  logo URLs. These remote links are requested at a 720 px display target; image
-  reuse rights still require review before copying the assets to S3.
+- All 3,483 publicly priced products have identity-verified source image URLs,
+  and 351 brands have verified reachable logo URLs on `static.livcheers.com`. These remote links are
+  requested at a 720 px display target; they are not stored in Bevory's S3
+  bucket, and image reuse rights require review before any migration.
+- Source-conflict and anomalous prices are retained for administrator review but
+  excluded from all public catalogue views and the sitemap.
+- The optimized city catalogue endpoint returns Gurgaon’s 1,888 products and
+  2,127 approved variants in one cacheable response.
+- The Bangalore catalogue contains 1,764 public products and 1,788 approved
+  variants. Fourteen source-conflict, price-anomaly, or size-anomaly variants
+  are retained for review and hidden from public reads.
+- The Hubli-Dharwad catalogue contains 1,464 public products and 1,491 approved
+  variants. Sixty-six source-conflict or anomaly variants are retained for
+  review and hidden from public reads.
+- The Mangalore catalogue contains 1,527 public products and 1,569 approved
+  variants. Twenty-seven source-conflict or anomaly variants are retained for
+  review and hidden from public reads.
+- Fifty malformed legacy Guide articles were reconstructed, 2,179 fragments
+  were quarantined, and 11 evergreen articles were published after an encrypted
+  S3 backup.
 - Google OAuth completes end to end with the verified Bevory consent screen;
   only the current production client secret remains enabled.
 - The restricted S3 identity can put, inspect, and delete an object; the test
@@ -68,13 +85,20 @@ The following production checks passed on 2026-09-19:
 - The live `/gurgaon` page renders without browser console errors.
 - The adaptive Bevory favicon and logo render correctly in light and dark mode,
   and the production source contains no legacy third-party branding.
-- `sitemap.xml` contains 4,251 current catalogue URLs. Search Console previously
-  accepted the sitemap; Google must recrawl it to discover the expanded set.
+- `sitemap.xml` contains 28,237 unique canonical URLs and 23,949 image entries,
+  including 10,768 city product pages, 11,339 exact city-and-size pages, city
+  brand/category/subcategory pages, 11 published guides, and 170 cocktails.
+  Unpriced variants, free-form search, and arbitrary filter combinations are
+  intentionally `noindex, follow`. A 24-way production crawl verified every
+  sitemap URL, canonical, robots directive, initial heading, and JSON-LD block.
 
 ## CloudFront status
 
-The CloudFront origin access control `bevory-uploads-oac` exists, but AWS rejects
-new distribution creation until this new account is verified by AWS Support.
+The CloudFront origin access control `bevory-uploads-oac` exists, but AWS still
+rejected a distribution creation attempt on 2026-09-19 because the account must
+be verified by AWS Support. Case `178975941700756` tracks the request.
+The case remains open and unassigned. The AWS account display name is now
+`Bevory`; the console confirmed the rename from `cirkle.world` on 2026-09-19.
 The S3 bucket remains private; do not make it public as a workaround. After AWS
 removes the restriction, create the distribution using the existing private OAC,
 apply a bucket policy scoped to that distribution ARN, point `media.bevory.in`
@@ -96,9 +120,9 @@ sudo docker compose -f deploy/docker-compose.production.yml run --rm api pnpm db
 sudo docker compose -f deploy/docker-compose.production.yml up -d
 ```
 
-Import a reviewed Livcheers catalogue bundle after copying the three CSVs to a
-temporary host directory. The importer is idempotent and writes a complete JSON
-exception report; remove the temporary CSVs after verification.
+Import one or more reviewed Livcheers city catalogues after copying the CSVs to
+a temporary host directory. The importer is additive and idempotent and writes
+a complete JSON exception report; remove the temporary CSVs after verification.
 
 ```bash
 sudo docker compose -f deploy/docker-compose.production.yml run --rm \
@@ -107,6 +131,10 @@ sudo docker compose -f deploy/docker-compose.production.yml run --rm \
   --delhi /catalog/delhi.csv \
   --goa /catalog/goa.csv \
   --gurgaon /catalog/gurgaon.csv \
+  --faridabad /catalog/faridabad.csv \
+  --bangalore /catalog/bangalore.csv \
+  --hubli-dharwad /catalog/hubli-dharwad.csv \
+  --mangalore /catalog/mangalore.csv \
   --report /tmp/livcheers-import-report.json
 ```
 

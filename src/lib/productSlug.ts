@@ -1,18 +1,14 @@
 /**
- * Product URL generation following the format:
- * /{state-slug}/{category-slug}/{sub-category-slug}/{product-slug}
- * 
- * Examples:
- * - /haryana/beer/lager/kingfisher-premium-malt-strong
- * - /karnataka/whisky/blended/royal-stag
+ * Canonical product URL generation.
+ * Format: /{city-slug}/product/{product-slug}[/{volume}]
  */
 
 import { generateSlug } from './slug';
+import { BEVORY_CITIES } from './locations';
 
 interface ProductUrlParams {
-  stateName?: string | null;
-  categorySlug?: string | null;
-  subCategorySlug?: string | null;
+  cityName?: string | null;
+  citySlug?: string | null;
   productSlug?: string | null;
   productName?: string;
   brandName?: string;
@@ -22,14 +18,7 @@ interface ProductUrlParams {
  * Generate the full product URL path
  */
 export function generateProductUrl(params: ProductUrlParams): string {
-  const {
-    stateName,
-    categorySlug,
-    subCategorySlug,
-    productSlug,
-    productName,
-    brandName
-  } = params;
+  const { cityName, citySlug, productSlug, productName, brandName } = params;
 
   // Generate product slug if not provided
   const slug = productSlug || (productName && brandName 
@@ -40,27 +29,15 @@ export function generateProductUrl(params: ProductUrlParams): string {
 
   if (!slug) return '/';
 
-  // Build URL parts
-  const parts = [];
-  
-  // Add state (default to 'india' if not provided)
-  parts.push(stateName ? generateSlug(stateName) : 'india');
-  
-  // Add category (default to 'liquor' if not provided)
-  parts.push(categorySlug || 'liquor');
-  
-  // Add sub-category (default to 'all' if not provided)
-  parts.push(subCategorySlug || 'all');
-  
-  // Add product slug
-  parts.push(slug);
-
-  return '/' + parts.join('/');
+  const matchedCity = BEVORY_CITIES.find((city) => (
+    city.slug === citySlug || city.name.toLowerCase() === cityName?.toLowerCase()
+  ));
+  return `/${matchedCity?.slug || citySlug || 'gurgaon'}/product/${slug}`;
 }
 
 /**
  * Generate product URL with volume appended
- * Format: /bevory/{state}/{category}/{subcategory}/{product-slug}-{volume}
+ * Format: /{city}/product/{product-slug}/{volume}
  */
 export function generateProductUrlWithVolume(
   params: ProductUrlParams,
@@ -71,13 +48,14 @@ export function generateProductUrlWithVolume(
   // Normalize volume (e.g., "750ml" -> "750ml", "1000 ml" -> "1000ml")
   const normalizedVolume = volume.toLowerCase().replace(/\s+/g, '');
   
-  return `${baseUrl}-${normalizedVolume}`;
+  return `${baseUrl}/${normalizedVolume}`;
 }
 
 /**
  * Parse product URL to extract components
  */
 export function parseProductUrl(path: string): {
+  city: string | null;
   state: string | null;
   category: string | null;
   subCategory: string | null;
@@ -85,18 +63,23 @@ export function parseProductUrl(path: string): {
   volume: string | null;
 } {
   const parts = path.split('/').filter(Boolean);
-  
-  // Expected format: state/category/subcategory/product-slug[-volume]
-  // Can be 4 segments or more if there's bevory prefix (legacy)
-  if (parts.length < 4) {
-    return { state: null, category: null, subCategory: null, productSlug: null, volume: null };
+
+  // Canonical format: /{city}/product/{product-slug}[/{volume}]
+  if ((parts.length === 3 || parts.length === 4) && parts[1] === 'product') {
+    return {
+      city: parts[0],
+      state: null,
+      category: null,
+      subCategory: null,
+      productSlug: parts[2],
+      volume: parts[3] || null,
+    };
   }
 
   // Skip 'bevory' prefix if present (legacy support)
   const startIndex = parts[0] === 'bevory' ? 1 : 0;
-  
   if (parts.length - startIndex < 4) {
-    return { state: null, category: null, subCategory: null, productSlug: null, volume: null };
+    return { city: null, state: null, category: null, subCategory: null, productSlug: null, volume: null };
   }
 
   const [state, category, subCategory, productWithVolume] = parts.slice(startIndex);
@@ -109,6 +92,7 @@ export function parseProductUrl(path: string): {
     : productWithVolume;
 
   return {
+    city: null,
     state,
     category,
     subCategory,
@@ -122,5 +106,7 @@ export function parseProductUrl(path: string): {
  * Converts old /product/{slug} URLs to new format
  */
 export function isLegacyProductUrl(path: string): boolean {
-  return path.startsWith('/product/');
+  const parts = path.split('/').filter(Boolean);
+  if (path.startsWith('/product/') || path.startsWith('/bevory/')) return true;
+  return parts.length === 4 && parts[1] !== 'product';
 }

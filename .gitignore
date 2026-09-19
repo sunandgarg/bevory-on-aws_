@@ -19,6 +19,8 @@ uploads/*
 !uploads/.gitkeep
 coverage
 reports/
+tmp/
+.wrangler/
 
 # Editor directories and files
 .vscode/*

@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FavoriteButton from "@/components/FavoriteButton";
 import CompareButton from "@/components/product/CompareButton";
 import { useLocation } from "@/hooks/useLocation";
+import { generateProductUrl } from "@/lib/productSlug";
+import { citySlugFromName } from "@/lib/locations";
 
 interface Product {
   id: string;
@@ -36,6 +38,7 @@ const Favorites = () => {
   const { user, loading: authLoading } = useAuth();
   const { getFavoriteProducts, getFavoriteCocktails, loading: favLoading } = useFavorites();
   const { selectedCity } = useLocation();
+  const citySlug = citySlugFromName(selectedCity?.name) || "gurgaon";
   const [products, setProducts] = useState<Product[]>([]);
   const [cocktails, setCocktails] = useState<Cocktail[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +57,7 @@ const Favorites = () => {
               .select("product_id")
               .eq("city_id", selectedCity.id)
               .eq("price_available", true)
+              .neq("requires_review", true)
               .in("product_id", productIds)
           : Promise.resolve({ data: [] }),
         cocktailIds.length > 0
@@ -148,7 +152,7 @@ const Favorites = () => {
               {products.map((product) => (
                 <Link
                   key={product.id}
-                  to={`/product/${product.slug || product.id}`}
+                  to={generateProductUrl({ citySlug, productSlug: product.slug || product.id })}
                   className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-accent/50 transition-colors"
                 >
                   <div className="w-16 h-16 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -188,7 +192,7 @@ const Favorites = () => {
               {cocktails.map((cocktail) => (
                 <Link
                   key={cocktail.id}
-                  to={`/cocktails/${cocktail.slug || cocktail.id}`}
+                  to={`/cocktail/${cocktail.slug || cocktail.id}`}
                   className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-accent/50 transition-colors"
                 >
                   <div className="w-16 h-16 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">

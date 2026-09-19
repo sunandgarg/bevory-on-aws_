@@ -40,7 +40,7 @@ const OtherProductsSection = ({ products, title = "Other Products" }: OtherProdu
             <div className="w-32 flex-shrink-0 bg-card rounded-xl border border-border overflow-hidden hover:border-accent/50 transition-colors">
               <div className="aspect-square bg-muted/50 flex items-center justify-center">
                 {product.image_url ? (
-                  <img src={`https://wsrv.nl/?url=${encodeURIComponent(product.image_url)}&w=200&output=webp&q=80&fit=contain&bg=ffffff`} alt={product.name} loading="lazy" decoding="async" width={128} height={128} className="w-full h-full object-contain p-2" />
+                  <img src={`https://wsrv.nl/?url=${encodeURIComponent(product.image_url)}&w=200&output=webp&q=80&fit=contain&bg=ffffff`} alt={`${product.brand} ${product.name} bottle`} loading="lazy" decoding="async" width={128} height={128} className="w-full h-full object-contain p-2" />
                 ) : (
                   <span className="text-4xl">{product.image_emoji || "🥃"}</span>
                 )}

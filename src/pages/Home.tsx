@@ -15,11 +15,11 @@ import { Link } from "react-router-dom";
 import MobileLayout from "@/components/layout/MobileLayout";
 import { useProducts } from "@/hooks/useProducts";
 import { useLocation } from "@/hooks/useLocation";
-import AgeVerificationModal from "@/components/home/AgeVerificationModal";
 import TrendingProducts from "@/components/home/TrendingProducts";
 import Footer from "@/components/layout/Footer";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { Skeleton } from "@/components/ui/skeleton";
+import { citySlugFromName } from "@/lib/locations";
 
 const BrandSpotlight = lazy(() => import("@/components/home/BrandSpotlight"));
 const HomeCocktails = lazy(() => import("@/components/home/HomeCocktails"));
@@ -59,6 +59,7 @@ const Home = () => {
   const { categories, products } = useProducts();
   const { selectedCity, allCities } = useLocation();
   const cityName = selectedCity?.name || "your city";
+  const citySlug = citySlugFromName(selectedCity?.name) || "gurgaon";
   const cityCount = Math.max(allCities.length, selectedCity ? 1 : 0);
   const ratedProducts = products.filter((product) => Number(product.rating) > 0);
   const averageRating = ratedProducts.length
@@ -76,8 +77,6 @@ const Home = () => {
 
   return (
     <MobileLayout showSearch={true} showCheersGuide={true}>
-      <AgeVerificationModal />
-
       <div className="space-y-6 pb-6">
         {/* ─── Personalized greeting (anchoring + trust signal) ─── */}
         <div className="px-4 pt-2 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground animate-in fade-in duration-500">
@@ -184,12 +183,12 @@ const Home = () => {
           </div>
           <div className="flex gap-3 overflow-x-auto pb-1 px-4 scrollbar-hide snap-x snap-mandatory">
             {categories.slice(0, 8).map((cat) => (
-              <Link key={cat.id} to={`/category/${cat.slug}`} className="group block w-[76px] flex-shrink-0 snap-start">
+              <Link key={cat.id} to={`/${citySlug}/category/${cat.slug}`} className="group block w-[76px] flex-shrink-0 snap-start">
                 <div className="w-[76px] h-[76px] rounded-2xl bg-secondary/80 border border-border/40 flex items-center justify-center text-2xl mb-1.5 overflow-hidden group-hover:border-accent/40 group-hover:shadow-[var(--shadow-sm)] transition-all duration-200">
                   {cat.image_url ? (
                     <OptimizedImage
                       src={cat.image_url}
-                      alt={cat.name}
+                      alt={`${cat.name} beverage category`}
                       width={76}
                       height={76}
                       className="w-full h-full"

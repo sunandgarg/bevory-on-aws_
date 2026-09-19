@@ -167,6 +167,8 @@ const Search = () => {
         title={query ? `Search: ${query} | Bevory` : "Search Products - Find Your Perfect Drink | Bevory"}
         description="Search and compare prices for whisky, vodka, rum, gin, and more. Find the best deals on premium spirits near you."
         keywords="search spirits, find whisky, compare prices, buy alcohol online, liquor search"
+        canonical="/search"
+        robots="noindex, follow, max-image-preview:large"
       />
       <MobileLayout title="Search">
         <div className="pb-6">
@@ -428,9 +430,12 @@ const Search = () => {
                             {product.image_url ? (
                               <img 
                                 src={product.image_url} 
-                                alt={product.name}
+                                alt={`${product.brand} ${product.name} bottle`}
+                                width={400}
+                                height={400}
                                 className="w-full h-full object-cover"
                                 loading="lazy"
+                                decoding="async"
                               />
                             ) : (
                               <span className="text-6xl group-hover:scale-110 transition-transform">

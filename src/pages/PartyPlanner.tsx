@@ -9,6 +9,8 @@ import { useLocation } from "@/hooks/useLocation";
 import { Link } from "react-router-dom";
 import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
+import { generateProductUrl } from "@/lib/productSlug";
+import { citySlugFromName } from "@/lib/locations";
 
 interface AIRecommendation {
   category: string;
@@ -44,6 +46,7 @@ const PartyPlanner = () => {
   
   const { recommendations, getRecommendations, loading, budgetInfo } = usePartyPlanner();
   const { selectedCity } = useLocation();
+  const citySlug = citySlugFromName(selectedCity?.name) || "gurgaon";
   const { toast } = useToast();
 
   useEffect(() => {
@@ -612,7 +615,10 @@ const PartyPlanner = () => {
                           return (
                             <Link
                               key={product.id}
-                              to={`/product/${(product as any).slug || product.id}`}
+                              to={generateProductUrl({
+                                citySlug,
+                                productSlug: (product as any).slug || product.id,
+                              })}
                               className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
                             >
                               <div className="flex items-center gap-3">
