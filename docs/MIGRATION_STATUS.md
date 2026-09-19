@@ -1,82 +1,75 @@
 # Migration Status
 
-Last updated: 2026-08-22
+Last updated: 2026-09-19
 
 ## Summary
 
-The application source is fully independent of the previous backend. The frontend remains React/Vite and now talks only to the first-party Node.js/Express API. Persistence uses Prisma with MySQL. No previous database export, account, storage object, SDK, URL, key, environment variable, or runtime service is required.
+Bevory is live at `https://bevory.in`. Cloudflare Pages serves the React/Vite
+frontend and proxies `/api/*` to the first-party Node.js/Express API on AWS
+Lightsail. Prisma persists application data in Lightsail Managed MySQL, and
+uploads use a private encrypted S3 bucket.
 
-The database starts clean. `pnpm db:setup` creates the schema, nine neutral starter records (India, Haryana, Gurgaon, and six beverage categories), and an optional administrator from environment variables. It does not import previous catalog or user data.
+The application no longer depends on the previous backend. The production
+catalogue, authentication, administration, Google OAuth, city-specific prices,
+Guide content, DNS, TLS, budget alerts, and private object storage are deployed
+and verified.
 
-## Status by area
+## Current Status
 
 | Area | Status | Verification |
 | --- | --- | --- |
-| Existing React UI, routes, and styling | ✅ Fully completed | Existing routes and components remain in place |
-| First-party frontend API client | 🧪 Completed and verified | All source imports use `src/integrations/api/client.ts` |
-| Node.js/Express API | 🧪 Completed and verified | Build, API tests, and health checks pass locally |
-| Prisma/MySQL persistence | 🧪 Completed and verified | Prisma datasource is MySQL and schema setup passes |
-| Clean database initialization | 🧪 Completed and verified | Starter seed is repository-local and contains no imported records |
-| Previous-backend independence | 🧪 Completed and verified | No SDK/dependency/runtime configuration or source reference remains |
-| Query compatibility and authorization | 🧪 Completed and verified | Relation aliases, typed filters, ownership enforcement, and review permissions are covered by tests |
-| Email/password authentication | 🧪 Completed and verified | bcrypt passwords, JWT sessions, and protected administration pass locally |
-| Google OAuth | ⚠️ Implemented; live verification requires credentials | Server flow and configuration checks are implemented |
-| Phone OTP | ⚠️ Implemented; production SMS requires credentials | Database challenge flow passes locally; real delivery needs Twilio |
-| GA4 live reporting | ⚠️ Implemented; live verification requires credentials | Server-side adapter is implemented |
-| Price-provider ingestion | ⚠️ Implemented; live verification requires provider access | Admin adapter and validation are implemented |
-| Image uploads | 🧪 Local completed; production storage needs verification | Local persistence passes; S3-compatible adapter is implemented |
-| GitHub `main` publication | ❌ Awaiting explicit deletion confirmation | Verified local commit `fa5d333` is ready; remote push was not permitted because it permanently removes legacy import data/tooling from `main` |
-| DigitalOcean deployment | ❌ Not completed | GitHub is not connected to App Platform, the Droplet limit is reached, and paid infrastructure needs confirmation |
+| Cloudflare Pages frontend | Complete | `bevory.in`, `www.bevory.in`, and the Pages production deployment are active |
+| AWS Lightsail API | Complete | Container health check and public `/api/health` pass |
+| Lightsail Managed MySQL | Complete | Prisma schema, seed, catalogue, and integration tests pass |
+| Catalogue import | Complete | 30 cities, 18 active categories, 121 subcategories, 1,283 brands, 2,936 products, and 4,760 valid price variants |
+| City availability | Complete | Only approved variants priced in the selected city are returned |
+| Product images | Complete as linked sources | All 2,936 products have verified Livcheers source image URLs; 341 brand logos are verified |
+| Guide recovery | Complete | 50 articles reconstructed, 2,179 fragments quarantined, and 11 evergreen articles published |
+| 25+ compliance UI | Complete | The configurable 25+ gate is mounted globally across public, auth, and admin routes |
+| Authentication | Complete | Email/password, sessions, admin authorization, phone OTP tests, and Google OAuth pass |
+| S3 uploads | Complete | Bucket is private, encrypted, versioned, and restricted to the production uploader |
+| CloudFront media CDN | Blocked by AWS | Existing OAC is ready, but AWS still rejects distribution creation until account verification |
 
-## Remaining Work / Blockers
+## Import Exceptions
 
-### 1. DigitalOcean production infrastructure
+- Four source rows were excluded because they contain no positive INR price:
+  three Goa rows and one Gurgaon row.
+- 59 source-conflict or anomaly price rows remain stored with
+  `requires_review=true`. Public catalogue, product, comparison, favorite,
+  brand, party-planner, and sitemap reads exclude them until an administrator
+  approves the values.
+- Three multi-category and six category-conflict warnings are retained in the
+  production import report for editorial review.
+- Product images remain externally linked as requested. Their identity is
+  verified, but reuse rights must be confirmed before copying them to S3.
 
-- **What is left:** Create the production compute service and MySQL database, configure secrets, deploy the GitHub `main` branch, and run production smoke tests.
-- **Why it is not complete:** DigitalOcean App Platform reports that the account has no GitHub access; Droplet creation reports that the account Droplet limit is reached; creating a managed MySQL cluster is billable.
-- **Exactly required:** Connect/authorize the GitHub account for DigitalOcean App Platform (or increase the Droplet limit), approve the application plan plus the displayed MySQL 8.4 starter price of $15.15/month, choose the target DigitalOcean project/region, and provide final production values for `APP_URL`, `JWT_SECRET`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD`.
-- **Affected files/features/services:** Public production availability, production database, persistent uploads, HTTPS/domain routing.
-- **Safe without it:** Yes locally; there is no production deployment until this is completed.
-- **Recommended next action:** Authorize the verified deletions for the GitHub push, connect GitHub to App Platform, then review the combined application/database monthly total before either resource is created.
+Production audit reports are stored with restricted permissions in
+`/opt/bevory/reports`. The pre-repair Guide backup is encrypted in S3 at
+`s3://bevory-uploads-091199627263-ap-south-1/backups/blog/blog-posts-before-repair-2026-09-19T04-18-15-288Z.json`.
 
-### 2. GitHub `main` push
+## Remaining External Blocker
 
-- **What is left:** Publish local commit `fa5d333` and this status update to `origin/main`.
-- **Why it is not complete:** The push would permanently publish deletion of the old exported seed, migrated assets, and import/export tooling. The execution approval layer requires an explicit confirmation acknowledging those deletions.
-- **Exactly required:** Explicit approval to push the commit that removes those obsolete tracked files from remote `main`.
-- **Affected files/features/services:** Remote GitHub source and any deployment that builds from `origin/main`; the verified local application is unaffected.
-- **Safe without it:** Yes locally, but DigitalOcean cannot deploy the verified source from GitHub.
-- **Recommended next action:** Confirm the deletion-aware push, then run `git push origin main`.
+AWS still returns `Your account must be verified before you can add new
+CloudFront resources` when creating the approved distribution. AWS Support case
+`178975941700756` already tracks the account-verification request. The private
+bucket must not be made public as a workaround. Once AWS verifies the account,
+create the distribution with OAC `bevory-uploads-oac`, scope the bucket policy
+to its ARN, and then attach `media.bevory.in`.
 
-### 3. Optional third-party integrations
+## Verification Record
 
-- **What is left:** Live Google OAuth, Twilio SMS, GA4, price provider, and S3-compatible object-storage verification.
-- **Why it is not complete:** Their account credentials and provider-specific configuration are not present.
-- **Exactly required:** The corresponding environment variables documented in `.env.example` and access to each provider account.
-- **Affected files/features/services:** Google sign-in, phone delivery, live analytics, automatic price refresh, and horizontally-scaled upload durability.
-- **Safe without it:** Yes. Email/password authentication, local uploads on persistent disk, manual catalog administration, and core browsing remain available.
-- **Recommended next action:** Configure only the integrations you intend to use, one at a time, in the DigitalOcean secret settings.
-
-## Exact completion order
-
-1. Explicitly approve publication of the legacy-file deletions, then push the verified commits to GitHub `main`.
-2. Connect GitHub to DigitalOcean App Platform and select `sunandgarg/bevory-react` `main`.
-3. Confirm the application plan plus the $15.15/month MySQL 8.4 starter cluster and target project/region.
-4. Create the empty production MySQL database and application service.
-5. Configure strong production secrets and persistent uploads/object storage.
-6. Run schema setup and the clean starter seed.
-7. Verify health, signup/signin, administration, CRUD, uploads, and deep-link routing on the production URL.
-8. Add a domain/DNS and optional third-party integrations.
-
-## Verification record
-
-- No previous-backend package exists in `package.json` or `pnpm-lock.yaml`.
-- No previous-backend environment variable is present in `.env.example`.
-- Frontend imports target only the first-party API client.
-- Prisma datasource is MySQL.
-- Legacy export/import scripts, old seed export, old migrated assets, and related documentation were removed.
-- Service-worker cache version was changed so an earlier compiled frontend cannot remain active after reload.
-- Production build passed with Node 24; frontend and backend TypeScript passed.
-- Automated test suite passed: 16/16 tests across five files, including live MySQL OTP and authorization coverage.
-- ESLint passed with zero errors and 22 advisory warnings in retained frontend code.
-- Fresh local `/gurgaon` rendering and API health passed against the new clean MySQL instance; browser console contained no errors.
+- Production build and all frontend, server, and script TypeScript checks pass.
+- Automated suite: 25/25 tests across nine files.
+- ESLint: zero errors; 20 retained advisory warnings.
+- Gurgaon catalogue: 1,888 products and 2,127 approved variants, with zero
+  missing product images.
+- Catalogue response: about 0.35 seconds cold locally and 0.017 seconds cached;
+  the full 2.7 MB response is compressed at the production proxy.
+- The live Guide API returns exactly 11 published reconstructed articles.
+- Desktop and 390 x 844 mobile browser checks show no horizontal overflow or
+  console errors.
+- Service worker v6 fetches route documents network-first so compliance changes
+  are not hidden behind stale HTML.
+- `sitemap.xml` contains 4,246 current URLs: 2,920 approved products, 1,283
+  brands, and 11 published guides, plus city, category, and static pages.
+- Lightsail exposes only TCP ports 80 and 443; temporary SSH access was closed.

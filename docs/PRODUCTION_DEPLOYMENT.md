@@ -58,9 +58,16 @@ The following production checks passed on 2026-09-19:
   city-specific size prices.
 - City availability is strict: a product size is returned only where that city
   has a price for it.
-- 2,920 products have verified source image URLs and 341 brands have verified
+- All 2,936 products have verified source image URLs and 341 brands have verified
   logo URLs. These remote links are requested at a 720 px display target; image
   reuse rights still require review before copying the assets to S3.
+- Source-conflict and anomalous prices are retained for administrator review but
+  excluded from all public catalogue views and the sitemap.
+- The optimized city catalogue endpoint returns Gurgaon’s 1,888 products and
+  2,127 approved variants in one cacheable response.
+- Fifty malformed legacy Guide articles were reconstructed, 2,179 fragments
+  were quarantined, and 11 evergreen articles were published after an encrypted
+  S3 backup.
 - Google OAuth completes end to end with the verified Bevory consent screen;
   only the current production client secret remains enabled.
 - The restricted S3 identity can put, inspect, and delete an object; the test
@@ -68,13 +75,15 @@ The following production checks passed on 2026-09-19:
 - The live `/gurgaon` page renders without browser console errors.
 - The adaptive Bevory favicon and logo render correctly in light and dark mode,
   and the production source contains no legacy third-party branding.
-- `sitemap.xml` contains 4,251 current catalogue URLs. Search Console previously
-  accepted the sitemap; Google must recrawl it to discover the expanded set.
+- `sitemap.xml` contains 4,246 current URLs, including 2,920 approved products,
+  1,283 brands, and 11 published guides. Search Console previously accepted the
+  sitemap; Google must recrawl it to discover the updated set.
 
 ## CloudFront status
 
-The CloudFront origin access control `bevory-uploads-oac` exists, but AWS rejects
-new distribution creation until this new account is verified by AWS Support.
+The CloudFront origin access control `bevory-uploads-oac` exists, but AWS still
+rejected a distribution creation attempt on 2026-09-19 because the account must
+be verified by AWS Support. Case `178975941700756` tracks the request.
 The S3 bucket remains private; do not make it public as a workaround. After AWS
 removes the restriction, create the distribution using the existing private OAC,
 apply a bucket policy scoped to that distribution ARN, point `media.bevory.in`
