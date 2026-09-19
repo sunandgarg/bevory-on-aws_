@@ -11,7 +11,8 @@ Last verified: 2026-09-19
 
 ## Topology
 
-- Cloudflare Pages project `bevory` serves `dist/` and runs `public/_worker.js`.
+- Cloudflare Pages project `bevory` serves `dist/` and compiles the catch-all
+  `functions/[[path]].js` Pages Function.
 - The Pages Worker proxies `/api/*` to `https://api.bevory.in` and supplies the
   private origin-verification header.
 - AWS Lightsail instance `bevory-api-prod` runs the API and Caddy with Docker

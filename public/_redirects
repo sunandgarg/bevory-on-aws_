@@ -1,2 +1,2 @@
-# Cloudflare Pages SPA fallback is handled by _worker.js so API proxying and
-# client-side routes share one origin.
+# Cloudflare Pages SPA fallback is handled by the catch-all Pages Function so
+# API proxying and client-side routes share one origin.
