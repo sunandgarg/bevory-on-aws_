@@ -15,7 +15,6 @@ import { Link } from "react-router-dom";
 import MobileLayout from "@/components/layout/MobileLayout";
 import { useProducts } from "@/hooks/useProducts";
 import { useLocation } from "@/hooks/useLocation";
-import AgeVerificationModal from "@/components/home/AgeVerificationModal";
 import TrendingProducts from "@/components/home/TrendingProducts";
 import Footer from "@/components/layout/Footer";
 import OptimizedImage from "@/components/ui/OptimizedImage";
@@ -76,8 +75,6 @@ const Home = () => {
 
   return (
     <MobileLayout showSearch={true} showCheersGuide={true}>
-      <AgeVerificationModal />
-
       <div className="space-y-6 pb-6">
         {/* ─── Personalized greeting (anchoring + trust signal) ─── */}
         <div className="px-4 pt-2 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground animate-in fade-in duration-500">

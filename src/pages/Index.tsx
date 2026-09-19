@@ -7,12 +7,10 @@ import CompareSection from "@/components/home/CompareSection";
 import LearnSection from "@/components/home/LearnSection";
 import CategoriesSection from "@/components/home/CategoriesSection";
 import DownloadAppSection from "@/components/home/DownloadAppSection";
-import AgeVerificationModal from "@/components/home/AgeVerificationModal";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
-      <AgeVerificationModal />
       <Header />
       <main>
         <HeroSection />
