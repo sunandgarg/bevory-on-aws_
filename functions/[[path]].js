@@ -270,36 +270,34 @@ const rewriteDocument = (response, url, routeData) => {
     .transform(htmlResponse);
 };
 
-export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
+export async function onRequest({ request, env }) {
+  const url = new URL(request.url);
 
-    if (url.hostname === "www.bevory.in") {
-      url.hostname = "bevory.in";
+  if (url.hostname === "www.bevory.in") {
+    url.hostname = "bevory.in";
+    return Response.redirect(url.toString(), 308);
+  }
+
+  if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
+    return proxyApiRequest(request, env);
+  }
+
+  if (isDocumentRequest(request)) {
+    const redirectPath = legacyRedirectPath(url.pathname);
+    if (redirectPath && redirectPath !== url.pathname) {
+      url.pathname = redirectPath;
       return Response.redirect(url.toString(), 308);
     }
+  }
 
-    if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
-      return proxyApiRequest(request, env);
-    }
+  const seoRoutes = isDocumentRequest(request) ? await loadSeoRoutes(env, url.pathname) : {};
 
-    if (isDocumentRequest(request)) {
-      const redirectPath = legacyRedirectPath(url.pathname);
-      if (redirectPath && redirectPath !== url.pathname) {
-        url.pathname = redirectPath;
-        return Response.redirect(url.toString(), 308);
-      }
-    }
+  let response = await env.ASSETS.fetch(request);
+  if (response.status === 404 && isDocumentRequest(request)) {
+    const appShellUrl = new URL("/index.html", url);
+    response = await env.ASSETS.fetch(new Request(appShellUrl, request));
+  }
 
-    const seoRoutes = isDocumentRequest(request) ? await loadSeoRoutes(env, url.pathname) : {};
-
-    let response = await env.ASSETS.fetch(request);
-    if (response.status === 404 && isDocumentRequest(request)) {
-      const appShellUrl = new URL("/index.html", url);
-      response = await env.ASSETS.fetch(new Request(appShellUrl, request));
-    }
-
-    if (!isDocumentRequest(request) || !response.ok) return response;
-    return rewriteDocument(response, url, routeSeo(url.pathname, seoRoutes));
-  },
-};
+  if (!isDocumentRequest(request) || !response.ok) return response;
+  return rewriteDocument(response, url, routeSeo(url.pathname, seoRoutes));
+}
