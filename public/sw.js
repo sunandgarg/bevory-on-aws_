@@ -1,5 +1,5 @@
-// Bevory Service Worker v5 - 2026
-const CACHE_VERSION = 'bevory-v5';
+// Bevory Service Worker v6 - 2026
+const CACHE_VERSION = 'bevory-v6';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
@@ -81,10 +81,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Strategy 4: App shell (JS, CSS, HTML) — Stale while revalidate
+  // Strategy 4: Documents — network first so policy and compliance changes are immediate
+  if (url.origin === self.location.origin && request.destination === 'document') {
+    event.respondWith(networkFirstDocument(request, STATIC_CACHE));
+    return;
+  }
+
+  // Strategy 5: Hashed JS and CSS — stale while revalidate
   if (
     url.origin === self.location.origin &&
-    (request.destination === 'script' || request.destination === 'style' || request.destination === 'document')
+    (request.destination === 'script' || request.destination === 'style')
   ) {
     event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
     return;
@@ -116,6 +122,19 @@ async function networkFirstWithCache(request, cacheName, maxAge) {
       status: 503,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+}
+
+async function networkFirstDocument(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  try {
+    const response = await fetch(request, { cache: 'no-cache' });
+    if (response.ok) cache.put(request, response.clone());
+    return response;
+  } catch {
+    return (await cache.match(request))
+      || (await cache.match('/'))
+      || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
   }
 }
 
