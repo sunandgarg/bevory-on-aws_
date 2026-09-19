@@ -86,6 +86,21 @@ describe("Livcheers catalogue import helpers", () => {
       .toBe("https://www.livcheers.com/bangalore/liquor/sample-gin-750ml");
   });
 
+  it.each([
+    ["hubli-dharwad", "rum"],
+    ["mangalore", "vodka"],
+  ] as const)("extracts %s cards", (citySlug, categorySlug) => {
+    const html = `
+      <a href="/${citySlug}/liquor/sample-product-750ml">
+        <h3>Sample Product</h3>
+        <p>750 ML</p>
+      </a>
+    `;
+
+    expect(parseCategoryCards(html, citySlug, categorySlug, "source")[0]?.productUrl)
+      .toBe(`https://www.livcheers.com/${citySlug}/liquor/sample-product-750ml`);
+  });
+
   it("accepts pipe and semicolon category delimiters", () => {
     expect(parseCategorySlugs("blended-scotch; made-in-india-whisky | blended-scotch"))
       .toEqual(["blended-scotch", "made-in-india-whisky"]);

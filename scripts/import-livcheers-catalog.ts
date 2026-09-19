@@ -7,7 +7,14 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { parse } from "csv-parse/sync";
 import { LEGACY_CATALOG_CATEGORY_SLUGS, LIVCHEERS_CATEGORY_DEFINITIONS } from "../src/lib/catalogTaxonomy.js";
 
-type CitySlug = "bangalore" | "delhi" | "faridabad" | "goa" | "gurgaon";
+type CitySlug =
+  | "bangalore"
+  | "delhi"
+  | "faridabad"
+  | "goa"
+  | "gurgaon"
+  | "hubli-dharwad"
+  | "mangalore";
 
 type SourceSpec = {
   city: string;
@@ -38,6 +45,9 @@ type CsvRow = {
   size_anomaly_reason?: string;
   category_anomaly_flag?: string;
   category_anomaly_reason?: string;
+  category_review_flag?: string;
+  category_review_reason?: string;
+  price_missing?: string;
 };
 
 type ParsedRow = CsvRow & {
@@ -135,12 +145,21 @@ const RECORD_CATEGORY_OVERRIDES = new Map<string, string>([
   ["BLR-R-dfe294c760ab4dfe", "red-wine"],
 ]);
 
+const PRODUCT_IMAGE_OVERRIDES = new Map<string, { imageUrl: string; sourcePage: string }>([
+  ["8pm|whisky", {
+    imageUrl: "https://static.livcheers.com/static/content/images/liquor/LCIN00022.webp",
+    sourcePage: "https://www.livcheers.com/mangalore/liquor/8-pm-whisky-750ml",
+  }],
+]);
+
 const SOURCE_PRIORITY: Record<CitySlug, number> = {
   delhi: 1,
   goa: 2,
   gurgaon: 3,
   faridabad: 4,
   bangalore: 5,
+  "hubli-dharwad": 6,
+  mangalore: 7,
 };
 
 const slugify = (value: string) => value
@@ -302,13 +321,18 @@ const parseArguments = () => {
     { flag: "--gurgaon", city: "Gurgaon", citySlug: "gurgaon" },
     { flag: "--faridabad", city: "Faridabad", citySlug: "faridabad" },
     { flag: "--bangalore", city: "Bangalore", citySlug: "bangalore" },
+    { flag: "--hubli-dharwad", city: "Hubli Dharwad", citySlug: "hubli-dharwad" },
+    { flag: "--mangalore", city: "Mangalore", citySlug: "mangalore" },
   ];
   const sources = definitions.flatMap((definition) => {
     const path = valueFor(definition.flag);
     return path ? [{ city: definition.city, citySlug: definition.citySlug, path: resolve(path) }] : [];
   });
   if (!sources.length) {
-    throw new Error("Provide at least one source: --delhi, --goa, --gurgaon, --faridabad, or --bangalore <csv>.");
+    throw new Error(
+      "Provide at least one source: --delhi, --goa, --gurgaon, --faridabad, --bangalore, "
+      + "--hubli-dharwad, or --mangalore <csv>.",
+    );
   }
   return {
     sources: sources satisfies SourceSpec[],
@@ -352,11 +376,27 @@ const readSourceRows = async (source: SourceSpec, issues: ImportIssue[]) => {
     if ((row.currency || "INR").toUpperCase() !== "INR") {
       return issue("unsupported_currency", `Expected INR, found ${row.currency}.`);
     }
-    if (!Number.isFinite(price) || price <= 0) return issue("missing_price", "A positive INR price is required.");
+    if (!Number.isFinite(price) || price <= 0) {
+      if (parseBoolean(row.price_missing)) {
+        return issue(
+          "source_price_missing",
+          "The source explicitly has no numeric city price; the row was not imported or indexed.",
+          "warning",
+        );
+      }
+      return issue("missing_price", "A positive INR price is required.");
+    }
     if (!Number.isInteger(volumeMl) || volumeMl <= 0) return issue("invalid_volume", `Invalid volume_ml: ${row.volume_ml}.`);
     const unknownCategories = categorySlugs.filter((slug) => !CATEGORY_SLUGS.has(slug));
-    if (!categorySlugs.length || unknownCategories.length) {
+    if (row.source_category?.trim() && (!categorySlugs.length || unknownCategories.length)) {
       return issue("unknown_category", `Unsupported category: ${row.source_category || "blank"}.`);
+    }
+    if (!categorySlugs.length) {
+      issue(
+        "category_deferred",
+        "Source category is blank; category resolution is deferred to the existing verified product identity.",
+        "warning",
+      );
     }
     if (categorySlugs.length > 1) {
       issue("multi_category_source", `Source lists multiple categories: ${categorySlugs.join(", ")}.`, "warning");
@@ -375,6 +415,15 @@ const readSourceRows = async (source: SourceSpec, issues: ImportIssue[]) => {
       issue(
         "source_size_anomaly",
         row.size_anomaly_reason || "The source row flags a size anomaly; imported with review metadata.",
+        "warning",
+      );
+    }
+    if (parseBoolean(row.category_anomaly_flag) || parseBoolean(row.category_review_flag)) {
+      issue(
+        "source_category_review",
+        row.category_anomaly_reason
+          || row.category_review_reason
+          || "The source row requires category review; existing verified product taxonomy will be preferred.",
         "warning",
       );
     }
@@ -528,7 +577,10 @@ const tokenSimilarity = (left: string, right: string) => {
 const productPath = (value: string | undefined) => {
   if (!value) return "";
   try {
-    return new URL(value).pathname.replace(/^\/(?:bangalore|delhi|faridabad|goa|gurgaon)/, "");
+    return new URL(value).pathname.replace(
+      /^\/(?:bangalore|delhi|faridabad|goa|gurgaon|hubli-dharwad|mangalore)/,
+      "",
+    );
   } catch {
     return "";
   }
@@ -575,6 +627,21 @@ const buildRecords = async (
   const tableNames = ["app_settings", "brand_spotlights", "categories", "cities", "product_prices", "products", "sub_categories"];
   const existingRecords = await prisma.contentRecord.findMany({ where: { tableName: { in: tableNames } } });
   const existingByKey = new Map(existingRecords.map((record) => [record.key, jsonObject(record.data)]));
+  const existingCategorySlugById = new Map(existingRecords
+    .filter((record) => record.tableName === "categories")
+    .map((record) => [record.recordId, String(jsonObject(record.data).slug ?? "")])
+    .filter((entry): entry is [string, string] => CATEGORY_SLUGS.has(entry[1])));
+  const existingProductByIdentity = new Map<string, { recordId: string; data: Prisma.JsonObject }>();
+  existingRecords
+    .filter((record) => record.tableName === "products")
+    .forEach((record) => {
+      const data = jsonObject(record.data);
+      const identity = String(data.catalog_identity ?? "") || productKeyFor(
+        String(data.brand ?? ""),
+        String(data.name ?? ""),
+      );
+      if (identity && identity !== "|") existingProductByIdentity.set(identity, { recordId: record.recordId, data });
+    });
   const records = new Map<string, PlannedRecord>();
   const setRecord = (tableName: string, recordId: string, managedData: Prisma.InputJsonObject) => {
     const key = `${tableName}:${recordId}`;
@@ -601,6 +668,32 @@ const buildRecords = async (
       throw new Error(`City ${source.city} is missing. Run pnpm db:seed before importing the catalogue.`);
     }
   }
+
+  const resolvedRows: ParsedRow[] = [];
+  rows.forEach((row) => {
+    if (row.categorySlugs.length) {
+      resolvedRows.push(row);
+      return;
+    }
+
+    const existingProduct = existingProductByIdentity.get(row.productKey);
+    const existingSlugs = existingProduct
+      ? mergeUniqueStrings(existingProduct.data.category_slugs, [
+        existingCategorySlugById.get(String(existingProduct.data.category_id ?? "")),
+      ]).filter((slug) => CATEGORY_SLUGS.has(slug))
+      : [];
+    if (!existingSlugs.length) {
+      report.issues.push({
+        level: "error",
+        code: "unresolved_blank_category",
+        source: row.source.path,
+        recordId: row.record_id || `${row.source.citySlug}-${row.sourceIndex + 2}`,
+        message: `${row.brand_name} ${row.product_name} has no source category or verified existing category; row skipped.`,
+      });
+      return;
+    }
+    resolvedRows.push({ ...row, categorySlugs: existingSlugs });
+  });
 
   const categoryIds = new Map<string, string>();
   LIVCHEERS_CATEGORY_DEFINITIONS.forEach(([slug, name, imageEmoji, description], orderIndex) => {
@@ -645,7 +738,7 @@ const buildRecords = async (
     });
   });
 
-  const rowsByBrand = groupBy(rows, (row) => row.brandKey);
+  const rowsByBrand = groupBy(resolvedRows, (row) => row.brandKey);
   for (const [brandKey, brandRows] of rowsByBrand) {
     const brandName = brandRows[0].brand_name.trim();
     const slug = slugify(brandName);
@@ -677,7 +770,7 @@ const buildRecords = async (
     }
   }
 
-  const rowsByProduct = groupBy(rows, (row) => row.productKey);
+  const rowsByProduct = groupBy(resolvedRows, (row) => row.productKey);
   const productIdByKey = new Map<string, string>();
   for (const [productKey, productRows] of rowsByProduct) {
     const brandName = productRows[0].brand_name.trim();
@@ -717,7 +810,8 @@ const buildRecords = async (
     const existingData = jsonObject(existing?.data);
     const volumes = mergeUniqueNumbers(existingData.available_volumes_ml, productRows.map((row) => row.volumeMl));
     const defaultVolume = volumes.includes(750) ? 750 : volumes[0];
-    const imageUrl = selectedEnrichment?.imageUrl ?? null;
+    const imageOverride = PRODUCT_IMAGE_OVERRIDES.get(productKey);
+    const imageUrl = selectedEnrichment?.imageUrl ?? imageOverride?.imageUrl ?? null;
     if (imageUrl) report.enrichment.productsWithVerifiedImages += 1;
     const readableOverrideKey = `${brandName.toLowerCase()}|${productName.toLowerCase()}`;
     const hasCategoryOverride = CATEGORY_OVERRIDES.has(readableOverrideKey);
@@ -745,7 +839,9 @@ const buildRecords = async (
       volume: existingData.volume ?? `${defaultVolume}ml`,
       image_url: imageUrl ?? existingData.image_url ?? null,
       image_source_url: imageUrl ?? existingData.image_source_url ?? null,
-      image_source_page: imageUrl ? selectedEnrichment?.productUrl ?? null : existingData.image_source_page ?? null,
+      image_source_page: imageUrl
+        ? selectedEnrichment?.productUrl ?? imageOverride?.sourcePage ?? null
+        : existingData.image_source_page ?? null,
       image_identity_verified: imageUrl ? true : Boolean(existingData.image_identity_verified),
       image_verified_at: imageUrl ? now : existingData.image_verified_at ?? null,
       image_target_width: 720,
@@ -761,12 +857,18 @@ const buildRecords = async (
   }
 
   let matchedVariants = 0;
-  for (const row of rows) {
+  for (const row of resolvedRows) {
     const productId = productIdByKey.get(row.productKey)!;
     const cityId = cityIdByName.get(normalizeIdentity(row.source.city))!;
     const priceId = stableId("price", `${productId}|${cityId}|${row.volumeMl}`);
     const matched = pickProductEnrichment([row], enrichments)[0];
     if (matched) matchedVariants += 1;
+    const categoryOverrideKey = `${row.brand_name.trim().toLowerCase()}|${row.product_name.trim().toLowerCase()}`;
+    const categoryResolution = row.source_category?.trim()
+      ? "source"
+      : CATEGORY_OVERRIDES.has(categoryOverrideKey) || RECORD_CATEGORY_OVERRIDES.has(row.record_id || "")
+        ? "override"
+        : "existing_product";
     setRecord("product_prices", priceId, {
       product_id: productId,
       city_id: cityId,
@@ -791,8 +893,10 @@ const buildRecords = async (
       price_anomaly_reason: row.price_anomaly_reason || null,
       size_anomaly_flag: parseBoolean(row.size_anomaly_flag),
       size_anomaly_reason: row.size_anomaly_reason || null,
-      category_anomaly_flag: parseBoolean(row.category_anomaly_flag),
-      category_anomaly_reason: row.category_anomaly_reason || null,
+      category_anomaly_flag: parseBoolean(row.category_anomaly_flag) || parseBoolean(row.category_review_flag),
+      category_anomaly_reason: row.category_anomaly_reason || row.category_review_reason || null,
+      resolved_category: row.categorySlugs.join("|"),
+      category_resolution: categoryResolution,
       requires_review: parseBoolean(row.price_conflict)
         || parseBoolean(row.price_anomaly_flag)
         || parseBoolean(row.size_anomaly_flag),

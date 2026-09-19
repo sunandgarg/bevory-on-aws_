@@ -54,11 +54,11 @@ The following production checks passed on 2026-09-19:
   work through the production domain.
 - Public catalog reads and the party-planner endpoint work.
 - The production catalogue contains all 30 supported cities, 18 active
-  categories, 121 subcategories, 1,496 brands, 3,491 products, and 8,279
+  categories, 121 subcategories, 1,498 brands, 3,494 products, and 11,339
   approved city-specific size prices.
 - City availability is strict: a product size is returned only where that city
   has a price for it.
-- All 3,479 publicly priced products have identity-verified source image URLs,
+- All 3,483 publicly priced products have identity-verified source image URLs,
   and 351 brands have verified reachable logo URLs on `static.livcheers.com`. These remote links are
   requested at a 720 px display target; they are not stored in Bevory's S3
   bucket, and image reuse rights require review before any migration.
@@ -69,6 +69,12 @@ The following production checks passed on 2026-09-19:
 - The Bangalore catalogue contains 1,764 public products and 1,788 approved
   variants. Fourteen source-conflict, price-anomaly, or size-anomaly variants
   are retained for review and hidden from public reads.
+- The Hubli-Dharwad catalogue contains 1,464 public products and 1,491 approved
+  variants. Sixty-six source-conflict or anomaly variants are retained for
+  review and hidden from public reads.
+- The Mangalore catalogue contains 1,527 public products and 1,569 approved
+  variants. Twenty-seven source-conflict or anomaly variants are retained for
+  review and hidden from public reads.
 - Fifty malformed legacy Guide articles were reconstructed, 2,179 fragments
   were quarantined, and 11 evergreen articles were published after an encrypted
   S3 backup.
@@ -79,8 +85,8 @@ The following production checks passed on 2026-09-19:
 - The live `/gurgaon` page renders without browser console errors.
 - The adaptive Bevory favicon and logo render correctly in light and dark mode,
   and the production source contains no legacy third-party branding.
-- `sitemap.xml` contains 20,520 unique canonical URLs and 17,418 image entries,
-  including 7,777 city product pages, 8,279 exact city-and-size pages, city
+- `sitemap.xml` contains 28,237 unique canonical URLs and 23,949 image entries,
+  including 10,768 city product pages, 11,339 exact city-and-size pages, city
   brand/category/subcategory pages, 11 published guides, and 170 cocktails.
   Unpriced variants, free-form search, and arbitrary filter combinations are
   intentionally `noindex, follow`. A 24-way production crawl verified every
@@ -127,6 +133,8 @@ sudo docker compose -f deploy/docker-compose.production.yml run --rm \
   --gurgaon /catalog/gurgaon.csv \
   --faridabad /catalog/faridabad.csv \
   --bangalore /catalog/bangalore.csv \
+  --hubli-dharwad /catalog/hubli-dharwad.csv \
+  --mangalore /catalog/mangalore.csv \
   --report /tmp/livcheers-import-report.json
 ```
 
