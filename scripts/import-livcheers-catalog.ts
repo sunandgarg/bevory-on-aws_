@@ -7,7 +7,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { parse } from "csv-parse/sync";
 import { LEGACY_CATALOG_CATEGORY_SLUGS, LIVCHEERS_CATEGORY_DEFINITIONS } from "../src/lib/catalogTaxonomy.js";
 
-type CitySlug = "delhi" | "goa" | "gurgaon";
+type CitySlug = "delhi" | "faridabad" | "goa" | "gurgaon";
 
 type SourceSpec = {
   city: string;
@@ -109,6 +109,8 @@ const CATEGORY_OVERRIDES = new Map<string, string>([
   ["grover|art collection cab shiraz", "red-wine"],
   ["grover|art collection chenin blanc", "white-wine"],
   ["jim beam|jim beam", "world-whisky"],
+  ["noble|casa noble blanco tequila", "tequila"],
+  ["sierra|tequila repsado", "tequila"],
   ["sula|seco rose", "rose-wine"],
   ["teachers|highland cream", "blended-scotch"],
 ]);
@@ -117,6 +119,7 @@ const SOURCE_PRIORITY: Record<CitySlug, number> = {
   delhi: 1,
   goa: 2,
   gurgaon: 3,
+  faridabad: 4,
 };
 
 const slugify = (value: string) => value
@@ -134,6 +137,27 @@ export const normalizeIdentity = (value: string) => value
   .replace(/&/g, "and")
   .replace(/[^a-z0-9]+/g, "")
   .trim();
+
+export const parseCategorySlugs = (value: string) => [...new Set(value
+  .split(/[|;]/)
+  .map((category) => slugify(category))
+  .filter(Boolean))];
+
+export const mergeUniqueNumbers = (existing: unknown, incoming: number[]) => {
+  const previous = Array.isArray(existing)
+    ? existing.map(Number).filter((value) => Number.isInteger(value) && value > 0)
+    : [];
+  return [...new Set([...previous, ...incoming])].sort((left, right) => right - left);
+};
+
+export const mergeUniqueStrings = (existing: unknown, incoming: Array<string | null | undefined>) => {
+  const previous = Array.isArray(existing)
+    ? existing.filter((value): value is string => typeof value === "string")
+    : [];
+  return [...new Set([...previous, ...incoming]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value)))];
+};
 
 const stableId = (namespace: string, value: string) => {
   const digest = createHash("sha256").update(value).digest("hex").slice(0, 24);
@@ -236,18 +260,21 @@ const parseArguments = () => {
     const index = args.indexOf(flag);
     return index >= 0 ? args[index + 1] : undefined;
   };
-  const delhi = valueFor("--delhi");
-  const goa = valueFor("--goa");
-  const gurgaon = valueFor("--gurgaon");
-  if (!delhi || !goa || !gurgaon) {
-    throw new Error("Required: --delhi <csv> --goa <csv> --gurgaon <csv>");
+  const definitions: Array<{ flag: string; city: string; citySlug: CitySlug }> = [
+    { flag: "--delhi", city: "Delhi", citySlug: "delhi" },
+    { flag: "--goa", city: "Goa", citySlug: "goa" },
+    { flag: "--gurgaon", city: "Gurgaon", citySlug: "gurgaon" },
+    { flag: "--faridabad", city: "Faridabad", citySlug: "faridabad" },
+  ];
+  const sources = definitions.flatMap((definition) => {
+    const path = valueFor(definition.flag);
+    return path ? [{ city: definition.city, citySlug: definition.citySlug, path: resolve(path) }] : [];
+  });
+  if (!sources.length) {
+    throw new Error("Provide at least one source: --delhi, --goa, --gurgaon, or --faridabad <csv>.");
   }
   return {
-    sources: [
-      { city: "Delhi", citySlug: "delhi", path: resolve(delhi) },
-      { city: "Goa", citySlug: "goa", path: resolve(goa) },
-      { city: "Gurgaon", citySlug: "gurgaon", path: resolve(gurgaon) },
-    ] satisfies SourceSpec[],
+    sources: sources satisfies SourceSpec[],
     dryRun: args.includes("--dry-run"),
     enrich: !args.includes("--skip-enrichment"),
     verifyBrandLogos: !args.includes("--skip-brand-logos"),
@@ -277,10 +304,7 @@ const readSourceRows = async (source: SourceSpec, issues: ImportIssue[]) => {
     const productName = row.product_name?.trim();
     const price = Number(row.price_inr?.replace(/,/g, ""));
     const volumeMl = Number(row.volume_ml);
-    const categorySlugs = (row.source_category ?? "")
-      .split("|")
-      .map((value) => slugify(value))
-      .filter(Boolean);
+    const categorySlugs = parseCategorySlugs(row.source_category ?? "");
 
     if (!brandName || !productName) return issue("missing_identity", "Brand or product name is missing.");
     if (normalizeIdentity(row.city) !== normalizeIdentity(source.city)) {
@@ -458,7 +482,7 @@ const tokenSimilarity = (left: string, right: string) => {
 const productPath = (value: string | undefined) => {
   if (!value) return "";
   try {
-    return new URL(value).pathname.replace(/^\/(?:delhi|goa|gurgaon)/, "");
+    return new URL(value).pathname.replace(/^\/(?:delhi|faridabad|goa|gurgaon)/, "");
   } catch {
     return "";
   }
@@ -584,17 +608,18 @@ const buildRecords = async (
       || normalizeIdentity(String(jsonObject(record.data).brand_name ?? "")) === brandKey
     ));
     const id = existing?.recordId ?? stableId("brand", brandKey);
+    const existingData = jsonObject(existing?.data);
     const logoUrl = brandLogos.get(brandKey);
     setRecord("brand_spotlights", id, {
-      brand_name: brandName,
-      slug,
-      logo_url: logoUrl ?? jsonObject(existing?.data).logo_url ?? null,
-      logo_source_url: logoUrl ?? null,
-      logo_identity_verified: Boolean(logoUrl),
-      logo_verified_at: logoUrl ? now : null,
-      image_license_status: "unverified",
+      brand_name: existingData.brand_name ?? brandName,
+      slug: existingData.slug ?? slug,
+      logo_url: logoUrl ?? existingData.logo_url ?? null,
+      logo_source_url: logoUrl ?? existingData.logo_source_url ?? null,
+      logo_identity_verified: logoUrl ? true : Boolean(existingData.logo_identity_verified),
+      logo_verified_at: logoUrl ? now : existingData.logo_verified_at ?? null,
+      image_license_status: existingData.image_license_status ?? "unverified",
       is_active: true,
-      show_in_spotlight: Boolean(jsonObject(existing?.data).show_in_spotlight),
+      show_in_spotlight: Boolean(existingData.show_in_spotlight),
       imported_from: "livcheers_csv",
     });
   }
@@ -643,36 +668,48 @@ const buildRecords = async (
     ));
     const productId = existing?.recordId ?? stableId("product", productKey);
     productIdByKey.set(productKey, productId);
-    const volumes = [...new Set(productRows.map((row) => row.volumeMl))].sort((a, b) => b - a);
+    const existingData = jsonObject(existing?.data);
+    const volumes = mergeUniqueNumbers(existingData.available_volumes_ml, productRows.map((row) => row.volumeMl));
     const defaultVolume = volumes.includes(750) ? 750 : volumes[0];
     const imageUrl = selectedEnrichment?.imageUrl ?? null;
     if (imageUrl) report.enrichment.productsWithVerifiedImages += 1;
+    const readableOverrideKey = `${brandName.toLowerCase()}|${productName.toLowerCase()}`;
+    const hasCategoryOverride = CATEGORY_OVERRIDES.has(readableOverrideKey);
+    const sourceUrls = mergeUniqueStrings(
+      existingData.source_urls,
+      productRows.map((row) => row.known_product_url || row.source_url),
+    );
+    const sourceAccessedOn = mergeUniqueStrings(
+      existingData.source_accessed_on ? [String(existingData.source_accessed_on)] : [],
+      productRows.map((row) => row.source_accessed_on),
+    ).sort().at(-1) ?? null;
+    const mergedCategorySlugs = mergeUniqueStrings(existingData.category_slugs, [...categorySet, categorySlug]).sort();
 
     setRecord("products", productId, {
       brand_id: brandIdByKey.get(productRows[0].brandKey) ?? null,
-      brand: brandName,
-      name: productName,
-      slug: productSlug,
-      catalog_identity: productKey,
-      category_id: categoryIds.get(categorySlug)!,
-      category_slugs: categorySet,
-      sub_category_id: subcategoryId,
-      type_tag: typeName,
+      brand: existingData.brand ?? brandName,
+      name: existingData.name ?? productName,
+      slug: existingData.slug ?? productSlug,
+      catalog_identity: existingData.catalog_identity ?? productKey,
+      category_id: hasCategoryOverride ? categoryIds.get(categorySlug)! : existingData.category_id ?? categoryIds.get(categorySlug)!,
+      category_slugs: mergedCategorySlugs,
+      sub_category_id: hasCategoryOverride ? subcategoryId : existingData.sub_category_id ?? subcategoryId,
+      type_tag: hasCategoryOverride ? typeName : existingData.type_tag ?? typeName,
       available_volumes_ml: volumes,
-      volume: `${defaultVolume}ml`,
-      image_url: imageUrl ?? jsonObject(existing?.data).image_url ?? null,
-      image_source_url: imageUrl,
-      image_source_page: selectedEnrichment?.productUrl ?? null,
-      image_identity_verified: Boolean(imageUrl),
-      image_verified_at: imageUrl ? now : null,
+      volume: existingData.volume ?? `${defaultVolume}ml`,
+      image_url: imageUrl ?? existingData.image_url ?? null,
+      image_source_url: imageUrl ?? existingData.image_source_url ?? null,
+      image_source_page: imageUrl ? selectedEnrichment?.productUrl ?? null : existingData.image_source_page ?? null,
+      image_identity_verified: imageUrl ? true : Boolean(existingData.image_identity_verified),
+      image_verified_at: imageUrl ? now : existingData.image_verified_at ?? null,
       image_target_width: 720,
-      image_license_status: "unverified",
-      source_name: "Livcheers",
-      source_urls: [...new Set(productRows.map((row) => row.known_product_url || row.source_url).filter(Boolean))],
-      source_accessed_on: productRows.map((row) => row.source_accessed_on).filter(Boolean).sort().at(-1) ?? null,
+      image_license_status: existingData.image_license_status ?? "unverified",
+      source_name: existingData.source_name ?? "Livcheers",
+      source_urls: sourceUrls,
+      source_accessed_on: sourceAccessedOn,
       is_active: true,
-      is_trending: Boolean(jsonObject(existing?.data).is_trending),
-      is_all_time_favourite: Boolean(jsonObject(existing?.data).is_all_time_favourite),
+      is_trending: Boolean(existingData.is_trending),
+      is_all_time_favourite: Boolean(existingData.is_all_time_favourite),
       imported_from: "livcheers_csv",
     });
   }

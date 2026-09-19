@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { normalizeIdentity, parseCategoryCards, pickProductEnrichment } from "./import-livcheers-catalog.js";
+import {
+  mergeUniqueNumbers,
+  mergeUniqueStrings,
+  normalizeIdentity,
+  parseCategoryCards,
+  parseCategorySlugs,
+  pickProductEnrichment,
+} from "./import-livcheers-catalog.js";
 
 describe("Livcheers catalogue import helpers", () => {
   it("normalizes punctuation and spacing for stable deduplication", () => {
@@ -43,6 +50,31 @@ describe("Livcheers catalogue import helpers", () => {
     `;
 
     expect(parseCategoryCards(html, "goa", "rum", "https://example.test/rum")[0]?.volumeMl).toBe(1000);
+  });
+
+  it("extracts Faridabad cards", () => {
+    const html = `
+      <a href="/faridabad/liquor/sample-tequila-750ml">
+        <h3>Sample Tequila</h3>
+        <p>750 ML</p>
+      </a>
+    `;
+
+    expect(parseCategoryCards(html, "faridabad", "tequila", "source")[0]?.productUrl)
+      .toBe("https://www.livcheers.com/faridabad/liquor/sample-tequila-750ml");
+  });
+
+  it("accepts pipe and semicolon category delimiters", () => {
+    expect(parseCategorySlugs("blended-scotch; made-in-india-whisky | blended-scotch"))
+      .toEqual(["blended-scotch", "made-in-india-whisky"]);
+  });
+
+  it("merges additive product metadata without duplicates", () => {
+    expect(mergeUniqueNumbers([750, 375], [1000, 750])).toEqual([1000, 750, 375]);
+    expect(mergeUniqueStrings(["https://example.test/delhi"], [
+      "https://example.test/faridabad",
+      "https://example.test/delhi",
+    ])).toEqual(["https://example.test/delhi", "https://example.test/faridabad"]);
   });
 
   it("parses package suffixes and card prices", () => {

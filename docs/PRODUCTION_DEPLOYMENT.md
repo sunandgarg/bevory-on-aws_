@@ -110,9 +110,9 @@ sudo docker compose -f deploy/docker-compose.production.yml run --rm api pnpm db
 sudo docker compose -f deploy/docker-compose.production.yml up -d
 ```
 
-Import a reviewed Livcheers catalogue bundle after copying the three CSVs to a
-temporary host directory. The importer is idempotent and writes a complete JSON
-exception report; remove the temporary CSVs after verification.
+Import one or more reviewed Livcheers city catalogues after copying the CSVs to
+a temporary host directory. The importer is additive and idempotent and writes
+a complete JSON exception report; remove the temporary CSVs after verification.
 
 ```bash
 sudo docker compose -f deploy/docker-compose.production.yml run --rm \
@@ -121,6 +121,7 @@ sudo docker compose -f deploy/docker-compose.production.yml run --rm \
   --delhi /catalog/delhi.csv \
   --goa /catalog/goa.csv \
   --gurgaon /catalog/gurgaon.csv \
+  --faridabad /catalog/faridabad.csv \
   --report /tmp/livcheers-import-report.json
 ```
 
