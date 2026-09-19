@@ -7,7 +7,7 @@ import MobileLayout from "@/components/layout/MobileLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useLocation as useAppLocation } from "@/hooks/useLocation";
+import { useRouteCity } from "@/hooks/useRouteCity";
 import { generateProductUrlStatic } from "@/hooks/useProductUrl";
 import SEOHead from "@/components/SEOHead";
 import OptimizedImage from "@/components/ui/OptimizedImage";
@@ -17,6 +17,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { citySlugFromName } from "@/lib/locations";
 
 interface Brand {
   id: string;
@@ -88,15 +89,16 @@ interface FAQ {
 }
 
 const BrandDetail = () => {
-  const { slug } = useParams<{ slug: string }>();
-  const { selectedCity, selectedState } = useAppLocation();
+  const { slug, citySlug } = useParams<{ slug: string; citySlug?: string }>();
+  const { selectedCity, routeCityReady } = useRouteCity(citySlug);
   const [brand, setBrand] = useState<Brand | null>(null);
   const [products, setProducts] = useState<ProductWithPrice[]>([]);
   const [loading, setLoading] = useState(true);
+  const canonicalCitySlug = citySlug || citySlugFromName(selectedCity?.name) || "gurgaon";
 
   useEffect(() => {
     const fetchBrandData = async () => {
-      if (!slug) return;
+      if (!slug || !routeCityReady) return;
 
       let brandData = null;
       
@@ -175,7 +177,7 @@ const BrandDetail = () => {
     };
 
     fetchBrandData();
-  }, [slug, selectedCity?.id]);
+  }, [routeCityReady, slug, selectedCity?.id]);
 
   // Parse tasting notes
   const parseTastingNotes = (): TastingNote[] => {
@@ -276,7 +278,7 @@ const BrandDetail = () => {
     };
   };
 
-  if (loading) {
+  if (loading || !routeCityReady) {
     return (
       <MobileLayout showSearch={false} showCheersGuide={false}>
         <div className="p-4 space-y-4">
@@ -312,12 +314,15 @@ const BrandDetail = () => {
   return (
     <>
       <SEOHead
-        title={`${brand.brand_name} - Brand Guide & Products | Bevory`}
-        description={brand.description || `Explore ${brand.brand_name} products, tasting notes, pairing ideas, and more. Discover the story behind this iconic brand.`}
+        title={`${brand.brand_name} Prices in ${selectedCity?.name || "Gurgaon"} | Bevory`}
+        description={brand.description || `Explore locally priced ${brand.brand_name} products and bottle sizes in ${selectedCity?.name || "Gurgaon"}.`}
         keywords={`${brand.brand_name}, ${brand.country || ''} spirits, whisky, premium beverages, tasting notes, food pairing`}
-        canonical={`/brand/${brand.slug || slug}`}
+        canonical={`/${canonicalCitySlug}/brand/${brand.slug || slug}`}
         ogImage={brand.image_url || brand.logo_url || undefined}
         jsonLd={generateStructuredData() || undefined}
+        robots={products.length > 0
+          ? "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+          : "noindex, follow, max-image-preview:large"}
       />
       
       <MobileLayout showSearch={false} showCheersGuide={false}>
@@ -674,7 +679,7 @@ const BrandDetail = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.38 + index * 0.02 }}
                   >
-                    <Link to={generateProductUrlStatic(product, selectedState?.name)}>
+                    <Link to={generateProductUrlStatic(product, selectedCity?.name)}>
                       <div className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50 hover:bg-secondary border border-border/50 transition-all group">
                         <div className="w-16 h-16 rounded-xl bg-background flex items-center justify-center text-3xl flex-shrink-0 shadow-sm border border-border/50">
                           {product.image_emoji || "🥃"}

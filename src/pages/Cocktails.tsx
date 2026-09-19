@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Wine, Clock, ChefHat, X, ChevronRight, Sparkles, Share2, Heart, Bookmark, Users } from "lucide-react";
+import { Search, Wine, Clock, ChefHat, X, ChevronRight, Sparkles, Share2, Heart, Bookmark } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import MobileLayout from "@/components/layout/MobileLayout";
 import { apiClient } from "@/integrations/api/client";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,8 @@ const CATEGORY_FILTERS = ["All", "Classic", "Modern", "Tropical"];
 
 const Cocktails = () => {
   const [searchParams] = useSearchParams();
+  const { slug: routeSlug } = useParams<{ slug?: string }>();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSpirit, setSelectedSpirit] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -63,14 +65,14 @@ const Cocktails = () => {
   });
 
   useEffect(() => {
-    const cocktailSlug = searchParams.get("slug") || searchParams.get("id");
+    const cocktailSlug = routeSlug || searchParams.get("slug") || searchParams.get("id");
     if (cocktailSlug && cocktails.length > 0) {
       const cocktail = cocktails.find(c => c.slug === cocktailSlug || c.id === cocktailSlug);
       if (cocktail) {
         setSelectedCocktail(cocktail);
       }
     }
-  }, [searchParams, cocktails]);
+  }, [routeSlug, searchParams, cocktails]);
 
   const filteredCocktails = cocktails.filter((cocktail) => {
     const matchesSearch = cocktail.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -95,8 +97,28 @@ const Cocktails = () => {
     return `PT${minutes}M`;
   };
 
-  // Generate structured data for SEO with all required Recipe fields
-  const generateStructuredData = () => ({
+  const generateStructuredData = () => selectedCocktail ? ({
+    "@context": "https://schema.org",
+    "@type": "Recipe",
+    "name": selectedCocktail.name,
+    "description": selectedCocktail.description || `How to make a ${selectedCocktail.name} cocktail.`,
+    "image": selectedCocktail.image_url || "https://bevory.in/og-image.png",
+    "recipeCategory": "Cocktail",
+    "recipeCuisine": "International",
+    "prepTime": formatPrepTimeISO(selectedCocktail.prep_time),
+    "totalTime": formatPrepTimeISO(selectedCocktail.prep_time),
+    "recipeYield": "1 serving",
+    "recipeIngredient": selectedCocktail.ingredients || [],
+    ...(selectedCocktail.instructions ? {
+      "recipeInstructions": selectedCocktail.instructions.split(/[.!]\s+/).filter(Boolean).map((step, index) => ({
+        "@type": "HowToStep",
+        "position": index + 1,
+        "text": step.trim(),
+      })),
+    } : {}),
+    "author": { "@type": "Organization", "name": "Bevory" },
+    "url": `https://bevory.in/cocktail/${selectedCocktail.slug || selectedCocktail.id}`,
+  }) : ({
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     "name": "Cocktail Recipes & Library",
@@ -120,13 +142,10 @@ const Cocktails = () => {
           "totalTime": formatPrepTimeISO(c.prep_time),
           "recipeYield": "1 serving",
           "recipeIngredient": c.ingredients || [],
-          "recipeInstructions": c.instructions ? [{
+          ...(c.instructions ? { "recipeInstructions": [{
             "@type": "HowToStep",
             "text": c.instructions
-          }] : [{
-            "@type": "HowToStep",
-            "text": `Mix ingredients and serve ${c.name}.`
-          }],
+          }] } : {}),
           "author": {
             "@type": "Organization",
             "name": "Bevory"
@@ -140,18 +159,7 @@ const Cocktails = () => {
             }
           },
           "keywords": `${c.name}, ${c.base_spirit || ''} cocktail, cocktail recipe, drink recipe, mixology`,
-          "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.5",
-            "reviewCount": "10",
-            "bestRating": "5",
-            "worstRating": "1"
-          },
-          "nutrition": {
-            "@type": "NutritionInformation",
-            "calories": "150 kcal"
-          },
-          "url": `https://bevory.in/cocktails?slug=${c.slug || c.id}`
+          "url": `https://bevory.in/cocktail/${c.slug || c.id}`
         }
       }))
     }
@@ -160,9 +168,11 @@ const Cocktails = () => {
   return (
     <>
       <SEOHead
-        title="Cocktail Recipes & Library | Bevory"
-        description="Explore our collection of classic and modern cocktail recipes. Learn how to make whiskey, vodka, rum, gin, and tequila cocktails with step-by-step instructions."
+        title={selectedCocktail ? `${selectedCocktail.name} Cocktail Recipe | Bevory` : "Cocktail Recipes & Library | Bevory"}
+        description={selectedCocktail?.description || "Explore classic and modern cocktail recipes with ingredients and step-by-step instructions."}
         keywords="cocktail recipes, drink recipes, whiskey cocktails, vodka cocktails, rum cocktails, gin cocktails, mixology"
+        canonical={selectedCocktail ? `/cocktail/${selectedCocktail.slug || selectedCocktail.id}` : "/cocktails"}
+        ogImage={selectedCocktail?.image_url || undefined}
         jsonLd={generateStructuredData()}
       />
       <MobileLayout showSearch={false} showCheersGuide={false}>
@@ -291,7 +301,7 @@ const Cocktails = () => {
                           key={cocktail.id}
                           cocktail={cocktail}
                           index={index}
-                          onClick={() => setSelectedCocktail(cocktail)}
+                          href={`/cocktail/${cocktail.slug || cocktail.id}`}
                           featured
                         />
                       ))}
@@ -311,7 +321,7 @@ const Cocktails = () => {
                           key={cocktail.id}
                           cocktail={cocktail}
                           index={index}
-                          onClick={() => setSelectedCocktail(cocktail)}
+                          href={`/cocktail/${cocktail.slug || cocktail.id}`}
                         />
                       ))}
                     </div>
@@ -328,7 +338,7 @@ const Cocktails = () => {
                           key={cocktail.id}
                           cocktail={cocktail}
                           index={index}
-                          onClick={() => setSelectedCocktail(cocktail)}
+                          href={`/cocktail/${cocktail.slug || cocktail.id}`}
                         />
                       ))}
                     </div>
@@ -357,7 +367,10 @@ const Cocktails = () => {
         <CocktailDetailSheet
           cocktail={selectedCocktail}
           open={!!selectedCocktail}
-          onClose={() => setSelectedCocktail(null)}
+          onClose={() => {
+            setSelectedCocktail(null);
+            if (routeSlug) navigate("/cocktails");
+          }}
         />
       </MobileLayout>
     </>
@@ -367,19 +380,19 @@ const Cocktails = () => {
 const CocktailCard = ({
   cocktail,
   index,
-  onClick,
+  href,
   featured = false,
 }: {
   cocktail: Cocktail;
   index: number;
-  onClick: () => void;
+  href: string;
   featured?: boolean;
 }) => (
-  <motion.article
+  <Link to={href}>
+    <motion.article
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: index * 0.05 }}
-    onClick={onClick}
     className={`p-4 rounded-2xl cursor-pointer transition-all hover:scale-[1.02] group ${
       featured
         ? "bg-gradient-to-br from-accent/20 via-accent/10 to-background border border-accent/20"
@@ -402,23 +415,24 @@ const CocktailCard = ({
         {cocktail.prep_time}
       </span>
     </div>
-  </motion.article>
+    </motion.article>
+  </Link>
 );
 
 const CocktailListItem = ({
   cocktail,
   index,
-  onClick,
+  href,
 }: {
   cocktail: Cocktail;
   index: number;
-  onClick: () => void;
+  href: string;
 }) => (
-  <motion.article
+  <Link to={href}>
+    <motion.article
     initial={{ opacity: 0, x: -20 }}
     animate={{ opacity: 1, x: 0 }}
     transition={{ delay: index * 0.03 }}
-    onClick={onClick}
     className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50 border border-border/50 cursor-pointer hover:bg-secondary hover:border-accent/30 transition-all group"
   >
     <div className="w-14 h-14 rounded-xl bg-background flex items-center justify-center text-3xl flex-shrink-0 shadow-sm border border-border/50">
@@ -439,7 +453,8 @@ const CocktailListItem = ({
       </div>
     </div>
     <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0 group-hover:text-accent transition-colors" />
-  </motion.article>
+    </motion.article>
+  </Link>
 );
 
 const CocktailDetailSheet = ({
@@ -462,7 +477,7 @@ const CocktailDetailSheet = ({
         await navigator.share({
           title: cocktail.name,
           text: `Check out this ${cocktail.name} recipe!`,
-          url: `${window.location.origin}/cocktails?slug=${cocktail.slug || cocktail.id}`,
+          url: `${window.location.origin}/cocktail/${cocktail.slug || cocktail.id}`,
         });
       } catch (err) {
         console.log("Share cancelled");
@@ -470,32 +485,8 @@ const CocktailDetailSheet = ({
     }
   };
 
-  const howToSchema = cocktail.instructions ? {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    "name": `How to Make ${cocktail.name}`,
-    "description": cocktail.description || `Recipe for ${cocktail.name} cocktail`,
-    "totalTime": cocktail.prep_time ? `PT${parseInt(cocktail.prep_time) || 5}M` : "PT5M",
-    "tool": [{ "@type": "HowToTool", "name": "Cocktail shaker" }, { "@type": "HowToTool", "name": "Jigger" }],
-    "supply": (cocktail.ingredients || []).map(ing => ({ "@type": "HowToSupply", "name": ing })),
-    "step": cocktail.instructions.split(/[.!]\s+/).filter(Boolean).map((step, i) => ({
-      "@type": "HowToStep",
-      "position": i + 1,
-      "text": step.trim()
-    })),
-    "recipeCategory": cocktail.category || "Cocktail",
-    "keywords": `${cocktail.name}, ${cocktail.base_spirit} cocktail, summer 2026`
-  } : null;
-
   return (
-    <>
-      {howToSchema && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }}
-        />
-      )}
-      <Sheet open={open} onOpenChange={onClose}>
+    <Sheet open={open} onOpenChange={onClose}>
       <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl">
         <ScrollArea className="h-full pr-4">
           <SheetHeader className="text-left pb-4">
@@ -593,7 +584,6 @@ const CocktailDetailSheet = ({
         </ScrollArea>
       </SheetContent>
     </Sheet>
-    </>
   );
 };
 

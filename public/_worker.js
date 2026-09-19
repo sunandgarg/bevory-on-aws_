@@ -1,4 +1,5 @@
 const SITE_ORIGIN = "https://bevory.in";
+const seoRoutesCache = new Map();
 
 const isDocumentRequest = (request) =>
   request.method === "GET" && (request.headers.get("accept") || "").includes("text/html");
@@ -15,6 +16,18 @@ const cityNames = new Map([
   ["nagpur", "Nagpur"], ["nashik", "Nashik"], ["noida", "Noida"],
   ["pune", "Pune"], ["thane", "Thane"], ["udaipur", "Udaipur"],
   ["warangal", "Warangal"],
+]);
+
+const stateDefaultCities = new Map([
+  ["haryana", "gurgaon"],
+  ["karnataka", "bangalore"],
+  ["madhya-pradesh", "indore"],
+  ["maharashtra", "mumbai"],
+  ["rajasthan", "jaipur"],
+  ["telangana", "hyderabad"],
+  ["uttar-pradesh", "lucknow"],
+  ["west-bengal", "kolkata"],
+  ["india", "gurgaon"],
 ]);
 
 const staticSeo = {
@@ -51,7 +64,31 @@ const escapeHtml = (value) => String(value)
   .replace(/"/g, "&quot;")
   .replace(/'/g, "&#039;");
 
-const routeSeo = (pathname) => {
+const seoBucketForPath = (pathname) => {
+  const parts = pathname.split("/").filter(Boolean);
+  const citySlug = parts[0];
+  if (!cityNames.has(citySlug)) return "content";
+  if (parts[1] === "product" && parts[2]) {
+    const initial = parts[2].charAt(0).toLowerCase();
+    return `${citySlug}-product-${/[a-z0-9]/.test(initial) ? initial : "other"}`;
+  }
+  return `${citySlug}-pages`;
+};
+
+const loadSeoRoutes = async (env, pathname) => {
+  const bucket = seoBucketForPath(pathname);
+  if (seoRoutesCache.has(bucket)) return seoRoutesCache.get(bucket);
+  try {
+    const response = await env.ASSETS.fetch(new Request(`${SITE_ORIGIN}/seo-routes/${bucket}.json`));
+    const routes = response.ok ? await response.json() : {};
+    seoRoutesCache.set(bucket, routes);
+    return routes;
+  } catch {
+    return {};
+  }
+};
+
+const routeSeo = (pathname, seoRoutes = {}) => {
   const cleanPath = pathname !== "/" ? pathname.replace(/\/$/, "") : "/";
   const parts = cleanPath.split("/").filter(Boolean).map((part) => {
     try {
@@ -69,6 +106,17 @@ const routeSeo = (pathname) => {
     breadcrumbs: [{ name: "Home", path: "/" }],
   };
 
+  const generated = seoRoutes[cleanPath];
+  if (generated) {
+    return {
+      ...seo,
+      ...generated,
+      canonicalPath: cleanPath,
+      robots: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
+      breadcrumbs: Array.isArray(generated.breadcrumbs) ? generated.breadcrumbs : seo.breadcrumbs,
+    };
+  }
+
   if (privatePrefixes.some((prefix) => cleanPath === prefix || cleanPath.startsWith(`${prefix}/`))) {
     return { ...seo, robots: "noindex, follow, max-image-preview:large" };
   }
@@ -83,62 +131,6 @@ const routeSeo = (pathname) => {
       description,
       heading: title.replace(/ \| Bevory$/, ""),
       breadcrumbs: [...seo.breadcrumbs, { name: humanize(parts[0]), path: cleanPath }],
-    };
-  }
-
-  if (parts.length === 1 && cityNames.has(parts[0])) {
-    const city = cityNames.get(parts[0]);
-    return {
-      ...seo,
-      title: `Alcohol Prices in ${city} | Bevory`,
-      description: `Compare whisky, beer, wine, rum, gin and vodka prices available in ${city}.`,
-      heading: `Alcohol prices in ${city}`,
-      breadcrumbs: [...seo.breadcrumbs, { name: city, path: cleanPath }],
-    };
-  }
-
-  if (parts[0] === "category" && parts[1]) {
-    const category = humanize(parts[1]);
-    const subcategory = parts[2] ? humanize(parts[2]) : null;
-    const label = subcategory || category;
-    return {
-      ...seo,
-      title: `${label} Prices & Products | Bevory`,
-      description: `Compare ${label.toLowerCase()} products, bottle sizes and locally available prices on Bevory.`,
-      heading: `${label} prices and products`,
-      breadcrumbs: [
-        ...seo.breadcrumbs,
-        { name: category, path: `/category/${parts[1]}` },
-        ...(subcategory ? [{ name: subcategory, path: cleanPath }] : []),
-      ],
-    };
-  }
-
-  if ((parts[0] === "product" || parts[0] === "brand" || parts[0] === "guide") && parts[1]) {
-    const label = humanize(parts[1]);
-    const section = parts[0] === "product" ? "Product" : parts[0] === "brand" ? "Brand" : "Guide";
-    const sectionPath = section === "Product" ? "/categories" : section === "Brand" ? "/brands" : "/guide";
-    return {
-      ...seo,
-      title: `${label} ${section === "Product" ? "Price" : section} | Bevory`,
-      description: section === "Product"
-        ? `See ${label} bottle sizes, local prices and product details on Bevory.`
-        : `Explore ${label} ${section.toLowerCase()} information on Bevory.`,
-      heading: label,
-      breadcrumbs: [...seo.breadcrumbs, { name: section, path: sectionPath }, { name: label, path: cleanPath }],
-    };
-  }
-
-  if ((parts[0] === "bevory" && parts.length === 5) || parts.length === 4) {
-    const productSlug = parts.at(-1);
-    const label = humanize(productSlug);
-    return {
-      ...seo,
-      title: `${label} Price | Bevory`,
-      description: `See ${label} bottle sizes, local prices and product details on Bevory.`,
-      heading: label,
-      canonicalPath: `/product/${productSlug}`,
-      breadcrumbs: [...seo.breadcrumbs, { name: "Product", path: `/product/${productSlug}` }],
     };
   }
 
@@ -168,20 +160,50 @@ const routeSchema = (seo) => {
           item: `${SITE_ORIGIN}${item.path}`,
         })),
       },
+      ...(seo.structuredData ? [seo.structuredData] : []),
     ],
   };
 };
 
-const seoShell = (seo) => `
+const seoShell = (seo) => {
+  const body = Array.isArray(seo.body) && seo.body.length ? seo.body : [seo.description];
+  const image = seo.image
+    ? `<img src="${escapeHtml(seo.image)}" alt="${escapeHtml(seo.heading)}" width="720" height="720" style="display:block;width:min(100%,360px);height:auto;object-fit:contain;margin:20px 0" />`
+    : "";
+  return `
   <main aria-label="Bevory page summary" style="max-width:760px;margin:0 auto;padding:24px;font-family:system-ui,sans-serif;line-height:1.55">
     <h1>${escapeHtml(seo.heading)}</h1>
-    <p>${escapeHtml(seo.description)}</p>
-    <h2>How Bevory's local price guide works</h2>
-    <p>Bevory organizes beverage products by brand, category, subcategory, bottle size and city so people can compare relevant listings without sorting through unavailable variants. A product or bottle size appears for a selected city only when a positive local price record is available and has passed the catalogue review rules. Prices are informational and may change at the retailer, so shoppers should confirm the current amount and legal availability locally. Bevory does not sell alcohol. The catalogue is designed for adults aged 25 or older and supports responsible, informed discovery through clear product relationships, useful guides and consistent canonical pages.</p>
+    ${image}
+    ${body.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("\n    ")}
     <nav aria-label="Explore Bevory">
       <a href="/categories">Categories</a> | <a href="/brands">Brands</a> | <a href="/guide">Guide</a> | <a href="/party-planner">Party planner</a>
     </nav>
   </main>`;
+};
+
+const legacyRedirectPath = (pathname) => {
+  const cleanPath = pathname !== "/" ? pathname.replace(/\/$/, "") : "/";
+  const parts = cleanPath.split("/").filter(Boolean);
+
+  if (cleanPath === "/") return "/gurgaon";
+
+  if (parts.length === 1 && stateDefaultCities.has(parts[0])) {
+    return `/${stateDefaultCities.get(parts[0])}`;
+  }
+
+  let stateSlug;
+  let productSlug;
+  if (parts[0] === "bevory" && parts.length === 5) {
+    [, stateSlug, , , productSlug] = parts;
+  } else if (parts.length === 4 && !["category", "product"].includes(parts[1])) {
+    [stateSlug, , , productSlug] = parts;
+  }
+  if (!stateSlug || !productSlug) return null;
+
+  const preferredCity = stateDefaultCities.get(stateSlug)
+    || (cityNames.has(stateSlug) ? stateSlug : null);
+  return preferredCity ? `/${preferredCity}/product/${productSlug}` : null;
+};
 
 const proxyApiRequest = async (request, env) => {
   if (!env.API_ORIGIN || !env.ORIGIN_VERIFY_SECRET) {
@@ -209,11 +231,12 @@ const proxyApiRequest = async (request, env) => {
   return fetch(originUrl.toString(), init);
 };
 
-const rewriteDocument = (response, url) => {
-  const seo = routeSeo(url.pathname);
+const rewriteDocument = (response, url, routeData) => {
+  const seo = { ...routeData };
   seo.title = shortTitle(seo.title);
   seo.description = shortDescription(seo.description);
   const canonical = `${SITE_ORIGIN}${seo.canonicalPath}`;
+  const shareImage = seo.image || `${SITE_ORIGIN}/og-image.png`;
   const schema = JSON.stringify(routeSchema(seo)).replace(/</g, "\\u003c");
   const headers = new Headers(response.headers);
   headers.delete("etag");
@@ -231,8 +254,10 @@ const rewriteDocument = (response, url) => {
     .on('meta[property="og:title"]', { element: (element) => element.setAttribute("content", seo.title) })
     .on('meta[property="og:description"]', { element: (element) => element.setAttribute("content", seo.description) })
     .on('meta[property="og:url"]', { element: (element) => element.setAttribute("content", canonical) })
+    .on('meta[property="og:image"]', { element: (element) => element.setAttribute("content", shareImage) })
     .on('meta[name="twitter:title"]', { element: (element) => element.setAttribute("content", seo.title) })
     .on('meta[name="twitter:description"]', { element: (element) => element.setAttribute("content", seo.description) })
+    .on('meta[name="twitter:image"]', { element: (element) => element.setAttribute("content", shareImage) })
     .on('meta[name="robots"]', { element: (element) => element.setAttribute("content", seo.robots) })
     .on('link[rel="canonical"]', { element: (element) => element.setAttribute("href", canonical) })
     .on("head", {
@@ -258,6 +283,16 @@ export default {
       return proxyApiRequest(request, env);
     }
 
+    if (isDocumentRequest(request)) {
+      const redirectPath = legacyRedirectPath(url.pathname);
+      if (redirectPath && redirectPath !== url.pathname) {
+        url.pathname = redirectPath;
+        return Response.redirect(url.toString(), 308);
+      }
+    }
+
+    const seoRoutes = isDocumentRequest(request) ? await loadSeoRoutes(env, url.pathname) : {};
+
     let response = await env.ASSETS.fetch(request);
     if (response.status === 404 && isDocumentRequest(request)) {
       const appShellUrl = new URL("/index.html", url);
@@ -265,6 +300,6 @@ export default {
     }
 
     if (!isDocumentRequest(request) || !response.ok) return response;
-    return rewriteDocument(response, url);
+    return rewriteDocument(response, url, routeSeo(url.pathname, seoRoutes));
   },
 };

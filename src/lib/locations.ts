@@ -50,3 +50,6 @@ export const CITIES_BY_STATE = Object.fromEntries(
 ) as Record<string, string[]>;
 
 export const cityFromSlug = (slug: string) => BEVORY_CITIES.find((city) => city.slug === slug);
+export const citySlugFromName = (name?: string | null) => BEVORY_CITIES.find((city) => (
+  city.name.toLowerCase() === name?.toLowerCase()
+))?.slug;

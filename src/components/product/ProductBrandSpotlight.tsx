@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { apiClient } from "@/integrations/api/client";
+import { useLocation } from "@/hooks/useLocation";
+import { citySlugFromName } from "@/lib/locations";
 
 interface BrandSpotlight {
   id: string;
@@ -19,6 +21,8 @@ interface ProductBrandSpotlightProps {
 
 const ProductBrandSpotlight = ({ brandName }: ProductBrandSpotlightProps) => {
   const [brand, setBrand] = useState<BrandSpotlight | null>(null);
+  const { selectedCity } = useLocation();
+  const citySlug = citySlugFromName(selectedCity?.name) || "gurgaon";
 
   useEffect(() => {
     const fetchBrand = async () => {
@@ -39,7 +43,7 @@ const ProductBrandSpotlight = ({ brandName }: ProductBrandSpotlightProps) => {
   return (
     <div>
       <h3 className="font-semibold mb-3">Brand Spotlight</h3>
-      <Link to={`/brand/${brand.slug || brand.id}`}>
+      <Link to={`/${citySlug}/brand/${brand.slug || brand.id}`}>
         <div className="p-4 rounded-xl bg-card border border-border hover:border-accent/50 transition-colors">
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">

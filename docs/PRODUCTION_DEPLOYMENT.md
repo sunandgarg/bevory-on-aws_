@@ -54,18 +54,21 @@ The following production checks passed on 2026-09-19:
   work through the production domain.
 - Public catalog reads and the party-planner endpoint work.
 - The production catalogue contains all 30 supported cities, 18 active
-  categories, 121 subcategories, 1,283 brands, 2,936 products, and 4,760
-  city-specific size prices.
+  categories, 121 subcategories, 1,496 brands, 3,491 products, and 8,279
+  approved city-specific size prices.
 - City availability is strict: a product size is returned only where that city
   has a price for it.
-- All 2,936 products have reachable source image URLs and 341 brands have
-  reachable logo URLs on `static.livcheers.com`. These remote links are
+- All 3,479 publicly priced products have identity-verified source image URLs,
+  and 351 brands have verified reachable logo URLs on `static.livcheers.com`. These remote links are
   requested at a 720 px display target; they are not stored in Bevory's S3
   bucket, and image reuse rights require review before any migration.
 - Source-conflict and anomalous prices are retained for administrator review but
   excluded from all public catalogue views and the sitemap.
 - The optimized city catalogue endpoint returns Gurgaon’s 1,888 products and
   2,127 approved variants in one cacheable response.
+- The Bangalore catalogue contains 1,764 public products and 1,788 approved
+  variants. Fourteen source-conflict, price-anomaly, or size-anomaly variants
+  are retained for review and hidden from public reads.
 - Fifty malformed legacy Guide articles were reconstructed, 2,179 fragments
   were quarantined, and 11 evergreen articles were published after an encrypted
   S3 backup.
@@ -76,11 +79,12 @@ The following production checks passed on 2026-09-19:
 - The live `/gurgaon` page renders without browser console errors.
 - The adaptive Bevory favicon and logo render correctly in light and dark mode,
   and the production source contains no legacy third-party branding.
-- `sitemap.xml` contains 4,367 unique canonical URLs and 3,261 image entries,
-  including 2,920 approved products, 1,283 brands, 121 stable subcategory
-  landing pages, and 11 published guides. Free-form search and arbitrary filter
-  combinations are intentionally `noindex, follow`. Google must recrawl the
-  sitemap to discover the updated set.
+- `sitemap.xml` contains 20,520 unique canonical URLs and 17,418 image entries,
+  including 7,777 city product pages, 8,279 exact city-and-size pages, city
+  brand/category/subcategory pages, 11 published guides, and 170 cocktails.
+  Unpriced variants, free-form search, and arbitrary filter combinations are
+  intentionally `noindex, follow`. A 24-way production crawl verified every
+  sitemap URL, canonical, robots directive, initial heading, and JSON-LD block.
 
 ## CloudFront status
 
@@ -122,6 +126,7 @@ sudo docker compose -f deploy/docker-compose.production.yml run --rm \
   --goa /catalog/goa.csv \
   --gurgaon /catalog/gurgaon.csv \
   --faridabad /catalog/faridabad.csv \
+  --bangalore /catalog/bangalore.csv \
   --report /tmp/livcheers-import-report.json
 ```
 

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Star, ArrowLeft, Package } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import { useProducts } from "@/hooks/useProducts";
-import { useLocation } from "@/hooks/useLocation";
+import { useRouteCity } from "@/hooks/useRouteCity";
 import { useProductUrl } from "@/hooks/useProductUrl";
 import CompareButton from "@/components/product/CompareButton";
 import FavoriteButton from "@/components/FavoriteButton";
@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/integrations/api/client";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { citySlugFromName } from "@/lib/locations";
 
 interface SubCategory {
   id: string;
@@ -23,14 +24,20 @@ interface SubCategory {
 }
 
 const CategoryDetail = () => {
-  const { slug, subCategorySlug } = useParams<{ slug: string; subCategorySlug?: string }>();
+  const { citySlug, slug, subCategorySlug } = useParams<{
+    citySlug?: string;
+    slug: string;
+    subCategorySlug?: string;
+  }>();
   const { categories, getProductsByCategory, loading } = useProducts();
-  const { selectedCity } = useLocation();
+  const { selectedCity, routeCityReady } = useRouteCity(citySlug);
   const { getProductUrlSafe } = useProductUrl();
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
 
   const category = categories.find((c) => c.slug === slug);
   const allProducts = getProductsByCategory(slug || "");
+  const canonicalCitySlug = citySlug || citySlugFromName(selectedCity?.name) || "gurgaon";
+  const categoryPath = `/${canonicalCitySlug}/category/${slug}`;
 
   // Fetch sub-categories for this category
   useEffect(() => {
@@ -69,7 +76,7 @@ const CategoryDetail = () => {
       "description": selectedSubCategory
         ? `Compare ${selectedSubCategory.name} products, variants and local prices.`
         : category.description || `Browse our collection of ${category.name} products with prices and reviews.`,
-      "url": `https://bevory.in/category/${category.slug}${selectedSubCategory?.slug ? `/${selectedSubCategory.slug}` : ""}`,
+      "url": `https://bevory.in${categoryPath}${selectedSubCategory?.slug ? `/${selectedSubCategory.slug}` : ""}`,
       "numberOfItems": products.length,
       "itemListElement": products.slice(0, 10).map((p, i) => ({
         "@type": "Product",
@@ -87,7 +94,7 @@ const CategoryDetail = () => {
     };
   };
 
-  if (loading) {
+  if (loading || !routeCityReady) {
     return (
       <MobileLayout showBack>
         <div className="p-4">
@@ -132,8 +139,11 @@ const CategoryDetail = () => {
           ? `Compare ${selectedSubCategory.name} products, bottle sizes and verified local prices in ${selectedCity?.name || "India"}.`
           : (category as any).meta_description || category.description || `Browse our collection of ${category.name}. Compare prices, read reviews, and find the best ${category.name.toLowerCase()} in ${selectedCity?.name || 'India'}.`}
         keywords={`${selectedSubCategory?.name || category.name}, ${(selectedSubCategory?.name || category.name).toLowerCase()} price guide, ${category.name.toLowerCase()} India`}
-        canonical={`/category/${category.slug}${selectedSubCategory?.slug ? `/${selectedSubCategory.slug}` : ""}`}
+        canonical={`${categoryPath}${selectedSubCategory?.slug ? `/${selectedSubCategory.slug}` : ""}`}
         jsonLd={generateStructuredData()}
+        robots={products.length > 0
+          ? "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+          : "noindex, follow, max-image-preview:large"}
       />
       <MobileLayout showBack title={category.name}>
         <div className="pb-6">
@@ -220,7 +230,7 @@ const CategoryDetail = () => {
                     size="sm"
                     className="rounded-full flex-shrink-0"
                   >
-                    <Link to={`/category/${category.slug}`}>All ({allProducts.length})</Link>
+                    <Link to={categoryPath}>All ({allProducts.length})</Link>
                   </Button>
                   {subCategories.map((sub) => {
                     const count = allProducts.filter((p: any) => p.sub_category_id === sub.id).length;
@@ -232,7 +242,7 @@ const CategoryDetail = () => {
                         size="sm"
                         className="rounded-full flex-shrink-0 gap-1.5"
                       >
-                        <Link to={`/category/${category.slug}/${sub.slug}`}>
+                        <Link to={`${categoryPath}/${sub.slug}`}>
                           {sub.emoji && <span>{sub.emoji}</span>}
                           {sub.name} ({count})
                         </Link>
@@ -269,7 +279,7 @@ const CategoryDetail = () => {
                     size="sm"
                     className="mt-4"
                   >
-                    <Link to={`/category/${category.slug}`}>Clear Filter</Link>
+                    <Link to={categoryPath}>Clear Filter</Link>
                   </Button>
                 )}
               </motion.div>

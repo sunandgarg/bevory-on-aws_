@@ -6,6 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/integrations/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "@/hooks/useLocation";
+import { citySlugFromName } from "@/lib/locations";
 
 interface Category {
   id: string;
@@ -35,6 +37,8 @@ const getGradient = (slug: string) => {
 
 const CategoriesSection = memo(() => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { selectedCity } = useLocation();
+  const citySlug = citySlugFromName(selectedCity?.name) || "gurgaon";
 
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ["home-categories"],
@@ -136,7 +140,7 @@ const CategoriesSection = memo(() => {
                 className="flex-shrink-0"
               >
                 <Link
-                  to={`/category/${category.slug}`}
+                  to={`/${citySlug}/category/${category.slug}`}
                   className={`group/card block cursor-pointer rounded-2xl bg-gradient-to-b ${getGradient(category.slug)} p-6 text-center transition-all hover-lift border border-transparent hover:border-accent/20 w-40 h-48`}
                 >
                   <div className="w-16 h-16 mx-auto mb-3 rounded-xl overflow-hidden group-hover/card:scale-110 transition-transform duration-300 flex items-center justify-center bg-background/50">

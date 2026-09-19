@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { CITY_SLUGS } from "../src/lib/locations.js";
 
 const concurrency = Math.max(1, Number(process.env.SITEMAP_AUDIT_CONCURRENCY) || 24);
 const auditOrigin = process.env.SITEMAP_AUDIT_ORIGIN?.replace(/\/$/, "");
@@ -18,6 +19,23 @@ const canonicalUrls = [...sitemap.matchAll(/<url>\s*<loc>([^<]+)<\/loc>/g)]
 if (!canonicalUrls.length) throw new Error("Sitemap contains no page URLs");
 if (new Set(canonicalUrls).size !== canonicalUrls.length) {
   throw new Error("Sitemap contains duplicate page URLs");
+}
+
+const legacySegments = ["/haryana/", "/karnataka/", "/india/"];
+for (const value of canonicalUrls) {
+  const url = new URL(value);
+  if (url.origin !== "https://bevory.in") throw new Error(`Non-canonical origin in sitemap: ${value}`);
+  if (url.search || url.hash) throw new Error(`Query or fragment URL in sitemap: ${value}`);
+  if (legacySegments.some((segment) => url.pathname.includes(segment))) {
+    throw new Error(`Legacy state URL in sitemap: ${value}`);
+  }
+  const parts = url.pathname.split("/").filter(Boolean);
+  if (["product", "brand", "category"].includes(parts[0])) {
+    throw new Error(`Non-city catalogue URL in sitemap: ${value}`);
+  }
+  if (["product", "brand", "category"].includes(parts[1]) && !CITY_SLUGS.includes(parts[0])) {
+    throw new Error(`Unknown city catalogue URL in sitemap: ${value}`);
+  }
 }
 
 type AuditFailure = { url: string; reason: string };
@@ -53,10 +71,34 @@ const auditUrl = async (canonicalUrl: string) => {
   }
   if (!/<h1(?:\s|>)/i.test(html)) throw new Error("H1 is missing from initial HTML");
   if (!/<title>[^<]+<\/title>/i.test(html)) throw new Error("title is missing");
+  if (!/<meta\s+name=["']description["']\s+content=["'][^"']+/i.test(html)) {
+    throw new Error("meta description is missing");
+  }
 
   const jsonLd = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
   if (!jsonLd.length) throw new Error("JSON-LD is missing");
-  for (const block of jsonLd) JSON.parse(block[1]);
+  const schemaTypes = new Set<string>();
+  for (const block of jsonLd) {
+    const parsed = JSON.parse(block[1]) as Record<string, unknown>;
+    const nodes = Array.isArray(parsed["@graph"]) ? parsed["@graph"] : [parsed];
+    for (const node of nodes) {
+      if (node && typeof node === "object" && typeof (node as Record<string, unknown>)["@type"] === "string") {
+        schemaTypes.add((node as Record<string, string>)["@type"]);
+      }
+    }
+  }
+
+  const parts = canonical.pathname.split("/").filter(Boolean);
+  if (parts[1] === "product") {
+    const expectedType = parts.length === 4 ? "Product" : "ProductGroup";
+    if (!schemaTypes.has(expectedType)) throw new Error(`${expectedType} schema is missing`);
+  }
+  if (parts[0] === "guide" && parts[1] && !schemaTypes.has("Article")) {
+    throw new Error("Article schema is missing");
+  }
+  if (parts[0] === "cocktail" && parts[1] && !schemaTypes.has("Recipe")) {
+    throw new Error("Recipe schema is missing");
+  }
 };
 
 const worker = async () => {

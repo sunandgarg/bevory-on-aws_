@@ -83,7 +83,7 @@ const HomeCocktails = () => {
         {cocktails.map((cocktail, index) => (
           <Link 
             key={cocktail.id} 
-            to={`/cocktails?slug=${cocktail.slug || cocktail.id}`}
+            to={`/cocktail/${cocktail.slug || cocktail.id}`}
             className="flex-shrink-0 snap-start"
           >
             <motion.div

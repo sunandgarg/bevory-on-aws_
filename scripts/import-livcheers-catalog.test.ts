@@ -6,9 +6,19 @@ import {
   parseCategoryCards,
   parseCategorySlugs,
   pickProductEnrichment,
+  resolveSourceCategorySlugs,
 } from "./import-livcheers-catalog.js";
 
 describe("Livcheers catalogue import helpers", () => {
+  it("uses an auditable category override for blank Bangalore wine rows", () => {
+    expect(resolveSourceCategorySlugs(
+      "Le Grand",
+      "Noir Syrah Wine",
+      "",
+      "BLR-R-263c8c9f1f835d88",
+    )).toEqual(["red-wine"]);
+  });
+
   it("normalizes punctuation and spacing for stable deduplication", () => {
     expect(normalizeIdentity("Teacher's  Highland-Cream")).toBe("teachershighlandcream");
     expect(normalizeIdentity("A & B")).toBe("aandb");
@@ -64,9 +74,22 @@ describe("Livcheers catalogue import helpers", () => {
       .toBe("https://www.livcheers.com/faridabad/liquor/sample-tequila-750ml");
   });
 
+  it("extracts Bangalore cards", () => {
+    const html = `
+      <a href="/bangalore/liquor/sample-gin-750ml">
+        <h3>Sample Gin</h3>
+        <p>750 ML</p>
+      </a>
+    `;
+
+    expect(parseCategoryCards(html, "bangalore", "gin", "source")[0]?.productUrl)
+      .toBe("https://www.livcheers.com/bangalore/liquor/sample-gin-750ml");
+  });
+
   it("accepts pipe and semicolon category delimiters", () => {
     expect(parseCategorySlugs("blended-scotch; made-in-india-whisky | blended-scotch"))
       .toEqual(["blended-scotch", "made-in-india-whisky"]);
+    expect(parseCategorySlugs("")).toEqual([]);
   });
 
   it("merges additive product metadata without duplicates", () => {

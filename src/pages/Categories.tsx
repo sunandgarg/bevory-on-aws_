@@ -5,6 +5,8 @@ import MobileLayout from "@/components/layout/MobileLayout";
 import { useProducts } from "@/hooks/useProducts";
 import { Badge } from "@/components/ui/badge";
 import SEOHead from "@/components/SEOHead";
+import { useLocation } from "@/hooks/useLocation";
+import { citySlugFromName } from "@/lib/locations";
 
 const categoryGradients: Record<string, string> = {
   whisky: "from-amber-500/20 to-amber-500/5",
@@ -20,6 +22,8 @@ const categoryGradients: Record<string, string> = {
 
 const Categories = () => {
   const { categories, products, loading } = useProducts();
+  const { selectedCity } = useLocation();
+  const citySlug = citySlugFromName(selectedCity?.name) || "gurgaon";
 
   const getCategoryProductCount = (categoryId: string) => {
     return products.filter((p) => p.category_id === categoryId).length;
@@ -40,7 +44,7 @@ const Categories = () => {
       "@type": "ListItem",
       "position": i + 1,
       "name": c.name,
-      "url": `${window.location.origin}/category/${c.slug}`,
+      "url": `${window.location.origin}/${citySlug}/category/${c.slug}`,
     })),
   });
 
@@ -105,6 +109,7 @@ const Categories = () => {
                       index={index}
                       productCount={getCategoryProductCount(category.id)}
                       isTrending
+                      citySlug={citySlug}
                     />
                   ))}
                 </div>
@@ -123,6 +128,7 @@ const Categories = () => {
                     category={category} 
                     index={index}
                     productCount={getCategoryProductCount(category.id)}
+                    citySlug={citySlug}
                   />
                 ))}
               </div>
@@ -146,15 +152,16 @@ interface CategoryCardProps {
   index: number;
   productCount: number;
   isTrending?: boolean;
+  citySlug: string;
 }
 
-const CategoryCard = ({ category, index, productCount, isTrending }: CategoryCardProps) => (
+const CategoryCard = ({ category, index, productCount, isTrending, citySlug }: CategoryCardProps) => (
   <motion.article
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: index * 0.05 }}
   >
-    <Link to={`/category/${category.slug}`}>
+    <Link to={`/${citySlug}/category/${category.slug}`}>
       <div
         className={`aspect-square rounded-2xl p-5 flex flex-col items-center justify-center relative overflow-hidden group transition-all hover:scale-[1.02] hover:shadow-xl
           bg-gradient-to-br ${categoryGradients[category.slug.toLowerCase()] || "from-secondary to-secondary/50"}

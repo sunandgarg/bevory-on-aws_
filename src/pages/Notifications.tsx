@@ -6,11 +6,15 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useLocation } from "@/hooks/useLocation";
+import { citySlugFromName } from "@/lib/locations";
 
 const Notifications = () => {
   const { user, loading: authLoading } = useAuth();
   const { notifications, loading, markAsRead, markAllAsRead, deleteNotification, unreadCount } =
     useNotifications();
+  const { selectedCity } = useLocation();
+  const citySlug = citySlugFromName(selectedCity?.name) || "gurgaon";
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -29,7 +33,7 @@ const Notifications = () => {
       case "blog_post":
         return `/guide/${n.related_id}`;
       case "product":
-        return `/product/${n.related_id}`;
+        return `/${citySlug}/product/${n.related_id}`;
       default:
         return null;
     }

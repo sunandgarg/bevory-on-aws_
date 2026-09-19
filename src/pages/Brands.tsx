@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import MobileLayout from "@/components/layout/MobileLayout";
 import SEOHead from "@/components/SEOHead";
+import { useLocation } from "@/hooks/useLocation";
+import { useProducts } from "@/hooks/useProducts";
+import { citySlugFromName } from "@/lib/locations";
 
 interface Brand {
   id: string;
@@ -25,6 +28,9 @@ const Brands = () => {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const { selectedCity } = useLocation();
+  const { products } = useProducts();
+  const citySlug = citySlugFromName(selectedCity?.name) || "gurgaon";
 
   useEffect(() => {
     const fetchBrands = async () => {
@@ -42,9 +48,11 @@ const Brands = () => {
     fetchBrands();
   }, []);
 
-  const filteredBrands = brands.filter((brand) =>
-    brand.brand_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const availableBrandNames = new Set(products.map((product) => product.brand.toLowerCase()));
+  const filteredBrands = brands.filter((brand) => (
+    availableBrandNames.has(brand.brand_name.toLowerCase())
+    && brand.brand_name.toLowerCase().includes(searchQuery.toLowerCase())
+  ));
 
   // Separate spotlight and non-spotlight brands
   const spotlightBrands = filteredBrands.filter((b) => b.show_in_spotlight);
@@ -125,7 +133,7 @@ const Brands = () => {
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     {spotlightBrands.map((brand, index) => (
-                      <BrandCard key={brand.id} brand={brand} index={index} featured />
+                      <BrandCard key={brand.id} brand={brand} index={index} citySlug={citySlug} featured />
                     ))}
                   </div>
                 </section>
@@ -141,7 +149,7 @@ const Brands = () => {
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     {otherBrands.map((brand, index) => (
-                      <BrandCard key={brand.id} brand={brand} index={index} />
+                      <BrandCard key={brand.id} brand={brand} index={index} citySlug={citySlug} />
                     ))}
                   </div>
                 </section>
@@ -177,16 +185,17 @@ interface BrandCardProps {
   brand: Brand;
   index: number;
   featured?: boolean;
+  citySlug: string;
 }
 
-const BrandCard = ({ brand, index, featured }: BrandCardProps) => (
+const BrandCard = ({ brand, index, featured, citySlug }: BrandCardProps) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: index * 0.03 }}
   >
     <Link
-      to={`/brand/${brand.slug || brand.id}`}
+      to={`/${citySlug}/brand/${brand.slug || brand.id}`}
       className="flex flex-col items-center group"
     >
       <div

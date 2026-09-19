@@ -7,7 +7,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { parse } from "csv-parse/sync";
 import { LEGACY_CATALOG_CATEGORY_SLUGS, LIVCHEERS_CATEGORY_DEFINITIONS } from "../src/lib/catalogTaxonomy.js";
 
-type CitySlug = "delhi" | "faridabad" | "goa" | "gurgaon";
+type CitySlug = "bangalore" | "delhi" | "faridabad" | "goa" | "gurgaon";
 
 type SourceSpec = {
   city: string;
@@ -34,6 +34,10 @@ type CsvRow = {
   price_conflict?: string;
   price_anomaly_flag?: string;
   price_anomaly_reason?: string;
+  size_anomaly_flag?: string;
+  size_anomaly_reason?: string;
+  category_anomaly_flag?: string;
+  category_anomaly_reason?: string;
 };
 
 type ParsedRow = CsvRow & {
@@ -113,6 +117,22 @@ const CATEGORY_OVERRIDES = new Map<string, string>([
   ["sierra|tequila repsado", "tequila"],
   ["sula|seco rose", "rose-wine"],
   ["teachers|highland cream", "blended-scotch"],
+  ["embargo|anejo blanco rum", "rum"],
+  ["espolon|blanco tequila", "tequila"],
+  ["le grand|noir syrah wine", "red-wine"],
+  ["nederburg|winemaster reserve shiraz", "red-wine"],
+  ["piccini|pinocchio vino rosso", "red-wine"],
+  ["sensi|sangiovese", "red-wine"],
+  ["volcan de mi tierra|volcan blanco tequila", "tequila"],
+  ["yellow tail|reserve cabernet sauvignon", "red-wine"],
+]);
+
+const RECORD_CATEGORY_OVERRIDES = new Map<string, string>([
+  ["BLR-R-263c8c9f1f835d88", "red-wine"],
+  ["BLR-R-6dd859bf1e40826f", "red-wine"],
+  ["BLR-R-463153f288272cc5", "red-wine"],
+  ["BLR-R-59b866b5e9e53843", "red-wine"],
+  ["BLR-R-dfe294c760ab4dfe", "red-wine"],
 ]);
 
 const SOURCE_PRIORITY: Record<CitySlug, number> = {
@@ -120,6 +140,7 @@ const SOURCE_PRIORITY: Record<CitySlug, number> = {
   goa: 2,
   gurgaon: 3,
   faridabad: 4,
+  bangalore: 5,
 };
 
 const slugify = (value: string) => value
@@ -140,8 +161,23 @@ export const normalizeIdentity = (value: string) => value
 
 export const parseCategorySlugs = (value: string) => [...new Set(value
   .split(/[|;]/)
+  .map((category) => category.trim())
+  .filter(Boolean)
   .map((category) => slugify(category))
-  .filter(Boolean))];
+)];
+
+export const resolveSourceCategorySlugs = (
+  brandName: string,
+  productName: string,
+  sourceCategory: string,
+  recordId: string,
+) => {
+  const categorySlugs = parseCategorySlugs(sourceCategory);
+  const overrideKey = `${brandName.trim().toLowerCase()}|${productName.trim().toLowerCase()}`;
+  const override = CATEGORY_OVERRIDES.get(overrideKey) ?? RECORD_CATEGORY_OVERRIDES.get(recordId);
+  if (!categorySlugs.length && override) categorySlugs.push(override);
+  return categorySlugs;
+};
 
 export const mergeUniqueNumbers = (existing: unknown, incoming: number[]) => {
   const previous = Array.isArray(existing)
@@ -265,13 +301,14 @@ const parseArguments = () => {
     { flag: "--goa", city: "Goa", citySlug: "goa" },
     { flag: "--gurgaon", city: "Gurgaon", citySlug: "gurgaon" },
     { flag: "--faridabad", city: "Faridabad", citySlug: "faridabad" },
+    { flag: "--bangalore", city: "Bangalore", citySlug: "bangalore" },
   ];
   const sources = definitions.flatMap((definition) => {
     const path = valueFor(definition.flag);
     return path ? [{ city: definition.city, citySlug: definition.citySlug, path: resolve(path) }] : [];
   });
   if (!sources.length) {
-    throw new Error("Provide at least one source: --delhi, --goa, --gurgaon, or --faridabad <csv>.");
+    throw new Error("Provide at least one source: --delhi, --goa, --gurgaon, --faridabad, or --bangalore <csv>.");
   }
   return {
     sources: sources satisfies SourceSpec[],
@@ -304,7 +341,9 @@ const readSourceRows = async (source: SourceSpec, issues: ImportIssue[]) => {
     const productName = row.product_name?.trim();
     const price = Number(row.price_inr?.replace(/,/g, ""));
     const volumeMl = Number(row.volume_ml);
-    const categorySlugs = parseCategorySlugs(row.source_category ?? "");
+    const categorySlugs = brandName && productName
+      ? resolveSourceCategorySlugs(brandName, productName, row.source_category ?? "", recordId)
+      : [];
 
     if (!brandName || !productName) return issue("missing_identity", "Brand or product name is missing.");
     if (normalizeIdentity(row.city) !== normalizeIdentity(source.city)) {
@@ -329,6 +368,13 @@ const readSourceRows = async (source: SourceSpec, issues: ImportIssue[]) => {
       issue(
         "source_price_anomaly",
         row.price_anomaly_reason || "The source row flags a price anomaly; imported with review metadata.",
+        "warning",
+      );
+    }
+    if (parseBoolean(row.size_anomaly_flag)) {
+      issue(
+        "source_size_anomaly",
+        row.size_anomaly_reason || "The source row flags a size anomaly; imported with review metadata.",
         "warning",
       );
     }
@@ -482,7 +528,7 @@ const tokenSimilarity = (left: string, right: string) => {
 const productPath = (value: string | undefined) => {
   if (!value) return "";
   try {
-    return new URL(value).pathname.replace(/^\/(?:delhi|faridabad|goa|gurgaon)/, "");
+    return new URL(value).pathname.replace(/^\/(?:bangalore|delhi|faridabad|goa|gurgaon)/, "");
   } catch {
     return "";
   }
@@ -743,7 +789,13 @@ const buildRecords = async (
       price_conflict: parseBoolean(row.price_conflict),
       price_anomaly_flag: parseBoolean(row.price_anomaly_flag),
       price_anomaly_reason: row.price_anomaly_reason || null,
-      requires_review: parseBoolean(row.price_conflict) || parseBoolean(row.price_anomaly_flag),
+      size_anomaly_flag: parseBoolean(row.size_anomaly_flag),
+      size_anomaly_reason: row.size_anomaly_reason || null,
+      category_anomaly_flag: parseBoolean(row.category_anomaly_flag),
+      category_anomaly_reason: row.category_anomaly_reason || null,
+      requires_review: parseBoolean(row.price_conflict)
+        || parseBoolean(row.price_anomaly_flag)
+        || parseBoolean(row.size_anomaly_flag),
       source_price_matches_current: matched?.price === row.price,
       source_price_verified_at: matched?.price === row.price ? now : null,
       imported_from: "livcheers_csv",

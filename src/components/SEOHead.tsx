@@ -9,7 +9,7 @@ interface SEOHeadProps {
   keywords?: string;
   ogImage?: string;
   ogType?: string;
-  canonical?: string; // Just the path, e.g., "/haryana/beer/lager/kingfisher"
+  canonical?: string; // Just the path, e.g., "/gurgaon/product/kingfisher-abc1234"
   jsonLd?: Record<string, unknown>;
   // 2026 SEO enhancements
   author?: string;

@@ -3,6 +3,11 @@
 
 ## Core pages
 - [Local price guide](https://bevory.in/gurgaon): Browse products with approved local price records.
+- [Delhi prices](https://bevory.in/delhi): Reviewed bottle prices available in Delhi.
+- [Gurgaon prices](https://bevory.in/gurgaon): Reviewed bottle prices available in Gurgaon.
+- [Faridabad prices](https://bevory.in/faridabad): Reviewed bottle prices available in Faridabad.
+- [Goa prices](https://bevory.in/goa): Reviewed bottle prices available in Goa.
+- [Bangalore prices](https://bevory.in/bangalore): Reviewed bottle prices available in Bangalore.
 - [Categories](https://bevory.in/categories): Explore beverages by category and subcategory.
 - [Brands](https://bevory.in/brands): Browse brand and product pages.
 - [Bevory Guide](https://bevory.in/guide): Read beverage education, tasting and responsible-serving articles.
@@ -11,7 +16,9 @@
 ## Catalogue rules
 - Product variants are shown only when a positive, available price exists for the selected city and the record is not awaiting review.
 - Prices are informational and can differ from current retailer prices.
-- Product and brand pages use stable canonical URLs; arbitrary search and sorting combinations are not indexable landing pages.
+- Canonical product pages use /{city}/product/{product-slug}; exact reviewed bottle-size pages use /{city}/product/{product-slug}/{size}.
+- City brand and category pages are indexable only where matching reviewed local products exist. Arbitrary filters, search results and empty price pages are not indexable landing pages.
+- [XML sitemap](https://bevory.in/sitemap.xml): Canonical city, product, variant, brand, category, guide, cocktail and video URLs.
 
 ## Policies
 - [Information disclaimer](https://bevory.in/disclaimer)

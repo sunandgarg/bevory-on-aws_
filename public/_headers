@@ -16,5 +16,9 @@
 /sitemap.xml
   Cache-Control: public, max-age=3600, must-revalidate
 
+/seo-routes/*
+  Cache-Control: public, max-age=3600, must-revalidate
+  X-Robots-Tag: noindex
+
 /llms.txt
   Cache-Control: public, max-age=86400, must-revalidate

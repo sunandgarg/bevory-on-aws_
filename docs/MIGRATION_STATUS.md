@@ -21,9 +21,9 @@ and verified.
 | Cloudflare Pages frontend | Complete | `bevory.in`, `www.bevory.in`, and the Pages production deployment are active |
 | AWS Lightsail API | Complete | Container health check and public `/api/health` pass |
 | Lightsail Managed MySQL | Complete | Prisma schema, seed, catalogue, and integration tests pass |
-| Catalogue import | Complete | 30 cities, 18 active categories, 121 subcategories, 1,283 brands, 2,936 products, and 4,760 valid price variants |
+| Catalogue import | Complete | 30 cities, 18 active categories, 121 subcategories, 1,496 brands, 3,491 products, and 8,279 approved price variants |
 | City availability | Complete | Only approved variants priced in the selected city are returned |
-| Product images | Reachable external sources | All 2,936 product images and 341 available brand logos return valid images from `static.livcheers.com`; they are not stored in Bevory's S3 bucket and their reuse rights remain unverified |
+| Product images | Reachable external sources | All 3,479 publicly priced products have identity-verified images and 351 brands have verified logos from `static.livcheers.com`; they are not stored in Bevory's S3 bucket and their reuse rights remain unverified |
 | Guide recovery | Complete | 50 articles reconstructed, 2,179 fragments quarantined, and 11 evergreen articles published |
 | 25+ compliance UI | Complete | The configurable 25+ gate is mounted globally across public, auth, and admin routes |
 | Authentication | Complete | Email/password, sessions, admin authorization, phone OTP tests, and Google OAuth pass |
@@ -34,12 +34,14 @@ and verified.
 
 - Four source rows were excluded because they contain no positive INR price:
   three Goa rows and one Gurgaon row.
-- 59 source-conflict or anomaly price rows remain stored with
+- 89 source-conflict or anomaly price rows remain stored with
   `requires_review=true`. Public catalogue, product, comparison, favorite,
   brand, party-planner, and sitemap reads exclude them until an administrator
   approves the values.
-- Three multi-category and six category-conflict warnings are retained in the
-  production import report for editorial review.
+- The Bangalore source added 1,802 rows with zero rejected rows. Fourteen
+  conflict, price-anomaly, or size-anomaly variants remain review-only; its
+  multi-category and category-conflict warnings are retained in the restricted
+  production report.
 - Product images remain externally linked as requested. Their identity is
   verified, but reuse rights must be confirmed before copying them to S3.
 
@@ -74,10 +76,10 @@ propagate the new name across all services.
   console errors.
 - Service worker v6 fetches route documents network-first so compliance changes
   are not hidden behind stale HTML.
-- `sitemap.xml` contains 4,367 unique canonical URLs and 3,261 image entries:
-  2,920 publicly priced products, 1,283 brands, 121 stable category/subcategory
-  pages, 11 published guides, and the remaining city/category/static pages.
-- `pnpm sitemap:audit` fetched every one of the 4,367 production page URLs and
+- `sitemap.xml` contains 20,520 unique canonical URLs and 17,418 image entries:
+  7,777 city product pages, 8,279 exact city-and-size pages, city brand and
+  taxonomy pages, 11 published guides, and 170 cocktails.
+- `pnpm sitemap:audit` fetched every one of the 20,520 production page URLs and
   confirmed HTTP 200, matching canonicals, indexable robots directives, initial
   H1/title content, and valid JSON-LD.
 - Free-text search, sorting, price ranges, and arbitrary filter combinations are
