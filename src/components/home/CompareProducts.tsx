@@ -80,7 +80,8 @@ export const CompareProvider = ({ children }: { children: ReactNode }) => {
         .select("price, mrp, volume, volume_ml")
         .eq("product_id", productId)
         .eq("city_id", selectedCity.id)
-        .eq("price_available", true);
+        .eq("price_available", true)
+        .neq("requires_review", true);
 
       const preferredPrice = (priceData || []).sort((left, right) => {
         const leftPreferred = left.volume_ml === 750 ? 1 : 0;

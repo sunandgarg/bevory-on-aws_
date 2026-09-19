@@ -141,6 +141,7 @@ const BrandDetail = () => {
               .select("product_id, price, volume_ml")
               .eq("city_id", selectedCity.id)
               .eq("price_available", true)
+              .neq("requires_review", true)
               .in("product_id", productIds);
 
             if (pricesData) {

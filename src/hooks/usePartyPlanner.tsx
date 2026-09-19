@@ -78,6 +78,7 @@ export const usePartyPlanner = () => {
             .select("product_id, price, mrp, volume_ml")
             .eq("city_id", selectedCity.id)
             .eq("price_available", true)
+            .neq("requires_review", true)
             .gt("price", 0);
 
           if (cityPrices && cityPrices.length > 0) {

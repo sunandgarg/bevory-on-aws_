@@ -54,6 +54,7 @@ const Favorites = () => {
               .select("product_id")
               .eq("city_id", selectedCity.id)
               .eq("price_available", true)
+              .neq("requires_review", true)
               .in("product_id", productIds)
           : Promise.resolve({ data: [] }),
         cocktailIds.length > 0

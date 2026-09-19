@@ -172,7 +172,8 @@ const ProductDetail = () => {
           .select("*")
           .eq("product_id", productData.id)
           .eq("city_id", selectedCity.id)
-          .eq("price_available", true);
+          .eq("price_available", true)
+          .neq("requires_review", true);
 
         if (priceData && priceData.length > 0) {
           const prices: VolumePrice[] = priceData.map((p) => ({

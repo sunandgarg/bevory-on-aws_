@@ -40,14 +40,18 @@ const staticPages: SitemapEntry[] = [
 
 try {
   const records = await prisma.contentRecord.findMany({
-    where: { tableName: { in: ["brand_spotlights", "categories", "cities", "product_prices", "products"] } },
+    where: { tableName: { in: ["blog_posts", "brand_spotlights", "categories", "cities", "product_prices", "products"] } },
   });
   const rows = records.map((record) => ({
     table: record.tableName,
     id: record.recordId,
     data: jsonObject(record.data),
   }));
-  const prices = rows.filter((row) => row.table === "product_prices" && row.data.price_available !== false);
+  const prices = rows.filter((row) => (
+    row.table === "product_prices"
+    && row.data.price_available !== false
+    && row.data.requires_review !== true
+  ));
   const pricedProductIds = new Set(prices.map((row) => String(row.data.product_id ?? "")).filter(Boolean));
   const pricedCityIds = new Set(prices.map((row) => String(row.data.city_id ?? "")).filter(Boolean));
 
@@ -84,7 +88,16 @@ try {
       lastmod: String(row.data.updated_at ?? today).slice(0, 10),
     }));
 
-  const entries = [...staticPages, ...cityPages, ...categoryPages, ...brandPages, ...productPages];
+  const guidePages: SitemapEntry[] = rows
+    .filter((row) => row.table === "blog_posts" && row.data.is_published === true && row.data.slug)
+    .map((row) => ({
+      path: `/guide/${row.data.slug}`,
+      changefreq: "monthly",
+      priority: "0.6",
+      lastmod: String(row.data.updated_at ?? row.data.published_at ?? today).slice(0, 10),
+    }));
+
+  const entries = [...staticPages, ...cityPages, ...categoryPages, ...brandPages, ...productPages, ...guidePages];
   const uniqueEntries = [...new Map(entries.map((entry) => [entry.path, entry])).values()];
   const urls = uniqueEntries.map(({ path, changefreq, priority, lastmod = today }) => `  <url>
     <loc>${xmlEscape(`${origin}${path}`)}</loc>
@@ -98,7 +111,7 @@ try {
     `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`,
   );
 
-  console.log(`Generated sitemap with ${uniqueEntries.length} URLs (${productPages.length} products, ${brandPages.length} brands)`);
+  console.log(`Generated sitemap with ${uniqueEntries.length} URLs (${productPages.length} products, ${brandPages.length} brands, ${guidePages.length} guides)`);
 } finally {
   await prisma.$disconnect();
 }

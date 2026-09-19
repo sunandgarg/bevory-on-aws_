@@ -68,61 +68,13 @@ const fetchCategories = async (): Promise<Category[]> => {
   return data as Category[];
 };
 
-const fetchProducts = async (cityId?: string): Promise<Product[]> => {
-  if (!cityId) return [];
-
-  const { data: prices, error: priceError } = await apiClient
-    .from("product_prices")
-    .select("product_id, volume, volume_ml, price, mrp")
-    .eq("city_id", cityId)
-    .eq("price_available", true);
-  if (priceError) throw priceError;
-  if (!prices?.length) return [];
-
-  const variantsByProduct = new Map<string, Array<{
-    volume: string;
-    volume_ml: number | null;
-    price: number;
-    mrp: number | null;
-  }>>();
-  for (const price of prices) {
-    const variants = variantsByProduct.get(price.product_id) ?? [];
-    variants.push({
-      volume: price.volume || `${price.volume_ml || ""}ml`,
-      volume_ml: price.volume_ml ?? null,
-      price: Number(price.price),
-      mrp: price.mrp == null ? null : Number(price.mrp),
-    });
-    variantsByProduct.set(price.product_id, variants);
-  }
-
-  const productIds = [...variantsByProduct.keys()];
-  const { data, error } = await apiClient
-    .from("products")
-    .select(`
-      *,
-      category:categories(name, slug, emoji),
-      sub_category:sub_categories(name, slug, emoji)
-    `)
-    .in("id", productIds)
-    .eq("is_active", true);
+const fetchCityCatalog = async (cityId: string): Promise<{ categories: Category[]; products: Product[] }> => {
+  const { data, error } = await apiClient.catalog.getCity(cityId);
   if (error) throw error;
-
-  return data.map(p => {
-    const variants = (variantsByProduct.get(p.id) ?? []).sort((left, right) => {
-      const leftPreferred = left.volume_ml === 750 ? 1 : 0;
-      const rightPreferred = right.volume_ml === 750 ? 1 : 0;
-      return rightPreferred - leftPreferred || (right.volume_ml ?? 0) - (left.volume_ml ?? 0);
-    });
-    const preferred = variants[0];
-    return {
-      ...p,
-      price: preferred?.price ?? null,
-      mrp: preferred?.mrp ?? null,
-      volume: preferred?.volume ?? p.volume,
-      available_variants: variants,
-    };
-  }) as Product[];
+  return {
+    categories: (data?.categories ?? []) as Category[],
+    products: (data?.products ?? []) as Product[],
+  };
 };
 
 /* ===================== HOOK ===================== */
@@ -134,15 +86,17 @@ export const useProducts = () => {
     queryKey: ["categories"],
     queryFn: fetchCategories,
     staleTime: 10 * 60 * 1000, // categories rarely change
+    enabled: !selectedCity?.id,
   });
 
-  const { data: productsData, isLoading: loading } = useQuery({
-    queryKey: ["products", selectedCity?.id ?? "all"],
-    queryFn: () => fetchProducts(selectedCity?.id),
+  const { data: catalogData, isLoading: loading } = useQuery({
+    queryKey: ["city-catalog", selectedCity?.id ?? "none"],
+    queryFn: () => fetchCityCatalog(selectedCity!.id),
     staleTime: 5 * 60 * 1000,
+    enabled: Boolean(selectedCity?.id),
   });
-  const categories = categoriesData ?? EMPTY_CATEGORIES;
-  const productsRaw = productsData ?? EMPTY_PRODUCTS;
+  const categories = catalogData?.categories ?? categoriesData ?? EMPTY_CATEGORIES;
+  const productsRaw = catalogData?.products ?? EMPTY_PRODUCTS;
 
   // Pre-index products by category slug for O(1) lookups
   const productsByCategorySlug = useMemo(() => {

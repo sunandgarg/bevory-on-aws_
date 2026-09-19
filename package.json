@@ -19,6 +19,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:setup": "prisma generate && prisma db push && tsx prisma/seed.ts",
     "catalog:import": "tsx scripts/import-livcheers-catalog.ts",
+    "blog:repair": "tsx scripts/repair-blog-import.ts",
     "sitemap": "tsx scripts/generate-sitemap.ts",
     "test": "vitest run",
     "lint": "eslint .",

@@ -55,6 +55,7 @@ export type ProductEnrichment = {
   volumeMl: number;
   typeName: string | null;
   imageUrl: string | null;
+  price: number | null;
   productUrl: string;
   sourcePage: string;
 };
@@ -196,10 +197,11 @@ export const parseCategoryCards = (
     const productName = heading ? textContent(heading) : attribute(imageTag, "alt");
     if (!href || !productName) continue;
 
-    const volumeMatches = [...body.matchAll(/<p\b[^>]*>(\s*[0-9.]+\s*(?:ML|L)\s*)<\/p>/gi)];
-    const volumeText = volumeMatches.at(-1)?.[1] ?? "";
+    const volumeMatches = [...body.matchAll(/<p\b[^>]*>\s*([0-9.]+)\s*(ML|L)\b[^<]*<\/p>/gi)];
+    const volumeMatch = volumeMatches.at(-1);
+    const volumeText = volumeMatch ? `${volumeMatch[1]}${volumeMatch[2]}` : "";
     const volumeNumber = Number.parseFloat(volumeText.replace(/[^0-9.]/g, ""));
-    const volumeMl = /\bL\b/i.test(volumeText) && !/ML/i.test(volumeText)
+    const volumeMl = volumeMatch?.[2].toUpperCase() === "L"
       ? Math.round(volumeNumber * 1000)
       : Math.round(volumeNumber);
     if (!Number.isFinite(volumeMl) || volumeMl <= 0) continue;
@@ -208,6 +210,8 @@ export const parseCategoryCards = (
     const brandName = brandMatch ? textContent(brandMatch[1]) : "";
     const typeMatch = body.match(/<span\b[^>]*bg-\[#F4F5F5\][^>]*>([\s\S]*?)<\/span>/i);
     const typeName = typeMatch ? textContent(typeMatch[1]) : null;
+    const priceMatch = textContent(body).match(/₹\s*([0-9][0-9,]*)/);
+    const price = priceMatch ? Number(priceMatch[1].replace(/,/g, "")) : null;
 
     results.push({
       citySlug,
@@ -217,6 +221,7 @@ export const parseCategoryCards = (
       volumeMl,
       typeName: typeName || null,
       imageUrl: imageUrl?.startsWith("http") ? imageUrl : null,
+      price: price && Number.isFinite(price) ? price : null,
       productUrl: new URL(href, "https://www.livcheers.com").toString(),
       sourcePage,
     });
@@ -421,21 +426,72 @@ const choosePrimaryCategory = (productKey: string, rows: ParsedRow[]) => {
     ?? LIVCHEERS_CATEGORY_DEFINITIONS[0][0];
 };
 
-const pickProductEnrichment = (rows: ParsedRow[], enrichments: ProductEnrichment[]) => {
-  const candidates = rows.flatMap((row) => {
-    const keys = [
-      variantLookupKey(row.source.citySlug, row.site_product_name || `${row.brand_name} ${row.product_name}`, row.volumeMl),
-      variantLookupKey(row.source.citySlug, `${row.brand_name} ${row.product_name}`, row.volumeMl),
-      variantLookupKey(row.source.citySlug, row.product_name, row.volumeMl),
-    ];
-    return enrichments.filter((item) => keys.includes(variantLookupKey(item.citySlug, item.productName, item.volumeMl)));
+const MATCH_STOP_WORDS = new Set([
+  "and", "beer", "brandy", "drink", "liquor", "rtd", "soda", "tequila", "the", "vodka", "whiskey", "whisky", "wine",
+]);
+
+const MATCH_TOKEN_ALIASES: Record<string, string> = {
+  anojo: "anejo",
+  cab: "cabernet",
+  rosato: "rose",
+  sauv: "sauvignon",
+};
+
+const matchTokens = (value: string) => new Set(value
+  .normalize("NFKD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase()
+  .split(/[^a-z0-9]+/)
+  .filter(Boolean)
+  .map((token) => MATCH_TOKEN_ALIASES[token] ?? token)
+  .filter((token) => !MATCH_STOP_WORDS.has(token)));
+
+const tokenSimilarity = (left: string, right: string) => {
+  const leftTokens = matchTokens(left);
+  const rightTokens = matchTokens(right);
+  if (!leftTokens.size || !rightTokens.size) return 0;
+  const intersection = [...leftTokens].filter((token) => rightTokens.has(token)).length;
+  const union = new Set([...leftTokens, ...rightTokens]).size;
+  return intersection / union;
+};
+
+const productPath = (value: string | undefined) => {
+  if (!value) return "";
+  try {
+    return new URL(value).pathname.replace(/^\/(?:delhi|goa|gurgaon)/, "");
+  } catch {
+    return "";
+  }
+};
+
+const enrichmentMatchScore = (row: ParsedRow, item: ProductEnrichment) => {
+  if (row.source.citySlug !== item.citySlug || row.volumeMl !== item.volumeMl) return 0;
+  const rowNames = [
+    row.site_product_name,
+    `${row.brand_name} ${row.product_name}`,
+    row.product_name,
+  ].filter(Boolean);
+  const itemNames = [item.productName, `${item.brandName} ${item.productName}`];
+  if (rowNames.some((left) => itemNames.some((right) => normalizeIdentity(left) === normalizeIdentity(right)))) return 100;
+  if (productPath(row.known_product_url) && productPath(row.known_product_url) === productPath(item.productUrl)) return 95;
+  const similarity = Math.max(...rowNames.flatMap((left) => itemNames.map((right) => tokenSimilarity(left, right))));
+  return similarity >= 0.72 ? 70 + similarity * 20 : 0;
+};
+
+export const pickProductEnrichment = (rows: ParsedRow[], enrichments: ProductEnrichment[]) => {
+  const candidates = rows.flatMap((row) => enrichments
+    .map((item) => ({ item, matchScore: enrichmentMatchScore(row, item) }))
+    .filter(({ matchScore }) => matchScore > 0));
+  const unique = new Map<string, { item: ProductEnrichment; matchScore: number }>();
+  candidates.forEach((candidate) => {
+    const key = `${candidate.item.productUrl}|${candidate.item.categorySlug}`;
+    if ((unique.get(key)?.matchScore ?? 0) < candidate.matchScore) unique.set(key, candidate);
   });
-  const unique = [...new Map(candidates.map((item) => [`${item.productUrl}|${item.categorySlug}`, item])).values()];
-  return unique.sort((left, right) => {
-    const leftScore = (left.imageUrl ? 100 : 0) + (left.volumeMl === 750 ? 20 : 0) + SOURCE_PRIORITY[left.citySlug];
-    const rightScore = (right.imageUrl ? 100 : 0) + (right.volumeMl === 750 ? 20 : 0) + SOURCE_PRIORITY[right.citySlug];
+  return [...unique.values()].sort((left, right) => {
+    const leftScore = left.matchScore * 100 + (left.item.imageUrl ? 100 : 0) + (left.item.volumeMl === 750 ? 20 : 0) + SOURCE_PRIORITY[left.item.citySlug];
+    const rightScore = right.matchScore * 100 + (right.item.imageUrl ? 100 : 0) + (right.item.volumeMl === 750 ? 20 : 0) + SOURCE_PRIORITY[right.item.citySlug];
     return rightScore - leftScore;
-  });
+  }).map(({ item }) => item);
 };
 
 const buildRecords = async (
@@ -651,6 +707,8 @@ const buildRecords = async (
       price_anomaly_flag: parseBoolean(row.price_anomaly_flag),
       price_anomaly_reason: row.price_anomaly_reason || null,
       requires_review: parseBoolean(row.price_conflict) || parseBoolean(row.price_anomaly_flag),
+      source_price_matches_current: matched?.price === row.price,
+      source_price_verified_at: matched?.price === row.price ? now : null,
       imported_from: "livcheers_csv",
     });
   }

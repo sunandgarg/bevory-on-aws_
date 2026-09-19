@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeIdentity, parseCategoryCards } from "./import-livcheers-catalog.js";
+import { normalizeIdentity, parseCategoryCards, pickProductEnrichment } from "./import-livcheers-catalog.js";
 
 describe("Livcheers catalogue import helpers", () => {
   it("normalizes punctuation and spacing for stable deduplication", () => {
@@ -27,6 +27,7 @@ describe("Livcheers catalogue import helpers", () => {
         volumeMl: 750,
         typeName: "Blended Whisky",
         imageUrl: "https://static.livcheers.com/static/content/images/product/SAMPLE.webp",
+        price: null,
         productUrl: "https://www.livcheers.com/delhi/liquor/sample-whisky-750ml",
         sourcePage: "https://example.test/category",
       },
@@ -42,5 +43,62 @@ describe("Livcheers catalogue import helpers", () => {
     `;
 
     expect(parseCategoryCards(html, "goa", "rum", "https://example.test/rum")[0]?.volumeMl).toBe(1000);
+  });
+
+  it("parses package suffixes and card prices", () => {
+    const html = `
+      <a href="/delhi/liquor/wild-drum-pure-hard-seltzer-330ml-can">
+        <img src="https://static.livcheers.com/seltzer.webp" alt="Wild Drum Pure Hard Seltzer" />
+        <p class="text-[#007CF5]">Wild Drum</p>
+        <h3>Wild Drum Pure Hard Seltzer</h3>
+        <p>330ML CAN</p>
+        <span>₹160</span>
+        <span class="bg-[#F4F5F5]">Flavored</span>
+      </a>
+    `;
+
+    expect(parseCategoryCards(html, "delhi", "ready-to-drink", "source")[0]).toMatchObject({
+      volumeMl: 330,
+      price: 160,
+    });
+  });
+
+  it("matches a product when Livcheers splits its brand differently", () => {
+    const source = {
+      brand_name: "Sake Jpn",
+      product_name: "Sake Shotoku Junmai Nigorizake",
+      site_product_name: "Sake Jpn Sake Shotoku Junmai Nigorizake",
+      variant_name: "720 ml",
+      volume_ml: "720",
+      price_inr: "4500",
+      currency: "INR",
+      city: "Gurgaon",
+      source_category: "sake",
+      source_url: "https://www.livcheers.com/gurgaon/category/sake",
+      price_evidence: "category_card",
+      source_accessed_on: "2026-09-19",
+      source: { city: "Gurgaon", citySlug: "gurgaon" as const, path: "source.csv" },
+      sourceIndex: 0,
+      price: 4500,
+      volumeMl: 720,
+      categorySlugs: ["sake"],
+      productKey: "sakejpn|sakeshotoku",
+      brandKey: "sakejpn",
+      variantKey: "sakejpn|sakeshotoku|720",
+    };
+    const enrichment = {
+      citySlug: "gurgaon" as const,
+      categorySlug: "sake",
+      brandName: "Sake",
+      productName: "Jpn Sake Shotoku Junmai Nigorizake",
+      volumeMl: 720,
+      typeName: "Sake",
+      imageUrl: "https://static.livcheers.com/shotoku.webp",
+      price: 4500,
+      productUrl: "https://www.livcheers.com/gurgaon/liquor/shotoku-720ml",
+      sourcePage: "source",
+    };
+
+    expect(pickProductEnrichment([source], [enrichment])).toEqual([enrichment]);
   });
 });
