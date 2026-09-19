@@ -116,6 +116,7 @@ const App = () => (
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/search" element={<Search />} />
                   <Route path="/categories" element={<Categories />} />
+                  <Route path="/category/:slug/:subCategorySlug" element={<CategoryDetail />} />
                   <Route path="/category/:slug" element={<CategoryDetail />} />
                   <Route path="/:state/:category/:subcategory/:productSlug" element={<ProductDetail />} />
                   <Route path="/product/:slug" element={<ProductDetail />} />

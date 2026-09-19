@@ -186,7 +186,7 @@ const Home = () => {
                   {cat.image_url ? (
                     <OptimizedImage
                       src={cat.image_url}
-                      alt={cat.name}
+                      alt={`${cat.name} beverage category`}
                       width={76}
                       height={76}
                       className="w-full h-full"

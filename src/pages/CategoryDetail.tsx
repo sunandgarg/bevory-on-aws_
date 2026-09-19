@@ -23,12 +23,11 @@ interface SubCategory {
 }
 
 const CategoryDetail = () => {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug, subCategorySlug } = useParams<{ slug: string; subCategorySlug?: string }>();
   const { categories, getProductsByCategory, loading } = useProducts();
   const { selectedCity } = useLocation();
   const { getProductUrlSafe } = useProductUrl();
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
 
   const category = categories.find((c) => c.slug === slug);
   const allProducts = getProductsByCategory(slug || "");
@@ -48,10 +47,15 @@ const CategoryDetail = () => {
     fetchSubCategories();
   }, [category?.id]);
 
-  // Filter products by selected sub-category
+  const selectedSubCategory = useMemo(
+    () => subCategories.find((subCategory) => subCategory.slug === subCategorySlug) ?? null,
+    [subCategories, subCategorySlug],
+  );
+
+  // Stable path-based filters can be crawled and shared without indexing arbitrary query combinations.
   const products = useMemo(() => {
     if (!selectedSubCategory) return allProducts;
-    return allProducts.filter((p: any) => p.sub_category_id === selectedSubCategory);
+    return allProducts.filter((p: any) => p.sub_category_id === selectedSubCategory.id);
   }, [allProducts, selectedSubCategory]);
 
   // Generate structured data for SEO
@@ -61,9 +65,11 @@ const CategoryDetail = () => {
     return {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      "name": `${category.name} Collection`,
-      "description": category.description || `Browse our collection of ${category.name} products with prices and reviews.`,
-      "url": window.location.href,
+      "name": `${selectedSubCategory?.name || category.name} Collection`,
+      "description": selectedSubCategory
+        ? `Compare ${selectedSubCategory.name} products, variants and local prices.`
+        : category.description || `Browse our collection of ${category.name} products with prices and reviews.`,
+      "url": `https://bevory.in/category/${category.slug}${selectedSubCategory?.slug ? `/${selectedSubCategory.slug}` : ""}`,
       "numberOfItems": products.length,
       "itemListElement": products.slice(0, 10).map((p, i) => ({
         "@type": "Product",
@@ -119,10 +125,14 @@ const CategoryDetail = () => {
   return (
     <>
       <SEOHead
-        title={(category as any).meta_title || `${category.name} Prices & Reviews | Bevory`}
-        description={(category as any).meta_description || category.description || `Browse our collection of ${category.name}. Compare prices, read reviews, and find the best ${category.name.toLowerCase()} in ${selectedCity?.name || 'India'}.`}
-        keywords={`${category.name}, ${category.name.toLowerCase()} price guide, ${category.name.toLowerCase()} reviews, ${category.name.toLowerCase()} India`}
-        canonical={`/category/${category.slug}`}
+        title={selectedSubCategory
+          ? `${selectedSubCategory.name} Prices | Bevory`
+          : (category as any).meta_title || `${category.name} Prices & Reviews | Bevory`}
+        description={selectedSubCategory
+          ? `Compare ${selectedSubCategory.name} products, bottle sizes and verified local prices in ${selectedCity?.name || "India"}.`
+          : (category as any).meta_description || category.description || `Browse our collection of ${category.name}. Compare prices, read reviews, and find the best ${category.name.toLowerCase()} in ${selectedCity?.name || 'India'}.`}
+        keywords={`${selectedSubCategory?.name || category.name}, ${(selectedSubCategory?.name || category.name).toLowerCase()} price guide, ${category.name.toLowerCase()} India`}
+        canonical={`/category/${category.slug}${selectedSubCategory?.slug ? `/${selectedSubCategory.slug}` : ""}`}
         jsonLd={generateStructuredData()}
       />
       <MobileLayout showBack title={category.name}>
@@ -137,7 +147,7 @@ const CategoryDetail = () => {
               <div className="relative h-56 overflow-hidden">
                 <img
                   src={category.image_url}
-                  alt={category.name}
+                  alt={`${category.name} beverage category`}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
@@ -205,25 +215,27 @@ const CategoryDetail = () => {
               <ScrollArea className="w-full whitespace-nowrap">
                 <div className="flex gap-2 pb-2">
                   <Button
+                    asChild
                     variant={selectedSubCategory === null ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setSelectedSubCategory(null)}
                     className="rounded-full flex-shrink-0"
                   >
-                    All ({allProducts.length})
+                    <Link to={`/category/${category.slug}`}>All ({allProducts.length})</Link>
                   </Button>
                   {subCategories.map((sub) => {
                     const count = allProducts.filter((p: any) => p.sub_category_id === sub.id).length;
                     return (
                       <Button
+                        asChild
                         key={sub.id}
-                        variant={selectedSubCategory === sub.id ? "default" : "outline"}
+                        variant={selectedSubCategory?.id === sub.id ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setSelectedSubCategory(sub.id)}
                         className="rounded-full flex-shrink-0 gap-1.5"
                       >
-                        {sub.emoji && <span>{sub.emoji}</span>}
-                        {sub.name} ({count})
+                        <Link to={`/category/${category.slug}/${sub.slug}`}>
+                          {sub.emoji && <span>{sub.emoji}</span>}
+                          {sub.name} ({count})
+                        </Link>
                       </Button>
                     );
                   })}
@@ -252,12 +264,12 @@ const CategoryDetail = () => {
                 </p>
                 {selectedSubCategory && (
                   <Button
+                    asChild
                     variant="outline"
                     size="sm"
                     className="mt-4"
-                    onClick={() => setSelectedSubCategory(null)}
                   >
-                    Clear Filter
+                    <Link to={`/category/${category.slug}`}>Clear Filter</Link>
                   </Button>
                 )}
               </motion.div>
@@ -265,8 +277,8 @@ const CategoryDetail = () => {
               <>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="font-serif font-semibold">
-                    {selectedSubCategory 
-                      ? subCategories.find(s => s.id === selectedSubCategory)?.name 
+                    {selectedSubCategory
+                      ? selectedSubCategory.name
                       : `All ${category.name}`}
                   </h2>
                   <Badge variant="secondary" className="text-xs">
@@ -297,7 +309,7 @@ const CategoryDetail = () => {
                                 src={`https://wsrv.nl/?url=${encodeURIComponent(product.image_url)}&w=400&output=webp&q=80`}
                                 srcSet={`https://wsrv.nl/?url=${encodeURIComponent(product.image_url)}&w=200&output=webp&q=80 200w, https://wsrv.nl/?url=${encodeURIComponent(product.image_url)}&w=400&output=webp&q=80 400w`}
                                 sizes="(max-width: 640px) 50vw, 200px"
-                                alt={product.name}
+                                alt={`${product.brand} ${product.name} bottle`}
                                 loading="lazy" decoding="async" width={400} height={400}
                                 className="w-full h-full object-cover"
                               />

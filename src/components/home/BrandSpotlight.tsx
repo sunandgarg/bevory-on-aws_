@@ -71,11 +71,11 @@ const BrandSpotlight = memo(() => {
               {brand.logo_url ? (
                 <OptimizedImage
                   src={brand.logo_url}
-                  alt={brand.brand_name}
+                  alt={`${brand.brand_name} logo`}
                   width={68}
                   height={68}
                   className="w-full h-full"
-                  objectFit="cover"
+                  objectFit="contain"
                   placeholder="blur"
                 />
               ) : (

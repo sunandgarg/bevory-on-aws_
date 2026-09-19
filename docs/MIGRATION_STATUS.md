@@ -23,11 +23,11 @@ and verified.
 | Lightsail Managed MySQL | Complete | Prisma schema, seed, catalogue, and integration tests pass |
 | Catalogue import | Complete | 30 cities, 18 active categories, 121 subcategories, 1,283 brands, 2,936 products, and 4,760 valid price variants |
 | City availability | Complete | Only approved variants priced in the selected city are returned |
-| Product images | Complete as linked sources | All 2,936 products have verified Livcheers source image URLs; 341 brand logos are verified |
+| Product images | Reachable external sources | All 2,936 product images and 341 available brand logos return valid images from `static.livcheers.com`; they are not stored in Bevory's S3 bucket and their reuse rights remain unverified |
 | Guide recovery | Complete | 50 articles reconstructed, 2,179 fragments quarantined, and 11 evergreen articles published |
 | 25+ compliance UI | Complete | The configurable 25+ gate is mounted globally across public, auth, and admin routes |
 | Authentication | Complete | Email/password, sessions, admin authorization, phone OTP tests, and Google OAuth pass |
-| S3 uploads | Complete | Bucket is private, encrypted, versioned, and restricted to the production uploader |
+| S3 uploads | Infrastructure complete | Bucket is private, encrypted, versioned, and restricted to the production uploader; it currently contains the encrypted Guide backup, not the catalogue images |
 | CloudFront media CDN | Blocked by AWS | Existing OAC is ready, but AWS still rejects distribution creation until account verification |
 
 ## Import Exceptions
@@ -51,10 +51,14 @@ Production audit reports are stored with restricted permissions in
 
 AWS still returns `Your account must be verified before you can add new
 CloudFront resources` when creating the approved distribution. AWS Support case
-`178975941700756` already tracks the account-verification request. The private
+`178975941700756` is open and remains unassigned. The private
 bucket must not be made public as a workaround. Once AWS verifies the account,
 create the distribution with OAC `bevory-uploads-oac`, scope the bucket policy
 to its ARN, and then attach `media.bevory.in`.
+
+The AWS account display name was changed from `cirkle.world` to `Bevory` on
+2026-09-19. The console confirmed the change; AWS may take several hours to
+propagate the new name across all services.
 
 ## Verification Record
 
@@ -70,6 +74,13 @@ to its ARN, and then attach `media.bevory.in`.
   console errors.
 - Service worker v6 fetches route documents network-first so compliance changes
   are not hidden behind stale HTML.
-- `sitemap.xml` contains 4,246 current URLs: 2,920 approved products, 1,283
-  brands, and 11 published guides, plus city, category, and static pages.
+- `sitemap.xml` contains 4,367 unique canonical URLs and 3,261 image entries:
+  2,920 publicly priced products, 1,283 brands, 121 stable category/subcategory
+  pages, 11 published guides, and the remaining city/category/static pages.
+- `pnpm sitemap:audit` fetched every one of the 4,367 production page URLs and
+  confirmed HTTP 200, matching canonicals, indexable robots directives, initial
+  H1/title content, and valid JSON-LD.
+- Free-text search, sorting, price ranges, and arbitrary filter combinations are
+  `noindex, follow`; only stable subcategory landing pages are indexable to avoid
+  duplicate and effectively infinite faceted URL combinations.
 - Lightsail exposes only TCP ports 80 and 443; temporary SSH access was closed.

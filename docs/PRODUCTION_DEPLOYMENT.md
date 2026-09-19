@@ -58,9 +58,10 @@ The following production checks passed on 2026-09-19:
   city-specific size prices.
 - City availability is strict: a product size is returned only where that city
   has a price for it.
-- All 2,936 products have verified source image URLs and 341 brands have verified
-  logo URLs. These remote links are requested at a 720 px display target; image
-  reuse rights still require review before copying the assets to S3.
+- All 2,936 products have reachable source image URLs and 341 brands have
+  reachable logo URLs on `static.livcheers.com`. These remote links are
+  requested at a 720 px display target; they are not stored in Bevory's S3
+  bucket, and image reuse rights require review before any migration.
 - Source-conflict and anomalous prices are retained for administrator review but
   excluded from all public catalogue views and the sitemap.
 - The optimized city catalogue endpoint returns Gurgaon’s 1,888 products and
@@ -75,15 +76,19 @@ The following production checks passed on 2026-09-19:
 - The live `/gurgaon` page renders without browser console errors.
 - The adaptive Bevory favicon and logo render correctly in light and dark mode,
   and the production source contains no legacy third-party branding.
-- `sitemap.xml` contains 4,246 current URLs, including 2,920 approved products,
-  1,283 brands, and 11 published guides. Search Console previously accepted the
-  sitemap; Google must recrawl it to discover the updated set.
+- `sitemap.xml` contains 4,367 unique canonical URLs and 3,261 image entries,
+  including 2,920 approved products, 1,283 brands, 121 stable subcategory
+  landing pages, and 11 published guides. Free-form search and arbitrary filter
+  combinations are intentionally `noindex, follow`. Google must recrawl the
+  sitemap to discover the updated set.
 
 ## CloudFront status
 
 The CloudFront origin access control `bevory-uploads-oac` exists, but AWS still
 rejected a distribution creation attempt on 2026-09-19 because the account must
 be verified by AWS Support. Case `178975941700756` tracks the request.
+The case remains open and unassigned. The AWS account display name is now
+`Bevory`; the console confirmed the rename from `cirkle.world` on 2026-09-19.
 The S3 bucket remains private; do not make it public as a workaround. After AWS
 removes the restriction, create the distribution using the existing private OAC,
 apply a bucket policy scoped to that distribution ARN, point `media.bevory.in`

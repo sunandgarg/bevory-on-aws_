@@ -243,10 +243,11 @@ const ProductDetail = () => {
       canonical.setAttribute("href", `${window.location.origin}/product/${product.slug || product.id}`);
 
       // Add structured data for SEO (JSON-LD)
-      let jsonLd = document.querySelector('script[type="application/ld+json"]');
+      let jsonLd = document.querySelector('script[data-bevory-seo="product"]');
       if (!jsonLd) {
         jsonLd = document.createElement("script");
         jsonLd.setAttribute("type", "application/ld+json");
+        jsonLd.setAttribute("data-bevory-seo", "product");
         document.head.appendChild(jsonLd);
       }
 
@@ -261,19 +262,42 @@ const ProductDetail = () => {
 
       // Enhanced schema with all required Google Search Console fields
       const productSchema: any = {
-        "@context": "https://schema.org",
         "@type": "Product",
         name: `${product.brand} ${product.name}`,
         description:
           product.description ||
           `${product.brand} ${product.name} - Premium alcoholic beverage available in India. Check prices, reviews and ratings.`,
         brand: { "@type": "Brand", name: product.brand },
-        image: [productImage],
+        image: [{
+          "@type": "ImageObject",
+          url: productImage,
+          contentUrl: productImage,
+          width: 720,
+          height: 720,
+        }],
         sku: product.slug || product.id,
         mpn: product.slug || product.id,
         category: product.category?.name || "Alcoholic Beverages",
         url: `https://bevory.in/product/${product.slug || product.id}`,
       };
+
+      if (volumePrices.length > 0) {
+        productSchema.offers = volumePrices.map((variant) => ({
+          "@type": "Offer",
+          url: `https://bevory.in/product/${product.slug || product.id}`,
+          price: variant.price,
+          priceCurrency: "INR",
+          availability: variant.in_stock
+            ? "https://schema.org/InStock"
+            : "https://schema.org/OutOfStock",
+          itemCondition: "https://schema.org/NewCondition",
+          areaServed: selectedCity?.name
+            ? { "@type": "City", name: selectedCity.name }
+            : { "@type": "Country", name: "India" },
+          sku: `${product.slug || product.id}-${variant.volume}`,
+          name: `${product.brand} ${product.name} ${variant.volume}`,
+        }));
+      }
 
       if (displayRating && displayReviewCount > 0) {
         productSchema.aggregateRating = {
@@ -285,7 +309,30 @@ const ProductDetail = () => {
         };
       }
 
-      jsonLd.textContent = JSON.stringify(productSchema);
+      jsonLd.textContent = JSON.stringify({
+        "@context": "https://schema.org",
+        "@graph": [
+          productSchema,
+          {
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Home", item: "https://bevory.in/" },
+              ...(product.category?.slug ? [{
+                "@type": "ListItem",
+                position: 2,
+                name: product.category.name,
+                item: `https://bevory.in/category/${product.category.slug}`,
+              }] : []),
+              {
+                "@type": "ListItem",
+                position: product.category?.slug ? 3 : 2,
+                name: `${product.brand} ${product.name}`,
+                item: `https://bevory.in/product/${product.slug || product.id}`,
+              },
+            ],
+          },
+        ],
+      });
 
       // FAQ structured data for rich snippets
       if (product.faqs && product.faqs.length > 0) {
@@ -313,6 +360,7 @@ const ProductDetail = () => {
 
     return () => {
       document.title = "Bevory - Know Before You Drink";
+      document.querySelector('script[data-bevory-seo="product"]')?.remove();
       const faqScript = document.querySelector('script[data-type="faq-ld"]');
       if (faqScript) faqScript.remove();
     };
@@ -418,7 +466,7 @@ const ProductDetail = () => {
             >
               <OptimizedImage
                 src={product.image_url}
-                alt={product.name}
+                alt={`${product.brand} ${product.name}${selectedVolume ? ` ${selectedVolume}` : ""} bottle`}
                 width={720}
                 height={720}
                 className="w-full h-full"

@@ -21,6 +21,7 @@
     "catalog:import": "tsx scripts/import-livcheers-catalog.ts",
     "blog:repair": "tsx scripts/repair-blog-import.ts",
     "sitemap": "tsx scripts/generate-sitemap.ts",
+    "sitemap:audit": "tsx scripts/audit-sitemap.ts",
     "test": "vitest run",
     "lint": "eslint .",
     "preview": "vite preview"

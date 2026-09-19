@@ -199,8 +199,11 @@ const BrandCard = ({ brand, index, featured }: BrandCardProps) => (
         {brand.logo_url ? (
           <img
             src={brand.logo_url}
-            alt={brand.brand_name}
-            className="w-full h-full object-cover"
+            alt={`${brand.brand_name} logo`}
+            width={240}
+            height={240}
+            decoding="async"
+            className="w-full h-full object-contain p-2"
             loading="lazy"
           />
         ) : (

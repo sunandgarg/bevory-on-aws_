@@ -22,6 +22,7 @@ interface SEOHeadProps {
   geoRegion?: string;
   geoPlacename?: string;
   geoPosition?: string;
+  robots?: string;
 }
 
 const SEOHead = ({
@@ -41,6 +42,7 @@ const SEOHead = ({
   geoRegion = "IN",
   geoPlacename,
   geoPosition,
+  robots = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
 }: SEOHeadProps) => {
   useEffect(() => {
     // Ensure title is under 60 characters for optimal SEO
@@ -131,7 +133,7 @@ const SEOHead = ({
     updateMeta("ICBM", geoPosition || "28.4595,77.0266"); // Default: Gurgaon
 
     // Robots meta (allow indexing)
-    updateMeta("robots", "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1");
+    updateMeta("robots", robots);
 
     // Mobile optimization
     updateMeta("mobile-web-app-capable", "yes");
@@ -162,12 +164,13 @@ const SEOHead = ({
         ...jsonLd,
       };
 
-      const existingScript = document.querySelector('script[type="application/ld+json"]');
+      const existingScript = document.querySelector('script[data-bevory-seo="page"]');
       if (existingScript) {
         existingScript.textContent = JSON.stringify(enhancedJsonLd);
       } else {
         const script = document.createElement("script");
         script.type = "application/ld+json";
+        script.dataset.bevorySeo = "page";
         script.textContent = JSON.stringify(enhancedJsonLd);
         document.head.appendChild(script);
       }
@@ -176,8 +179,9 @@ const SEOHead = ({
     // Cleanup
     return () => {
       document.title = "Bevory - Know Before You Drink";
+      document.querySelector('script[data-bevory-seo="page"]')?.remove();
     };
-  }, [title, description, keywords, ogImage, ogType, canonical, jsonLd, author, publishedTime, modifiedTime, section, tags, locale, geoRegion, geoPlacename, geoPosition]);
+  }, [title, description, keywords, ogImage, ogType, canonical, jsonLd, author, publishedTime, modifiedTime, section, tags, locale, geoRegion, geoPlacename, geoPosition, robots]);
 
   return null;
 };

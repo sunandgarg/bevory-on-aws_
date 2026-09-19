@@ -7,7 +7,6 @@ Disallow: /settings
 Disallow: /notifications
 Disallow: /recent
 Disallow: /locations
-Crawl-delay: 1
 
 User-agent: Bingbot
 Allow: /
@@ -15,7 +14,30 @@ Disallow: /admin
 Disallow: /auth
 Disallow: /profile
 Disallow: /settings
-Crawl-delay: 2
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /profile
+Disallow: /settings
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /profile
+Disallow: /settings
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /profile
+Disallow: /settings
 
 User-agent: Twitterbot
 Allow: /
